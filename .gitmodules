@@ -1,3 +1,4 @@
 [submodule "dddvb"]
 	path = dddvb
 	url = https://github.com/DigitalDevices/internal_dddvb
+	branch = internal
