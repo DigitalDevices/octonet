@@ -46,7 +46,5 @@ make O=output-octonet
 
 TS=`date +%y%m%d%H%M`
 echo $TS
-#xz -kf output-octonet/images/rootfs.tar
-#cp output-octonet/images/rootfs.tar.xz output-octonet/images/octonet.`date +%y%m%d%H%M`.img
-cp output-octonet/images/rootfs.tar.bz2 output-octonet/images/octonet.`date +%y%m%d%H%M`.img
-sha256sum output-octonet/images/octonet.`date +%y%m%d%H%M`.img > output-octonet/images/octonet.`date +%y%m%d%H%M`.sha
+cp output-octonet/images/rootfs.tar.bz2 output-octonet/images/octonet.$TS.img
+sha256sum output-octonet/images/octonet.$TS.img > output-octonet/images/octonet.$TS.sha
