@@ -1,0 +1,1073 @@
+diff --git a/board/DigitalDevices/naxy400/Makefile b/board/DigitalDevices/naxy400/Makefile
+new file mode 100644
+index 0000000..d4ba028
+--- /dev/null
++++ b/board/DigitalDevices/naxy400/Makefile
+@@ -0,0 +1,2 @@
++obj-y += naxy400.o
++
+diff --git a/board/DigitalDevices/naxy400/naxy400.c b/board/DigitalDevices/naxy400/naxy400.c
+new file mode 100644
+index 0000000..73d1b20
+--- /dev/null
++++ b/board/DigitalDevices/naxy400/naxy400.c
+@@ -0,0 +1,269 @@
++/*
++ * (C) Copyright 2007-2008
++ * Stelian Pop <stelian@popies.net>
++ * Lead Tech Design <www.leadtechdesign.com>
++ *
++ * See file CREDITS for list of people who contributed to this
++ * project.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of
++ * the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
++ * MA 02111-1307 USA
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/at91sam9g45_matrix.h>
++#include <asm/arch/at91sam9_smc.h>
++#include <asm/arch/at91_common.h>
++#include <asm/arch/at91_pmc.h>
++#include <asm/arch/at91_rstc.h>
++#include <asm/arch/gpio.h>
++#include <asm/arch/clk.h>
++#include <lcd.h>
++#if defined(CONFIG_RESET_PHY_R) && defined(CONFIG_MACB)
++#include <net.h>
++#endif
++#include <netdev.h>
++#include <environment.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++void octonet_fpga_init(void)
++{
++	struct at91_smc *smc = (struct at91_smc *) ATMEL_BASE_SMC;
++	struct at91_pmc *pmc = (struct at91_smc *) ATMEL_BASE_PMC;
++	struct at91_port *pioc = (struct at91_port *) ATMEL_BASE_PIOC;
++	u32 hw, reg;
++	
++	writel(0x00000000, &smc->cs[0].setup);
++	writel(0x09090909, &smc->cs[0].pulse);
++	writel(0x000b000b, &smc->cs[0].cycle);
++	writel(0x10001000, &smc->cs[0].mode);
++
++	writel(0x00000000, &smc->cs[2].setup);
++	writel(0x09090909, &smc->cs[2].pulse);
++	writel(0x000b000b, &smc->cs[2].cycle);
++	writel(0x10001000, &smc->cs[2].mode);
++
++	//writel(0x00002000, &pioc->pdr);
++	writel(0x00002000, 0xfffff604);
++
++	hw = readl(ATMEL_BASE_CS2);
++	reg = readl(ATMEL_BASE_CS2 + 4);
++	printf("FPGA: HW=%08x, REG=%08x\n", hw, reg);
++	
++	/* Disable MDIO, IRQ, ether output */
++	writel(0, ATMEL_BASE_CS2 + 0x20);
++	writel(0, ATMEL_BASE_CS2 + 0x20);
++	writel(0, ATMEL_BASE_CS2 + 0x100);
++
++	at91_set_a_periph(AT91_PIO_PORTD, 26, 0);
++	writel(0x00000100, &pmc->pck[0]);
++	writel(AT91_PMC_PCK0, &pmc->scer);
++
++	at91_set_gpio_output(AT91_PIN_PD11, 1);
++	at91_set_gpio_output(AT91_PIN_PD10, 1);
++	at91_set_gpio_output(AT91_PIN_PD12, 1);
++}
++
++#ifdef CONFIG_CMD_NAND
++void at91sam9m10g45ek_nand_hw_init(void)
++{
++	struct at91_smc *smc = (struct at91_smc *)ATMEL_BASE_SMC;
++	struct at91_matrix *matrix = (struct at91_matrix *)ATMEL_BASE_MATRIX;
++	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
++	unsigned long csa;
++
++	/* Enable CS3 */
++	csa = readl(&matrix->ebicsa);
++	csa |= AT91_MATRIX_EBI_CS3A_SMC_SMARTMEDIA;
++	writel(csa, &matrix->ebicsa);
++
++	/* Configure SMC CS3 for NAND/SmartMedia */
++	writel(AT91_SMC_SETUP_NWE(1) | AT91_SMC_SETUP_NCS_WR(0) |
++	       AT91_SMC_SETUP_NRD(1) | AT91_SMC_SETUP_NCS_RD(0),
++	       &smc->cs[3].setup);
++	writel(AT91_SMC_PULSE_NWE(4) | AT91_SMC_PULSE_NCS_WR(3) |
++	       AT91_SMC_PULSE_NRD(3) | AT91_SMC_PULSE_NCS_RD(2),
++	       &smc->cs[3].pulse);
++	writel(AT91_SMC_CYCLE_NWE(7) | AT91_SMC_CYCLE_NRD(4),
++	       &smc->cs[3].cycle);
++	writel(AT91_SMC_MODE_RM_NRD | AT91_SMC_MODE_WM_NWE |
++	       AT91_SMC_MODE_EXNW_DISABLE |
++#ifdef CONFIG_SYS_NAND_DBW_16
++	       AT91_SMC_MODE_DBW_16 |
++#else /* CONFIG_SYS_NAND_DBW_8 */
++	       AT91_SMC_MODE_DBW_8 |
++#endif
++	       AT91_SMC_MODE_TDF_CYCLE(3),
++	       &smc->cs[3].mode);
++
++	writel(1 << ATMEL_ID_PIOC, &pmc->pcer);
++
++	/* Configure RDY/BSY */
++	at91_set_gpio_input(CONFIG_SYS_NAND_READY_PIN, 1);
++
++	/* Enable NandFlash */
++	at91_set_gpio_output(CONFIG_SYS_NAND_ENABLE_PIN, 1);
++}
++#endif
++
++#ifdef CONFIG_CMD_USB
++static void at91sam9m10g45ek_usb_hw_init(void)
++{
++	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
++
++	writel(1 << ATMEL_ID_PIODE, &pmc->pcer);
++
++	at91_set_gpio_output(AT91_PIN_PD1, 0);
++	at91_set_gpio_output(AT91_PIN_PD3, 0);
++}
++#endif
++
++#ifdef CONFIG_MACB
++static void at91sam9m10g45ek_macb_hw_init(void)
++{
++	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
++	struct at91_port *pioa = (struct at91_port *)ATMEL_BASE_PIOA;
++	struct at91_rstc *rstc = (struct at91_rstc *)ATMEL_BASE_RSTC;
++	unsigned long erstl;
++
++	/* Enable clock */
++	writel(1 << ATMEL_ID_EMAC, &pmc->pcer);
++
++	/*
++	 * Disable pull-up on:
++	 *      RXDV (PA15) => PHY normal mode (not Test mode)
++	 *      ERX0 (PA12) => PHY ADDR0
++	 *      ERX1 (PA13) => PHY ADDR1 => PHYADDR = 0x0
++	 *
++	 * PHY has internal pull-down
++	 */
++	writel(pin_to_mask(AT91_PIN_PA15) |
++	       pin_to_mask(AT91_PIN_PA12) |
++	       pin_to_mask(AT91_PIN_PA13),
++	       &pioa->pudr);
++
++#if 0
++	erstl = readl(&rstc->mr) & AT91_RSTC_MR_ERSTL_MASK;
++
++	/* Need to reset PHY -> 500ms reset */
++	writel(AT91_RSTC_KEY | AT91_RSTC_MR_ERSTL(13) |
++		AT91_RSTC_MR_URSTEN, &rstc->mr);
++
++	writel(AT91_RSTC_KEY | AT91_RSTC_CR_EXTRST, &rstc->cr);
++
++	/* Wait for end hardware reset */
++	while (!(readl(&rstc->sr) & AT91_RSTC_SR_NRSTL))
++		;
++
++	/* Restore NRST value */
++	writel(AT91_RSTC_KEY | erstl | AT91_RSTC_MR_URSTEN,
++		&rstc->mr);
++#endif
++	/* Re-enable pull-up */
++	writel(pin_to_mask(AT91_PIN_PA15) |
++	       pin_to_mask(AT91_PIN_PA12) |
++	       pin_to_mask(AT91_PIN_PA13),
++	       &pioa->puer);
++
++	/* And the pins. */
++	at91_macb_hw_init();
++}
++#endif
++
++int board_early_init_f(void)
++{
++	at91_seriald_hw_init();
++	return 0;
++}
++
++void setmac()
++{
++	unsigned char mac[6];
++	char buf[12];
++	u32 macreg = readl(ATMEL_BASE_CS2 + 12);
++	
++	if (eth_getenv_enetaddr("ethaddr", mac))
++		return;
++
++	//printf("macreg = %08x\n", macreg);
++	if ((macreg & 0xff) == 1) {
++		mac[0] = 0x54;
++		mac[1] = 0x84;
++		mac[2] = 0x7b;
++		mac[3] = (macreg >> 8) & 0xff;
++		mac[4] = (macreg >> 16) & 0xff;
++		mac[5] = (macreg >> 24) & 0xff;
++		//sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", 
++		//	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
++		//setenv("ethaddr", buf);
++		eth_setenv_enetaddr("ethaddr", mac);
++		//printf("MAC = %s\n", buf);
++	}
++}
++
++int misc_init_r(void)
++{
++	setmac();
++	return 0;
++}
++
++int board_init(void)
++{
++	console_init_f();
++	gd->bd->bi_arch_number = MACH_TYPE_NAXY400;
++	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
++
++#ifdef CONFIG_CMD_NAND
++	at91sam9m10g45ek_nand_hw_init();
++#endif
++#ifdef CONFIG_CMD_USB
++	at91sam9m10g45ek_usb_hw_init();
++#endif
++#ifdef CONFIG_MACB
++	at91sam9m10g45ek_macb_hw_init();
++#endif
++	octonet_fpga_init();
++	spi_init();
++
++	//	icache_enable();
++	//	dcache_enable();
++	return 0;
++}
++
++int dram_init(void)
++{
++	gd->ram_size = get_ram_size((void *) CONFIG_SYS_SDRAM_BASE,
++				    CONFIG_SYS_SDRAM_SIZE);
++	return 0;
++}
++
++#ifdef CONFIG_RESET_PHY_R
++void reset_phy(void)
++{
++}
++#endif
++
++int board_eth_init(bd_t *bis)
++{
++	int rc = 0;
++
++#ifdef CONFIG_MACB
++	rc = macb_eth_initialize(0, (void *)ATMEL_BASE_EMAC, 0x00);
++#endif
++	return rc;
++}
++
+diff --git a/boards.cfg b/boards.cfg
+index 1ba2081..e58f542 100644
+--- a/boards.cfg
++++ b/boards.cfg
+@@ -141,6 +141,8 @@ Active  arm         arm926ejs      at91        ronetix         pm9261
+ Active  arm         arm926ejs      at91        ronetix         pm9263              pm9263                                pm9263:AT91SAM9263                                                                                                                Ilko Iliev <iliev@ronetix.at>
+ Active  arm         arm926ejs      at91        ronetix         pm9g45              pm9g45                                pm9g45:AT91SAM9G45                                                                                                                Ilko Iliev <iliev@ronetix.at>
+ Active  arm         arm926ejs      at91        siemens         corvus              corvus                                corvus:AT91SAM9M10G45,SYS_USE_NANDFLASH                                                                                           Heiko Schocher <hs@denx.de>
++Active  arm         arm926ejs      at91        DigitalDevices  naxy400              naxy400                               naxy400:AT91SAM9M10G45,SYS_USE_NANDFLASH                                                                                           Ralph Metzler
++#naxy400                      arm         arm926ejs   naxy400             DigitalDevices at91        naxy400:AT91SAM9G45,SYS_USE_NANDFLASH
+ Active  arm         arm926ejs      at91        siemens         taurus              axm                                   taurus:AT91SAM9G20,MACH_TYPE=2068,BOARD_AXM                                                                                       Heiko Schocher <hs@denx.de>
+ Active  arm         arm926ejs      at91        siemens         taurus              taurus                                taurus:AT91SAM9G20,MACH_TYPE=2067,BOARD_TAURUS                                                                                    Heiko Schocher <hs@denx.de>
+ Active  arm         arm926ejs      at91        taskit          stamp9g20           portuxg20                             stamp9g20:AT91SAM9G20,PORTUXG20                                                                                                   Markus Hubig <mhubig@imko.de>
+diff --git a/drivers/gpio/at91_gpio.c b/drivers/gpio/at91_gpio.c
+index 6517af1..9ae7855 100644
+--- a/drivers/gpio/at91_gpio.c
++++ b/drivers/gpio/at91_gpio.c
+@@ -395,3 +395,9 @@ int gpio_set_value(unsigned gpio, int value)
+ 
+ 	return 0;
+ }
++
++void gpio_toggle_value(unsigned gpio)
++{
++	gpio_set_value(gpio, !gpio_get_value(gpio));
++}
++
+diff --git a/drivers/mtd/nand/atmel_nand.c b/drivers/mtd/nand/atmel_nand.c
+index e73834d..c24021e 100644
+--- a/drivers/mtd/nand/atmel_nand.c
++++ b/drivers/mtd/nand/atmel_nand.c
+@@ -1393,6 +1393,8 @@ int atmel_nand_chip_init(int devnum, ulong base_addr)
+ 
+ #ifdef CONFIG_NAND_ECC_BCH
+ 	nand->ecc.mode = NAND_ECC_SOFT_BCH;
++	nand->ecc.size = 512;
++	nand->ecc.bytes = 13;
+ #else
+ 	nand->ecc.mode = NAND_ECC_SOFT;
+ #endif
+diff --git a/drivers/net/macb.c b/drivers/net/macb.c
+index 01a94a4..cafbbd2 100644
+--- a/drivers/net/macb.c
++++ b/drivers/net/macb.c
+@@ -132,6 +132,33 @@ static void macb_mdio_write(struct macb_device *macb, u8 reg, u16 value)
+ 	macb_writel(macb, NCR, netctl);
+ }
+ 
++static void macb_mdio_swrite(struct macb_device *macb, u8 adr, u8 reg, u16 value)
++{
++	unsigned long netctl;
++	unsigned long netstat;
++	unsigned long frame;
++
++	netctl = macb_readl(macb, NCR);
++	netctl |= MACB_BIT(MPE);
++	macb_writel(macb, NCR, netctl);
++
++	frame = (MACB_BF(SOF, 1)
++		 | MACB_BF(RW, 1)
++		 | MACB_BF(PHYA, adr)
++		 | MACB_BF(REGA, reg)
++		 | MACB_BF(CODE, 2)
++		 | MACB_BF(DATA, value));
++	macb_writel(macb, MAN, frame);
++
++	do {
++		netstat = macb_readl(macb, NSR);
++	} while (!(netstat & MACB_BIT(IDLE)));
++
++	netctl = macb_readl(macb, NCR);
++	netctl &= ~MACB_BIT(MPE);
++	macb_writel(macb, NCR, netctl);
++}
++
+ static u16 macb_mdio_read(struct macb_device *macb, u8 reg)
+ {
+ 	unsigned long netctl;
+@@ -169,16 +196,51 @@ void __weak arch_get_mdio_control(const char *name)
+ 
+ #if defined(CONFIG_CMD_MII) || defined(CONFIG_PHYLIB)
+ 
++static u16 macb_mdio_sread(struct macb_device *macb, u8 adr, u8 reg)
++{
++	unsigned long netctl;
++	unsigned long netstat;
++	unsigned long frame;
++
++	netctl = macb_readl(macb, NCR);
++	netctl |= MACB_BIT(MPE);
++	macb_writel(macb, NCR, netctl);
++
++	frame = (MACB_BF(SOF, 1)
++		 | MACB_BF(RW, 2)
++		 | MACB_BF(PHYA, adr)
++		 | MACB_BF(REGA, reg)
++		 | MACB_BF(CODE, 2));
++	macb_writel(macb, MAN, frame);
++
++	do {
++		netstat = macb_readl(macb, NSR);
++	} while (!(netstat & MACB_BIT(IDLE)));
++
++	frame = macb_readl(macb, MAN);
++
++	netctl = macb_readl(macb, NCR);
++	netctl &= ~MACB_BIT(MPE);
++	macb_writel(macb, NCR, netctl);
++
++	return MACB_BFEXT(DATA, frame);
++}
++
++
+ int macb_miiphy_read(const char *devname, u8 phy_adr, u8 reg, u16 *value)
+ {
+ 	struct eth_device *dev = eth_get_dev_by_name(devname);
+ 	struct macb_device *macb = to_macb(dev);
+ 
+-	if (macb->phy_addr != phy_adr)
+-		return -1;
++	//if ( macb->phy_addr != phy_adr )
++	//	return -1;
+ 
++#if 0
+ 	arch_get_mdio_control(devname);
+ 	*value = macb_mdio_read(macb, reg);
++#else
++	*value = macb_mdio_sread(macb, phy_adr, reg);
++#endif
+ 
+ 	return 0;
+ }
+@@ -188,11 +250,15 @@ int macb_miiphy_write(const char *devname, u8 phy_adr, u8 reg, u16 value)
+ 	struct eth_device *dev = eth_get_dev_by_name(devname);
+ 	struct macb_device *macb = to_macb(dev);
+ 
+-	if (macb->phy_addr != phy_adr)
+-		return -1;
++	//if ( macb->phy_addr != phy_adr )
++	//return -1;
+ 
++#if 0
+ 	arch_get_mdio_control(devname);
+ 	macb_mdio_write(macb, reg, value);
++#else
++	macb_mdio_swrite(macb, phy_adr, reg, value);
++#endif
+ 
+ 	return 0;
+ }
+@@ -353,7 +419,6 @@ static int macb_recv(struct eth_device *netdev)
+ 				       macb->rx_buffer, taillen);
+ 				buffer = (void *)NetRxPackets[0];
+ 			}
+-
+ 			NetReceive(buffer, length);
+ 			if (++rx_tail >= MACB_RX_RING_SIZE)
+ 				rx_tail = 0;
+@@ -534,6 +599,56 @@ static int macb_phy_init(struct macb_device *macb)
+ 	return 1;
+ }
+ 
++static void swrite(struct macb_device *macb, u8 phy, u8 reg, u16 value)
++{
++	u16 val;
++
++	while (0x8000 &  macb_mdio_sread(macb, 0x1c, 0x18));
++	macb_mdio_swrite(macb, 0x1c, 0x19, value);
++	macb_mdio_swrite(macb, 0x1c, 0x18, 0x9400|(phy<<5)|reg);
++} 
++
++static int mdio_switch_init(struct macb_device *macb)
++{
++	int phy;
++
++	macb_mdio_swrite(macb, 0x16, 0x01, 0xc003);
++	macb_mdio_swrite(macb, 0x16, 0x08, 0x8080);
++	for (phy=0; phy<=4; phy++) {
++		swrite(macb, phy, 0x00, 0x1140);
++		swrite(macb, phy, 0x16, 0x0000);
++		swrite(macb, phy, 0x10, 0x3360);
++	}
++	for (phy=0; phy<=6; phy++) 
++		macb_mdio_swrite(macb, 0x10|phy, 0x04, 0x007f);
++}
++
++static int macb_switch_init(struct macb_device *macb)
++{
++	struct eth_device *netdev = &macb->netdev;
++	u32 ncfgr;
++	u16 status, adv, lpa;
++	int speed, duplex;
++
++	speed = 1;
++	duplex = 1;
++	printf("%s: link up, %sMbps %s-duplex\n",
++	       netdev->name,
++	       speed ? "100" : "10",
++	       duplex ? "full" : "half");
++	
++	ncfgr = macb_readl(macb, NCFGR);
++	ncfgr &= ~(MACB_BIT(SPD) | MACB_BIT(FD));
++	if (speed)
++		ncfgr |= MACB_BIT(SPD);
++	if (duplex)
++		ncfgr |= MACB_BIT(FD);
++	macb_writel(macb, NCFGR, ncfgr);
++
++	//mdio_switch_init(macb);
++	return 1;
++}
++
+ static int macb_init(struct eth_device *netdev, bd_t *bd)
+ {
+ 	struct macb_device *macb = to_macb(netdev);
+@@ -596,9 +711,17 @@ static int macb_init(struct eth_device *netdev, bd_t *bd)
+ #endif /* CONFIG_RMII */
+ 	}
+ 
++
++#ifdef CONFIG_OCTONET
++#if 1
++	macb_writel(macb, USRIO, MACB_BIT(CLKEN));
++	if (!macb_switch_init(macb))
++		return -1;
++#endif
++#else
+ 	if (!macb_phy_init(macb))
+ 		return -1;
+-
++#endif
+ 	/* Enable TX and RX */
+ 	macb_writel(macb, NCR, MACB_BIT(TE) | MACB_BIT(RE));
+ 
+@@ -694,6 +817,21 @@ static u32 macb_dbw(struct macb_device *macb)
+ 	}
+ }
+ 
++void octo_mac_read(u8 *mac)
++{
++	u32 macreg = readl(0x3000000c);
++
++	//printf("macreg = %08x\n", macreg);
++	if ((macreg & 0xff) == 1) {
++		mac[0] = 0x54;
++		mac[1] = 0x84;
++		mac[2] = 0x7b;
++		mac[3] = (macreg >> 8) & 0xff;
++		mac[4] = (macreg >> 16) & 0xff;
++		mac[5] = (macreg >> 24) & 0xff;
++	}
++}
++
+ int macb_eth_initialize(int id, void *regs, unsigned int phy_addr)
+ {
+ 	struct macb_device *macb;
+@@ -726,6 +864,9 @@ int macb_eth_initialize(int id, void *regs, unsigned int phy_addr)
+ 	else
+ 		sprintf(netdev->name, "macb%d", id);
+ 
++#ifdef CONFIG_OCTONET
++	//octo_mac_read(netdev->enetaddr);
++#endif
+ 	netdev->init = macb_init;
+ 	netdev->halt = macb_halt;
+ 	netdev->send = macb_send;
+@@ -751,6 +892,7 @@ int macb_eth_initialize(int id, void *regs, unsigned int phy_addr)
+ 	miiphy_register(netdev->name, macb_miiphy_read, macb_miiphy_write);
+ 	macb->bus = miiphy_get_dev_by_name(netdev->name);
+ #endif
++	mdio_switch_init(macb);
+ 	return 0;
+ }
+ 
+diff --git a/drivers/spi/Makefile b/drivers/spi/Makefile
+index f02c35a..4e2531a 100644
+--- a/drivers/spi/Makefile
++++ b/drivers/spi/Makefile
+@@ -42,3 +42,4 @@ obj-$(CONFIG_TI_QSPI) += ti_qspi.o
+ obj-$(CONFIG_XILINX_SPI) += xilinx_spi.o
+ obj-$(CONFIG_ZYNQ_SPI) += zynq_spi.o
+ obj-$(CONFIG_FSL_QSPI) += fsl_qspi.o
++obj-$(CONFIG_OCTONET_SPI) += octonet_spi.o
+diff --git a/drivers/spi/octonet_spi.c b/drivers/spi/octonet_spi.c
+new file mode 100644
+index 0000000..5fca502
+--- /dev/null
++++ b/drivers/spi/octonet_spi.c
+@@ -0,0 +1,258 @@
++#include <config.h>
++#include <common.h>
++#include <malloc.h>
++#include <spi.h>
++#include <asm/types.h>
++#include <asm/io.h>
++
++struct octonet_spi_slave {
++	struct spi_slave slave;
++	u32 base;
++};
++#define to_octonet_spi_slave(s) container_of(s, struct octonet_spi_slave, slave)
++
++void spi_init (void)
++{
++	//printf("OCTONET spi init\n");
++}
++
++struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs,
++				  unsigned int max_hz, unsigned int mode)
++{
++	struct octonet_spi_slave *os;
++
++	if (bus || cs) 
++		return NULL;
++
++	printf("OCTONET spi setup\n");
++	os = malloc(sizeof(struct octonet_spi_slave));
++	if (!os)
++		return NULL;
++
++	os->slave.bus = bus;
++	os->slave.cs = cs;
++	os->base = 0;
++
++	return &os->slave;
++}
++
++void spi_free_slave(struct spi_slave *slave)
++{
++	struct octonet_spi_slave *os = to_octonet_spi_slave(slave);
++
++	free(os);
++}
++
++int spi_claim_bus(struct spi_slave *slave)
++{
++	return 0;
++}
++
++void spi_release_bus(struct spi_slave *slave)
++{
++}
++
++#define SPI_CONTROL 0x30000010
++#define SPI_DATA    0x30000014
++
++int  spi_xfer2(struct spi_slave *slave, unsigned int bitlen,
++	       const void *out, void *in, unsigned long flags)
++{
++	u32 data, shift;
++	u32 wlen, rlen;
++	u8 *wbuf = out;
++	u8 *rbuf = in;
++	
++	printf("OCTONET spi xfer %08x %08x %d\n", (u32) wbuf, (u32) rbuf, bitlen);
++
++	if (bitlen % 8)
++		return -1;
++	rlen = wlen = 0;
++	if (out) 
++		wlen = bitlen / 8;
++	if (in)
++		rlen = bitlen / 8;
++	//printf("wlen = %d, rlen = %d, %02x\n", wlen, rlen, flags);
++
++	if (!wlen && !rlen && (flags & SPI_XFER_END)) {
++		writel(0x0003 | ((1 << (8 + 3)) & 0x1f00), SPI_CONTROL);
++		writel(0xffffffff, SPI_DATA);
++		while (readl(SPI_CONTROL) & 0x0004)
++			;
++		return 0;
++	}
++			
++
++	if (wlen==1)
++		printf("%02x\n", wbuf[0]);
++
++
++	if (wlen > 4)
++		writel(1, SPI_CONTROL);
++	while (wlen > 4) {
++		data = (wbuf[0]<<24) | (wbuf[1]<<16) | (wbuf[2]<<8) | wbuf[3];
++		wbuf += 4;
++		wlen -= 4;
++		writel(data, SPI_DATA);
++		while (readl(SPI_CONTROL) & 0x0004)
++			;
++	}
++
++	if (wlen) {
++		if (rlen ||  !(flags & SPI_XFER_END))
++			writel(0x0001 | ((wlen << (8 + 3)) & 0x1f00), SPI_CONTROL);
++		else
++			writel(0x0003 | ((wlen << (8 + 3)) & 0x1f00), SPI_CONTROL);
++		
++		data = 0;
++		shift = ((4 - wlen) * 8);
++		while (wlen) {
++			data <<= 8;
++			data |= *wbuf;
++			wlen--;
++			wbuf++;
++		}
++		if (shift)
++			data <<= shift;
++		writel(data, SPI_DATA);
++		while (readl(SPI_CONTROL) & 0x0004)
++			;
++	}
++
++	if (!rlen)
++		return 0;
++	if (rlen > 4)
++		writel(1, SPI_CONTROL);
++
++	while (rlen > 4) {
++		writel(0xffffffff, SPI_DATA);
++		while (readl(SPI_CONTROL) & 0x0004)
++			;
++		data = readl(SPI_DATA);
++		rbuf[0] = (data>>24)&0xff;
++		rbuf[1] = (data>>16)&0xff;
++		rbuf[2] = (data>>8)&0xff;
++		rbuf[3] = data&0xff;
++		rbuf += 4;
++		rlen -= 4;
++	}
++
++	if (flags & SPI_XFER_END)
++		writel(0x0003 | ((rlen << (8 + 3)) & 0x1F00), SPI_CONTROL);
++	else
++		writel(0x0001 | ((rlen << (8 + 3)) & 0x1F00), SPI_CONTROL);
++
++	writel(0xffffffff, SPI_DATA);
++	while (readl(SPI_CONTROL) & 0x0004)
++		;
++	data = readl(SPI_DATA);
++
++	if (rlen < 4)
++		data <<= ((4 - rlen) * 8);
++
++	while (rlen > 0) {
++		*rbuf = ((data >> 24) & 0xff);
++		data <<= 8;
++		rbuf++;
++		rlen--;
++	}
++	rbuf = in;
++	printf("%02x %02x %02x %02x %02x\n", rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4]);
++	return(0);
++}
++
++int  spi_xfer(struct spi_slave *slave, unsigned int bitlen,
++	      const void *out, void *in, unsigned long flags)
++{
++	u32 data, shift;
++	u32 wlen, len;
++	u8 *wbuf = out;
++	u8 *rbuf = in;
++	
++	//printf("OCTONET spi xfer %08x %08x %d %d\n", (u32) wbuf, (u32) rbuf, bitlen/8, flags);
++
++	if (!bitlen) {
++		if (flags & SPI_XFER_END) {
++			writel(0x0003 | ((1 << (8 + 3)) & 0x1f00), SPI_CONTROL);
++			writel(0xffffffff, SPI_DATA);
++			while (readl(SPI_CONTROL) & 0x0004)
++				;
++		}
++		writel(0, SPI_CONTROL);
++		return 0;
++	}
++	if (bitlen % 8)
++		return -1;
++	len = bitlen / 8;
++
++#if 0
++	if (wbuf && len==1) 
++		printf("%02x\n", wbuf[0]);
++#endif
++
++	if (len > 4) {
++		writel(1, SPI_CONTROL);
++		while (len > 4) {
++			if (wbuf) {
++				data = (wbuf[0]<<24) | (wbuf[1]<<16) | (wbuf[2]<<8) | wbuf[3];
++				wbuf += 4;
++			} else
++				data = 0xffffffff;
++			writel(data, SPI_DATA);
++			while (readl(SPI_CONTROL) & 0x0004)
++				;
++			data = readl(SPI_DATA);
++			if (rbuf) {
++				data = readl(SPI_DATA);
++				rbuf[0] = (data>>24)&0xff;
++				rbuf[1] = (data>>16)&0xff;
++				rbuf[2] = (data>>8)&0xff;
++				rbuf[3] = data&0xff;
++				rbuf += 4;
++			}
++			len -= 4;
++		}
++	}
++	if (flags & SPI_XFER_END) 
++		writel(0x0003 | ((len << (8 + 3)) & 0x1f00), SPI_CONTROL);
++	else 
++		writel(0x0001 | ((len << (8 + 3)) & 0x1f00), SPI_CONTROL);
++
++	wlen = len;
++	if (wbuf) {
++		data = 0;
++		shift = ((4 - wlen) * 8);
++		while (wlen) {
++			data <<= 8;
++			data |= *wbuf;
++			wlen--;
++			wbuf++;
++		}
++		if (shift)
++			data <<= shift;
++	} else 
++		data = 0xffffffff;
++	writel(data, SPI_DATA);
++	while (readl(SPI_CONTROL) & 0x0004)
++		;
++	data = readl(SPI_DATA);
++
++	if (rbuf) {
++		data <<= ((4 - len) * 8);
++		while (len > 0) {
++			*rbuf = ((data >> 24) & 0xff);
++			data <<= 8;
++			rbuf++;
++			len--;
++		}
++	}
++	writel(0, SPI_CONTROL);
++
++#if 0
++	if (in) {
++		rbuf = in;
++		printf("%02x %02x %02x %02x %02x\n", rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4]);
++	}
++#endif
++	return(0);
++}
+diff --git a/include/configs/naxy400.h b/include/configs/naxy400.h
+new file mode 100644
+index 0000000..91cd9e9
+--- /dev/null
++++ b/include/configs/naxy400.h
+@@ -0,0 +1,237 @@
++/*
++ * (C) Copyright 2007-2008
++ * Stelian Pop <stelian@popies.net>
++ * Lead Tech Design <www.leadtechdesign.com>
++ *
++ * Configuation settings for the AT91SAM9M10G45EK board(and AT91SAM9G45EKES).
++ *
++ * See file CREDITS for list of people who contributed to this
++ * project.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of
++ * the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
++ * MA 02111-1307 USA
++ */
++
++#ifndef __CONFIG_H
++#define __CONFIG_H
++
++#include <asm/hardware.h>
++
++#define CONFIG_SYS_TEXT_BASE            0x73000000
++#define CONFIG_SYS_GENERIC_BOARD 1
++
++#define CONFIG_AT91_LEGACY
++#define CONFIG_ATMEL_LEGACY		/* required until (g)pio is fixed */
++
++/* ARM asynchronous clock */
++#define CONFIG_SYS_AT91_SLOW_CLOCK      32768
++#define CONFIG_SYS_AT91_MAIN_CLOCK      12000000 /* from 12 MHz crystal */
++#define CONFIG_SYS_HZ		        1000
++
++#define CONFIG_AT91SAM9M10G45EK
++#define CONFIG_AT91FAMILY
++#define CONFIG_ARCH_CPU_INIT
++#undef CONFIG_USE_IRQ			/* we don't need IRQ/FIQ stuff	*/
++
++#define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs	*/
++#define CONFIG_SETUP_MEMORY_TAGS
++#define CONFIG_INITRD_TAG
++#define CONFIG_SKIP_LOWLEVEL_INIT
++#define CONFIG_BOARD_EARLY_INIT_F
++#define CONFIG_DISPLAY_CPUINFO
++
++/* general purpose I/O */
++#define CONFIG_ATMEL_LEGACY		/* required until (g)pio is fixed */
++#define CONFIG_AT91_GPIO
++#define CONFIG_AT91_GPIO_PULLUP	1	/* keep pullups on peripheral pins */
++
++/* serial console */
++#define CONFIG_ATMEL_USART
++#define CONFIG_USART_BASE		ATMEL_BASE_DBGU
++#define	CONFIG_USART_ID			ATMEL_ID_SYS
++
++#define CONFIG_BOOTDELAY	1
++
++/*
++ * BOOTP options
++ */
++#define CONFIG_BOOTP_BOOTFILESIZE
++#define CONFIG_BOOTP_BOOTPATH
++#define CONFIG_BOOTP_GATEWAY
++#define CONFIG_BOOTP_HOSTNAME
++
++/*
++ * Command line configuration.
++ */
++#include <config_cmd_default.h>
++#undef CONFIG_CMD_BDI
++#undef CONFIG_CMD_FPGA
++#undef CONFIG_CMD_IMI
++#undef CONFIG_CMD_IMLS
++#undef CONFIG_CMD_LOADS
++#undef CONFIG_CMD_SOURCE
++#undef CONFIG_CMD_XIMG
++
++#define CONFIG_CMD_PING
++#define CONFIG_CMD_DHCP
++#define CONFIG_CMD_NAND
++#define CONFIG_CMD_USB
++#define CONFIG_CMD_FAT
++#define CONFIG_CMD_EXT2
++#define CONFIG_CMD_EXT4
++
++#define CONFIG_CMD_CACHE
++#define CONFIG_CMD_GPIO
++
++/* SDRAM */
++#define CONFIG_NR_DRAM_BANKS		1
++#define CONFIG_SYS_SDRAM_BASE           ATMEL_BASE_CS6
++#define CONFIG_SYS_SDRAM_SIZE		0x04000000
++
++#define CONFIG_SYS_INIT_SP_ADDR \
++	(CONFIG_SYS_SDRAM_BASE + 4 * 1024 - GENERATED_GBL_DATA_SIZE)
++
++/* No NOR flash */
++#define CONFIG_SYS_NO_FLASH
++
++#define CONFIG_SPI_FLASH
++#define CONFIG_SPI_FLASH_SST
++#define CONFIG_OCTONET_SPI 
++#define CONFIG_CMD_SF 
++
++
++/* NAND flash */
++#ifdef CONFIG_CMD_NAND
++#define CONFIG_NAND_ATMEL
++#define CONFIG_SYS_MAX_NAND_DEVICE		1
++#define CONFIG_SYS_NAND_BASE			ATMEL_BASE_CS3
++#define CONFIG_SYS_NAND_ONFI_DETECTION
++//#define CONFIG_SYS_NAND_DBW_16
++/* our ALE is AD21 */
++#define CONFIG_SYS_NAND_MASK_ALE		(1 << 21)
++/* our CLE is AD22 */
++#define CONFIG_SYS_NAND_MASK_CLE		(1 << 22)
++#define CONFIG_SYS_NAND_ENABLE_PIN		AT91_PIN_PC14
++#define CONFIG_SYS_NAND_READY_PIN		AT91_PIN_PC8
++#define CONFIG_NAND_ECC_BCH
++#define CONFIG_BCH
++//#define CONFIG_PMECC_CAP		2
++//#define CONFIG_PMECC_SECTOR_SIZE	512
++
++#if 1
++#define CONFIG_CMD_UBI
++#define CONFIG_CMD_UBIFS
++#define CONFIG_CMD_MTDPARTS
++#define CONFIG_RBTREE
++#define CONFIG_MTD_DEVICE
++#define CONFIG_MTD_PARTITIONS
++#define CONFIG_LZO
++#define CONFIG_CMD_NAND_TRIMFFS
++#endif
++
++#endif
++
++/* Ethernet */
++#define CONFIG_CMD_MII
++#define CONFIG_MACB
++#define CONFIG_NET_RETRY_COUNT		20
++#define CONFIG_RESET_PHY_R
++#define CONFIG_OCTONET
++
++#ifdef CONFIG_CMD_USB
++/* USB */
++#define CONFIG_USB_EHCI
++#define CONFIG_USB_EHCI_ATMEL
++#define CONFIG_SYS_USB_EHCI_MAX_ROOT_PORTS	2
++#define CONFIG_USB_STORAGE
++#endif
++#define CONFIG_DOS_PARTITION
++
++#define CONFIG_SYS_LOAD_ADDR		0x72000000	/* load address */
++
++#define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
++#define CONFIG_SYS_MEMTEST_END		0x23e00000
++
++/* bootstrap + u-boot + env in nandflash */
++#define CONFIG_ENV_IS_IN_NAND
++#define CONFIG_ENV_OFFSET		0xa0000
++#define CONFIG_ENV_OFFSET_REDUND	0xc0000
++#define CONFIG_ENV_SIZE			0x20000
++
++#define CONFIG_ENV_OVERWRITE
++
++#if 0
++#define CONFIG_BOOTCOMMAND	"tftp lx.on;bootm"
++#define CONFIG_BOOTARGS							\
++	"root=/dev/nfs nfsroot=/usr3/DOCKSTAR/192.168.2.97.big ip=dhcp console=ttyS0,115200 earlyprintk " 
++
++#define CONFIG_EXTRA_ENV_SETTINGS \
++	"newbit=sf probe; tftp net.bit; sf erase 10000 a0000; sf write 72000000 10000 a0000\0" \
++	"newsbs=sf probe; tftp bs.on; sf erase 4000 2000; sf write 72000000 4000 2000\0"        \
++	"newsub=sf probe; tftp ub.on; sf erase b0000 80000; sf write 72000000 b0000 80000\0"   \
++	"newbs=tftp bsn.on; nand erase 0 20000; nand write 72000000 0 20000\0"        \
++	"newub=tftp ub.on; nand erase 20000 80000; nand write 72000000 20000 80000\0"          \
++	"ipaddr=192.168.2.80\0"	      \
++	"nandboot=nand read 72000000 100000 800000; bootm\0"						\
++	"serverip=192.168.2.32\0"					       
++
++#else
++
++#define CONFIG_BOOTCOMMAND	"nand erase 0 800000; usb start; usb start; fatload usb 0 72000000 bs.nand; nand write 72000000 0 20000; fatload usb 0 72000000 ub.on; nand write 72000000 20000 80000; fatload usb 0 72000000 uimage; nand write 72000000 100000 800000; setenv bootcmd $nandboot; save"
++//#define CONFIG_BOOTARGS		"ip=dhcp console=ttyS0,115200 earlyprintk " 
++#define CONFIG_BOOTARGS		"ubi.mtd=2 root=ubi0:rootfs ro rootfstype=ubifs console=ttyS0,115200" 
++
++#define CONFIG_EXTRA_ENV_SETTINGS \
++        "recover=if gpio input 64; then nand erase 2000000 e000000; fi\0" \
++        "fallback=nand read 72000000 100000 800000; bootm\0" \
++        "ubiboot=ubi part ubi && ubifsmount ubi:rootfs && ubifsload 72000000 /boot/uImage && bootm\0" \
++	"nandboot=dcache on; run recover; run ubiboot; run fallback\0" \
++	"mtdids=nand0=nand_mtd\0" \
++	"mtdparts=mtdparts=nand_mtd:0x2000000@0x000000(boot),0xe000000@0x2000000(ubi)\0" \
++	"newbit=sf probe && tftp net.bit && sf erase 10000 a0000 && sf write 72000000 10000 a0000\0" \
++	"newsbs=sf probe && tftp bs.on && sf erase 4000 2000 && sf write 72000000 4000 2000\0"        \
++	"newsub=sf probe && tftp ub.on && sf erase b0000 80000 && sf write 72000000 b0000 80000\0"   \
++	"newbs=tftp bsn.on; nand erase 0 20000; nand write 72000000 0 20000\0"        \
++	"newub=tftp ub.on && nand erase 20000 80000 && nand write 72000000 20000 80000\0"
++#endif
++
++
++#define CONFIG_BAUDRATE			115200
++
++#define CONFIG_SYS_PROMPT		"OctoNet> "
++#define CONFIG_SYS_CBSIZE		256
++#define CONFIG_SYS_MAXARGS		16
++#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
++#define CONFIG_SYS_LONGHELP
++#define CONFIG_CMDLINE_EDITING
++#define CONFIG_AUTO_COMPLETE
++#define CONFIG_SYS_HUSH_PARSER
++
++
++/*
++ * Size of malloc() pool
++ */
++//#define CONFIG_SYS_MALLOC_LEN		ROUND(3 * CONFIG_ENV_SIZE + 128*1024, 0x1000)
++#define CONFIG_SYS_MALLOC_LEN		0x400000
++
++#define CONFIG_STACKSIZE	(32*1024)	/* regular stack */
++
++#ifdef CONFIG_USE_IRQ
++#error CONFIG_USE_IRQ not supported
++#endif
++
++#define CONFIG_MISC_INIT_R
++
++#endif

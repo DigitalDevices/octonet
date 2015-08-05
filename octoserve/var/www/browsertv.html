@@ -1,0 +1,367 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<script type="text/javascript" src="/systeminfo.lua"></script>
+<script type="text/javascript">Octoserve = false;</script>
+<script type="text/javascript" src="/octoserve/serverinfo.js"></script>
+<script type="text/javascript" src="/btvchannels.lua"></script>
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+var VLCPluginValid = false;
+var VLCPlugin;
+var RTSPLink = false;
+
+if( browserType == "Netscape" )
+{
+  if( browserPlatform == "ipad" )
+  {
+    RTSPLink = true;
+  }
+  else
+  {
+    for(var i = 0; i < navigator.plugins.length; i++ )
+    {
+      var t = navigator.plugins[i].name + " " + navigator.plugins[i].version;
+      
+      if( navigator.plugins[i].name == "VLC Web Plugin" )
+      {
+        VLCPlugin = navigator.plugins[i];
+        if( browserPlatform == "win" )
+        {
+          if( navigator.plugins[i].version >= "2.0.6.0" ) VLCPluginValid = true;
+        }
+        else if( browserPlatform == "linux" )
+        {
+          VLCPluginValid = true;
+        }
+        
+        break;
+      }
+    }
+  }
+}
+
+
+var CurTracks = new Array();
+
+var SelectedSource = 0;
+var SelectedChannel = 0;
+var SourceList = new Array();
+
+function PlayEvent()
+{
+//  var vlc = document.getElementById("vlcplayer");
+// var vlc = getVLC("vlcplayer");
+  var vlc = vlcplayer;
+  var options = new Array();
+  var t = "rtsp://"+host+"/"+this.PlayRequest;
+  vlc.playlist.clear();
+  var id = vlc.playlist.add(t, this.PlayName, options);
+  vlc.playlist.playItem(id);
+  CurTracks = this.PlayTracks;
+  
+  document.getElementById("nowplaying").firstChild.nodeValue  = this.PlayName;
+  document.getElementById("ac0").disabled  = CurTracks.length < 1;
+  document.getElementById("ac1").disabled  = CurTracks.length < 2;
+  document.getElementById("ac2").disabled  = CurTracks.length < 3;
+  document.getElementById("ac3").disabled  = CurTracks.length < 4;
+}
+
+function SetAudioChannel(ac)
+{
+  var vlc = vlcplayer;
+  if( ac < CurTracks.length ) vlc.audio.track = CurTracks[ac];
+}
+
+function MuteAudio()
+{
+  var vlc = vlcplayer;
+  vlc.audio.mute = !vlc.audio.mute;
+}
+
+
+function AddRow(table,name,request,tracks)
+{
+  var row = document.createElement("tr");
+  
+    var col = document.createElement("td");
+    var txt = document.createTextNode(name);
+    col.appendChild(txt);
+    row.appendChild(col);
+    
+    col = document.createElement("td");
+    if( RTSPLink )
+    {
+      var t = "rtsp://"+host+"/"+request;
+      var a = document.createElement("a");
+      a.setAttribute("href",t);
+      a.appendChild(document.createTextNode("Play"));      
+      col.appendChild(a);
+    }
+    else
+    {
+      var form = document.createElement("form");
+      form.setAttribute("action", "");
+
+      var field = document.createElement("input");
+      field.setAttribute("type", "button");
+      field.setAttribute("value", "Play");
+      //field.setAttribute("onclick", "Play("+name+","+request+")");
+      //field.onclick = "Play("+name+","+request+")";
+      field.PlayName = name;
+      field.PlayRequest = request;
+      field.PlayTracks = tracks;
+      field.addEventListener("click",PlayEvent);
+      form.appendChild(field);    
+      
+      col.appendChild(form);
+    }
+    row.appendChild(col);
+    
+  table.appendChild(row);
+}
+
+function NameCompare(a,b)
+{
+  if( a.name.toUpperCase() < b.name.toUpperCase() ) return -1;
+  if( a.name.toUpperCase() > b.name.toUpperCase() ) return 1;
+  return 0;
+}
+
+
+function OnLoad()
+{
+  if( !RTSPLink )
+  {
+    document.getElementById("Play").style.display = "none";
+  }
+  if( VLCPluginValid || RTSPLink )
+  {
+    var hasCable = false;
+    var hasSat = false;
+    
+    for(var i = 0; i < Octoserve.TunerList.length; i++ )
+    {
+      if( Octoserve.TunerList[i] )
+      {
+        if( Octoserve.TunerList[i].Desc.indexOf("C/T") >= 0 ) hasCable = true;
+        if( Octoserve.TunerList[i].Desc.indexOf("C/C2") >= 0 ) hasCable = true;
+        if( Octoserve.TunerList[i].Desc.indexOf("S/S2") >= 0 ) hasSat = true;
+      }
+    }
+    
+    document.Source.Select.length = 0;
+    var index = 0
+    if( hasSat )
+    {
+      SourceListSat.sort(NameCompare);
+      for(var i = 0; i < SourceListSat.length; i++ )
+      {
+        SourceList[index] = SourceListSat[i];
+        document.Source.Select.options[index] = new Option(SourceListSat[i].name,index, false, true);
+        index = index + 1;
+      }
+    }
+    
+    if( hasCable )
+    {
+      SourceListCable.sort(NameCompare);
+      for(var i = 0; i < SourceListCable.length; i++ )
+      {
+        SourceList[index] = SourceListCable[i];
+        document.Source.Select.options[index] = new Option(SourceListCable[i].name,index, false, true);
+        index = index + 1;
+      }
+    }
+    
+    for(var i = 0; i < SourceList.length; i++ )
+    {
+      SourceList[i].ChannelList.sort(NameCompare);
+    }
+    
+    
+    document.Source.Select.selectedIndex = 0;
+    SetSource(0);
+    
+  }
+  else
+  {
+    document.getElementById("channeltable").style.display = "none";
+  }
+}
+
+function CreatePlugin()
+{
+  document.getElementById("ControlPlugin").style.display = "none";
+  if( browserType == "Netscape" )
+  {
+    if( RTSPLink )
+    {
+        document.write('NOTE: Requires VLC App or similar with RTSP support');
+        return;
+    }
+    else if( VLCPlugin && !VLCPluginValid )
+    {
+      document.write("Invalid VLC Plugin found: "+ VLCPlugin.version + "<br/>" + browserPlatform + "<br/>");
+      document.write('Check for new Version on <a href="http://www.videolan.org">VLC Mediaplayer</a>');
+      return;
+    }
+    
+    if( VLCPluginValid )
+    {
+      document.getElementById("ControlPlugin").style.display = "block";
+      document.write('<embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" width="640" height="480" id="vlcplayer">');
+      document.write('</embed>');
+    }
+    else
+    {
+      if ( browserPlatform == "win" || browserPlatform == "linux" )
+      {
+        document.write('Install <a href="http://www.videolan.org">VLC Mediaplayer</a> for in Browser TV');
+      }
+    }
+  }
+  else if (browserType == "MSIE" )
+  {
+      document.write('Install <a href="http://www.mozilla.org">Firefox</a> and <a href="http://www.videolan.org">VLC Mediaplayer</a>  for in Browser TV:&nbsp');
+    return;
+  }
+}
+
+function SetSource(SourceIndex)
+{
+  SelectedSource = SourceIndex;
+  document.Channel.Select.length = 0;
+  var i = -1;
+  for( j = 0; j < SourceList[SourceIndex].ChannelList.length; j++ )
+  {
+    document.Channel.Select.options[j] = new Option(SourceList[SourceIndex].ChannelList[j].name,j, false, true);
+    if( i < 0 && SourceList[SourceIndex].ChannelList[j].name.toUpperCase() >= "DAS ERSTE" ) i = j; 
+  }  
+  if( i < 0 ) i = 0;
+  document.Channel.Select.selectedIndex = i;
+  SetChannel(i);
+}
+
+function SetChannel(ChannelIndex)
+{
+  SelectedChannel = ChannelIndex;
+  var a = document.getElementById("Play");
+  if( RTSPLink )
+  {
+    var t = "rtsp://"+host+"/"+SourceList[SelectedSource].ChannelList[ChannelIndex].request;
+    a.href = t;    
+  }
+  else
+  {
+    var t = "rtsp://"+host+"/"+SourceList[SelectedSource].ChannelList[ChannelIndex].request;
+    var vlc = vlcplayer;
+    var options = new Array();
+    vlc.playlist.clear();
+    var id = vlc.playlist.add(t, SourceList[SelectedSource].ChannelList[ChannelIndex].name, options);
+    vlc.playlist.playItem(id);
+    CurTracks = SourceList[SelectedSource].ChannelList[ChannelIndex].tracks;
+    
+    document.getElementById("nowplaying").firstChild.nodeValue  = SourceList[SelectedSource].ChannelList[ChannelIndex].name;
+    document.getElementById("ac0").disabled  = CurTracks.length < 1;
+    document.getElementById("ac1").disabled  = CurTracks.length < 2;
+    document.getElementById("ac2").disabled  = CurTracks.length < 3;
+    document.getElementById("ac3").disabled  = CurTracks.length < 4;
+  }
+
+}
+
+</script>
+</head>
+
+
+<body onload="OnLoad()">
+
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+        <table cellpadding="2px" align="center">
+          <tr><td>
+            <div id="ControlPlugin"> 
+              <table width="100%">
+                <tr>
+                  <td><div align="left" id="nowplaying">&nbsp;</div></td>
+                  <td><div align="right">
+                    <form action="">
+                      Audio:&nbsp;
+                      <input id="ac0" type="Button" Value="1" onclick="SetAudioChannel(0)"/>
+                      <input id="ac1" type="Button" Value="2" onclick="SetAudioChannel(1)"/>
+                      <input id="ac2" type="Button" Value="3" onclick="SetAudioChannel(2)"/>
+                      <input id="ac3" type="Button" Value="4" onclick="SetAudioChannel(3)"/>
+                      <input type="Button" Value="Mute" onclick="MuteAudio()"/>
+                    </form>
+                  </div></td>
+                </tr>
+              </table>
+            </div>
+          </td></tr>
+
+
+          <tr><td>
+            <script type="text/javascript">CreatePlugin();</script></td>        
+          </td></tr>
+          <tr><td>
+            <div id="channeltable"> 
+              <table cellpadding="2px" align="center">
+                <tr>
+                  <td>Source</td>
+                  <td>
+                    <form name="Source" action="">
+                      <select name="Select" size="1" style="width: 300px" onchange="SetSource(document.Source.Select.selectedIndex)" >
+                      </select>
+                    </form>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>Channel</td>
+                  <td>
+                    <form name="Channel" action="">
+                      <select name="Select" size="1"  style="width: 300px" onchange="SetChannel(document.Channel.Select.selectedIndex)">
+                      </select>
+                    </form>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </td></tr>
+          <tr><td>
+            <div id="playlink" align="center" > 
+              <a id="Play" href="">Play</a>
+            </div>
+          </td></tr>
+        </table>
+        
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

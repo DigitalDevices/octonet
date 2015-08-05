@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<meta http-equiv="Pragma" content="no-cache" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add additional scripts and settings here -->
+<script id=script1 type="text/javascript" src="/octoserve/streamstatus.js"></script>
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+var LastTimeStamp = 0;
+var LastBytes;
+
+function Diff(a,b)
+{
+  if( b < 0 && a > 0 )
+  {
+    return b - a + 4294967296;
+  }
+  else
+    return b - a;
+}
+
+function Show()
+{
+  for(var i = 0; i < StreamList.length ; i++ )
+  {    
+    if( StreamList[i].Status == "Active" )
+    {
+      document.getElementById("elStatus"+i).firstChild.nodeValue = "Running";
+      document.getElementById("elInput"+i).firstChild.nodeValue  = StreamList[i].Input + 1;
+      document.getElementById("elClient"+i).firstChild.nodeValue  = StreamList[i].Client;
+      document.getElementById("elPackets"+i).firstChild.nodeValue  = StreamList[i].Packets;
+      var TimeDiff = Diff(LastTimeStamp,TimeStamp);
+      var BytesDiff = Diff(LastBytes[i],StreamList[i].Bytes);
+      if( TimeDiff > 0 && BytesDiff > 0 )
+      {
+        var Speed = 8000 * BytesDiff / TimeDiff;
+        document.getElementById("elSpeed"+i).firstChild.nodeValue  = Speed.toFixed(0);
+        LastBytes[i] = StreamList[i].Bytes;
+      }
+      else
+        document.getElementById("elSpeed"+i).firstChild.nodeValue  = "";
+    }
+    else
+    {
+      document.getElementById("elStatus"+i).firstChild.nodeValue = "Stopped";
+      document.getElementById("elInput"+i).firstChild.nodeValue  = "";
+      document.getElementById("elClient"+i).firstChild.nodeValue  = "";
+      document.getElementById("elPackets"+i).firstChild.nodeValue  = "";
+      document.getElementById("elSpeed"+i).firstChild.nodeValue  = "";
+      LastBytes[i] = 0;
+    }
+  }
+  LastTimeStamp = TimeStamp;
+}
+
+function renew()
+{
+  
+  script = document.getElementById("script1");
+  head = document.getElementsByTagName('head')[0];
+  head.removeChild(script);
+  newscript = document.createElement('script');
+  newscript.id = "script1";
+  newscript.type = script.type;
+  newscript.src = script.src;
+  head.appendChild(newscript);
+  
+  Show();
+  window.setTimeout(renew,1000);  
+}
+
+function OnLoad()
+{
+  LastBytes = new Array();
+  LastTimeStamp = TimeStamp;
+  for( var i = 0; i < StreamList.length; i++ )
+  {
+    LastBytes[i] = 0;
+    if( StreamList[i].Status == "Active" )
+    {
+      LastBytes[i] = StreamList[i].Bytes;
+    }
+  }
+  
+  Show();
+  window.setTimeout(renew,1000);  
+}
+
+</script>
+</head>
+
+<body onload="OnLoad()">
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="maintd">
+      <div class="content">
+        <!-- Begin Content -->
+        
+          <table id="streamstatus" align="center">
+            <colgroup>
+              <col width="80px"/>
+              <col width="80px"/>
+              <col width="80px"/>
+              <col width="100px"/>
+              <col width="130px"/>
+              <col width="170px"/> 
+            </colgroup>
+            <tr>
+              <th>Stream</th>
+              <th>Status</th>
+              <th>Input</th>
+              <th>Client</th>
+              <th>RTP Packets</th>
+              <th>Speed</th>
+            </tr>
+            <script type="text/javascript">
+            for( i = 0; i < StreamList.length ; i++ )
+            {    
+              document.write('<tr>');
+              document.write('<td>' + (i+1) + '</td>');  
+              document.write('<td id="elStatus'+i+'">&nbsp;</td>');
+              document.write('<td id="elInput'+i+'">&nbsp;</td>');
+              document.write('<td id="elClient'+i+'">&nbsp;</td>');
+              document.write('<td id="elPackets'+i+'">&nbsp;</td>');    
+              document.write('<td id="elSpeed'+i+'">&nbsp;</td>');
+              document.write('</tr>');
+            }
+
+            </script>
+
+          </table>
+        
+        
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

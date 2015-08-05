@@ -1,0 +1,8 @@
+KEY,CSVFILE,NAME,SYSTEM,SRC
+"KBW","kbw","KabelBW","dvbc",0
+"UM","um","UnityMedia","dvbc",0
+"KD","kd","Kabel Deutschland","dvbc",0
+"KDC2","kdc2","Kabel Deutschland C2","dvbc2",0
+"A19E","a19e","Astra 19E","dvbs",1
+"E9E","e9e","Eutelsat 9E","dvbs",1
+"E13E","e13e","Hotbird 13E","dvbs",1

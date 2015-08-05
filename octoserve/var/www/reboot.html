@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+function DisableButtons()
+{
+  document.getElementById("RebootButton").disabled  = true;    
+  document.getElementById("RestartOctoButton").disabled  = true;    
+  document.getElementById("RestartDMSButton").disabled  = true;    
+}
+
+function Reboot()
+{
+  DisableButtons();
+  head = document.getElementsByTagName('head')[0];
+  newscript = document.createElement('script');
+  newscript.id = "script2";
+  newscript.type = "text/javascript";
+  newscript.src = "/reboot.lua?sjiwjsiowjs";
+  head.appendChild(newscript);  
+  WaitCounter = 20;
+  document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
+  window.setTimeout(Wait,1000);  
+}
+
+function RestartOcto()
+{
+  DisableButtons();
+  head = document.getElementsByTagName('head')[0];
+  newscript = document.createElement('script');
+  newscript.id = "script2";
+  newscript.type = "text/javascript";
+  newscript.src = "/reboot.lua?restart_octo";
+  head.appendChild(newscript);  
+  WaitCounter = 4;
+  document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
+  window.setTimeout(Wait,1000);  
+}
+
+function RestartDMS()
+{
+  DisableButtons();
+  head = document.getElementsByTagName('head')[0];
+  newscript = document.createElement('script');
+  newscript.id = "script2";
+  newscript.type = "text/javascript";
+  newscript.src = "/reboot.lua?restart_dms";
+  head.appendChild(newscript);  
+  WaitCounter = 4;
+  document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
+  window.setTimeout(Wait,1000);  
+}
+
+function Wait()
+{
+  document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
+  if( WaitCounter == 0 )
+  {
+    location.replace('/index.html');
+  }
+  else
+  {
+    WaitCounter = WaitCounter - 1;
+    window.setTimeout(Wait,1000);  
+  }
+}
+
+</script>
+
+</head>
+<body>
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+        <table class="table" align="center">
+          <tr>
+            <td id="updatestatus">&nbsp;&nbsp;</td>
+          </tr>
+          <tr>
+            <td>
+              <form action="">
+                 <input id="RebootButton" type="Button" value="Reboot" onclick="Reboot()" />
+              </form>
+            </td>
+          <tr>                  
+          <tr>
+            <td>
+              <form action="">
+                 <input id="RestartOctoButton" type="Button" value="Restart Server" onclick="RestartOcto()" />
+              </form>
+            </td>
+          <tr>                  
+          <tr>
+            <td>
+              <form action="">
+                 <input id="RestartDMSButton" type="Button" value="Restart DMS" onclick="RestartDMS()" />
+              </form>
+            </td>
+          <tr>                  
+        </table>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

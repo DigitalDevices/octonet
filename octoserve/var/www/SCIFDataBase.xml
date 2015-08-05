@@ -1,0 +1,670 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- (c)2012 Digital Devices GmbH.  All rights reserved -->
+<!-- $Id: SCIFDataBase.xml 590 2014-12-11 13:07:00Z manfred $ -->
+<SCIFDataBase xmlns="http://schemas.DigitalDevices.de/SCIFDataBase">
+  <OutdoorUnit Name="IDLP-40UNIDQ+S" Manufacturer="Inverto" Type="LNB">
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="2040"/>
+    <UBSlot Frequency="1210"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="IDLQ-QUDL41-UNI2L-OPP" Manufacturer="Inverto" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="IDLB-QUDL41-UNI1L-1PP" Manufacturer="Inverto" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="IDLP-USS200-CU010-8PP" Manufacturer="Inverto" Type="Switch">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="IDLP-USS111-CU010-8PP" Manufacturer="Inverto" Type="Switch">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="IDLP-UST101-CU010-4PP" Manufacturer="Inverto" Type="Switch">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="TechniRouter 5/1x8" Manufacturer="TechniSat" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="TechniRouter 9/1x8" Manufacturer="TechniSat" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="TechniRouter 5/2x4" Manufacturer="TechniSat" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="TechniRouter 9/2x4" Manufacturer="TechniSat" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="TechniRouter Mini 2/1x2" Manufacturer="TechniSat" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 1581/2581" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 1981/2981" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 1541/2541" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 1542/2542" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 1942/2942" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXU 908" Manufacturer="Kathrein" Type="Switch" PinProtected="true">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="UAS 481" Manufacturer="Kathrein" Type="LNB">
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 501" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 551" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXR 552" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DY 64 1810/2410" Manufacturer="Wisi" Type="Switch">
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+    <UBSlot Frequency="1892"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DY 68 1810/2410" Manufacturer="Wisi" Type="Switch">
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+    <UBSlot Frequency="1892"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="OC 05" Manufacturer="Wisi" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DUR-Line VDU583NT" Manufacturer="Dura-Sat" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DUR-Line VDU563NT" Manufacturer="Dura-Sat" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DUR-Line VDU543NT" Manufacturer="Dura-Sat" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="UCP3" Manufacturer="Dura-Sat" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DUR-Line UCP18" Manufacturer="Dura-Sat" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="Dur-Line LNB" Manufacturer="Dura-Sat" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SMUC 58-NT/DC" Manufacturer="Resch" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SMUC 98-NT/DC" Manufacturer="Resch" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUM 514 K" Manufacturer="DCT DELTA" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUM 516 K" Manufacturer="DCT DELTA" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUM 518" Manufacturer="DCT DELTA" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUM 918" Manufacturer="DCT DELTA" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUM 928" Manufacturer="DCT DELTA" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DELEinkSUM518" Manufacturer="Profiline" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DELEinkSUM918" Manufacturer="Profiline" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DELEinkSUM928" Manufacturer="Profiline" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SCRQD" Manufacturer="E-Tronix" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="LNB UNIC" Manufacturer="Radix" Type="LNB">
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="2040"/>
+    <UBSlot Frequency="1210"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="TMU 518" Manufacturer="Hirschmann" Type="Switch">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="KR 5-1-8 UNI" Manufacturer="Kreiling" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="MS8/1(8)PIN-4" Manufacturer="EMP Centauri" Type="Switch">
+    <UBSlot Frequency="1080"/>
+    <UBSlot Frequency="1176"/>
+    <UBSlot Frequency="1237"/>
+    <UBSlot Frequency="1413"/>
+    <UBSlot Frequency="1555"/>
+    <UBSlot Frequency="1668"/>
+    <UBSlot Frequency="1842"/>
+    <UBSlot Frequency="1960"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="P.200-P" Manufacturer="EMP Centauri" Type="Switch">
+    <UBSlot Frequency="1080"/>
+    <UBSlot Frequency="1176"/>
+    <UBSlot Frequency="1237"/>
+    <UBSlot Frequency="1413"/>
+    <UBSlot Frequency="1555"/>
+    <UBSlot Frequency="1668"/>
+    <UBSlot Frequency="1842"/>
+    <UBSlot Frequency="1960"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SMUC 58-NT" Manufacturer="Switch Master" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SMUC 58-DC" Manufacturer="Switch Master" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SMUC 98-NT" Manufacturer="Switch Master" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SMUC 98-DC" Manufacturer="Switch Master" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="DPA 51" Manufacturer="SMART electronic" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SES 56-09" Manufacturer="Axing" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SES 556-09/-19" Manufacturer="Axing" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="MSU 518 NG/K" Manufacturer="Preisner" Type="Switch">
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+    <UBSlot Frequency="1892"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SAM 81 KT" Manufacturer="Arcon" Type="Switch">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SDUC 502/902" Manufacturer="Grundig SAT Systems" Type="Switch">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF (8x1 Mode)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="1068"/>
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF (3x3 Mode, Output 1)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="1068"/>
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF (3x3 Mode, Output 2)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF (3x3 Mode, Output 3)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF Legacy (8x1 Mode)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="974"/>
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF Legacy (3x3 Mode, Output 1)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="974"/>
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF Legacy (3x3 Mode, Output 2)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SUS 5581/33 NF Legacy (3x3 Mode, Output 3)" Manufacturer="Spaun" Type="Switch">
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SAS 3NT" Manufacturer="SAS 3NT" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="SPS1008-3NT" Manufacturer="STG Kommunikation" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="JPSxxxx-3A/T/TN" Manufacturer="Jultec" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="JPSxxxx-6A/T/TN" Manufacturer="Jultec" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="JPSxxxx-8A/T/TN" Manufacturer="Jultec" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="JPSxxxx-12AN/TN " Manufacturer="Jultec" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="974"/>
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+    <UBSlot Frequency="1892"/>
+    <UBSlot Frequency="1994"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="JRS0502-2+4T" Manufacturer="Jultec" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="JRS0504-2A/T" Manufacturer="Jultec" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="JRS0904-2A/T" Manufacturer="Jultec" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="GT-S3SCR4" Manufacturer="GT-SAT" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="GT-S2SCR4" Manufacturer="GT-SAT" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="GT-S1SCR4" Manufacturer="GT-SAT" Type="LNB">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="GT-DLNB1T" Manufacturer="GT-SAT" Type="LNB" Protocol="EN50607">
+    <UBSlot Frequency="975"/>
+    <UBSlot Frequency="1025"/>
+    <UBSlot Frequency="1075"/>
+    <UBSlot Frequency="1125"/>
+    <UBSlot Frequency="1175"/>
+    <UBSlot Frequency="1225"/>
+    <UBSlot Frequency="1275"/>
+    <UBSlot Frequency="1325"/>
+    <UBSlot Frequency="1375"/>
+    <UBSlot Frequency="1425"/>
+    <UBSlot Frequency="1475"/>
+    <UBSlot Frequency="1525"/>
+    <UBSlot Frequency="1575"/>
+    <UBSlot Frequency="1625"/>
+    <UBSlot Frequency="1675"/>
+    <UBSlot Frequency="1725"/>
+    <UBSlot Frequency="1775"/>
+    <UBSlot Frequency="1825"/>
+    <UBSlot Frequency="1875"/>
+    <UBSlot Frequency="1925"/>
+    <UBSlot Frequency="1975"/>
+    <UBSlot Frequency="2025"/>
+    <UBSlot Frequency="2075"/>
+    <UBSlot Frequency="2125"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="4 Slots (1680,1420,2040,1210)">
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="2040"/>
+    <UBSlot Frequency="1210"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="4 Slots (1210,1420,1680,2040)">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="4 Slots (1284,1400,1516,1632)">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="8 Slots (1284,1400,1516,...)">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="8 Slots (1284,1400,1516,...) Pin protected" PinProtected="true">
+    <UBSlot Frequency="1284"/>
+    <UBSlot Frequency="1400"/>
+    <UBSlot Frequency="1516"/>
+    <UBSlot Frequency="1632"/>
+    <UBSlot Frequency="1748"/>
+    <UBSlot Frequency="1864"/>
+    <UBSlot Frequency="1980"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="8 Slots (1076,1178,1280,...)">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="8 Slots (1178,1280,1382...)">
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+    <UBSlot Frequency="1892"/>
+  </OutdoorUnit>
+</SCIFDataBase>

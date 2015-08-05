@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<script type="text/javascript" src="/systeminfo.lua"></script>
+<script type="text/javascript">Octoserve = false;</script>
+<script type="text/javascript" src="/octoserve/serverinfo.js"></script>
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+function FWVersion(fwdate)
+{
+  if( fwdate.length > 0 )
+  {
+    // Jahr, Monat, Tag, Stunden, Minuten
+    // date = new Date("20"+fwdate.substr(0,2),fwdate.substr(2,2)-1,fwdate.substr(4,2),fwdate.substr(6,2),fwdate.substr(8,2),"0");
+    
+    var date = new Date(1);
+    date.setUTCDate(fwdate.substr(4,2));
+    date.setUTCFullYear("20"+fwdate.substr(0,2));
+    date.setUTCMonth(fwdate.substr(2,2)-1);
+    date.setUTCHours(fwdate.substr(6,2));
+    date.setUTCMinutes(fwdate.substr(8,2));
+    
+    var ds = date.toGMTString();
+
+    return (ds.substring(5,ds.length-7));
+  }
+  return ("?");
+}
+
+function AddRow(table,td)
+{
+  var row = document.createElement("tr");
+  for(var i = 0; i < td.length; i++ )
+  {
+    var col = document.createElement("td");
+    var txt = document.createTextNode(td[i]);
+    col.appendChild(txt);
+    row.appendChild(col);
+  }
+  table.appendChild(row);
+}
+
+function OnLoad()
+{
+  var infotable = document.getElementById("infotable");
+  var tunertable = document.getElementById("tunertable");
+
+  AddRow(infotable, new Array("FW Date",FWVersion(fwdate)) );
+  AddRow(infotable, new Array("MAC",Octoserve.MAC) );
+  AddRow(infotable, new Array("Linux",linuxver) );
+  if( Octoserve )
+    AddRow(infotable, new Array("SAT>IP Server",Octoserve.Version) );
+  else
+    AddRow(infotable, new Array("SAT>IP Server","ERROR") );
+  
+  AddRow(infotable, new Array("FPGA",fpgatype+"-"+fpgaver) );
+  
+  if( Octoserve )
+  {
+    AddRow(infotable, new Array("Boot ID",Octoserve.BootID) );
+    AddRow(infotable, new Array("Device ID",Octoserve.DeviceID) );
+    for(var i = 0; i < Octoserve.TunerList.length; i++ )
+    {
+      if( Octoserve.TunerList[i] )      
+        AddRow(tunertable, new Array("Tuner " + (i+1),"  ",Octoserve.TunerList[i].Desc) );
+    }
+  }
+}
+
+</script>
+</head>
+
+<body onload="OnLoad()">
+
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+        <table cellpadding="2px" align="center" width="100%">
+          <colgroup>
+            <col width="50%">
+            <col width="50%">
+          </colgroup>
+          <tr><td colspan="2">
+            <h1 align="center">OctopusNet
+              <script type="text/javascript">
+                if( Octoserve )
+                  document.write(Octoserve.Version);
+                if( beta ) 
+                  document.write(" BETA");
+              </script>
+            </h1>
+          </td></tr>
+
+          <tr>
+            <td>
+              <table id="infotable" cellpadding="2px" align="center">
+              </table>
+            </td>
+            <td>
+              <table id="tunertable" cellpadding="2px" align="center">
+              </table>
+            </td>
+          </tr>
+        </table>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

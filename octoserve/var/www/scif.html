@@ -1,0 +1,305 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<script type="text/javascript" src="/scifdb.lua"></script>
+<script type="text/javascript" src="/scifsettings.lua"></script>
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+SCIFEnabled = false;
+SelectedManufacturer = 0;
+SelectedUnit = 0;
+TunerList = new Array();
+
+function SetManufacturer(ManuIndex)
+{
+  if( SCIFEnabled ) document.getElementById("SetButton").disabled  = false;
+  
+  SelectedManufacturer = ManuIndex;
+  document.Unit.Select.length = 0;
+  for( j = 0; j < ManufacturerList[ManuIndex].UnitList.length; j++ )
+  {
+    document.Unit.Select.options[j] = new Option(ManufacturerList[ManuIndex].UnitList[j].Name,j, false, true);
+  }  
+  SetUnit(ManufacturerList[ManuIndex].UnitList.length-1);
+
+}
+
+function SetUnit(UnitIndex)
+{
+  if( SCIFEnabled ) document.getElementById("SetButton").disabled  = false;
+
+  SelectedUnit = UnitIndex;
+  
+  for( i = 0; i < TunerList.length; i++ )
+  {
+    TunerList[i].Select.length = 1;
+    CurUnit = ManufacturerList[SelectedManufacturer].UnitList[UnitIndex];
+    for( j = 0; j < CurUnit.Frequencies.length; j++ )
+    {
+      TunerList[i].Select.options[j+1] = new Option('Slot ' + (j+1) + ': ' + CurUnit.Frequencies[j] + ' MHz',j+1,false,true);
+    }
+    if( i < CurUnit.Frequencies.length )
+    {
+      TunerList[i].Select.options[i+1].selected = true;
+    }
+    else
+    {
+      TunerList[i].Select.options[0].selected = true;
+    }
+  }  
+}
+
+function SetSlot(Tuner,SlotIndex)
+{
+  if( SCIFEnabled ) document.getElementById("SetButton").disabled  = false;
+}
+
+function SaveSettings()
+{
+  if( SCIFEnabled )
+  {
+    param = 'Manufacturer='+SelectedManufacturer+'&Unit='+SelectedUnit+'&Type=1';
+    for( i = 0; i < TunerList.length; i++ )
+    {
+      param += '&Tuner'+(i+1)+'=';
+      CurUnit = ManufacturerList[SelectedManufacturer].UnitList[SelectedUnit];
+      SelectedFrequency = TunerList[i].Select.selectedIndex;
+      if( SelectedFrequency > 0 )
+        param += SelectedFrequency + ',' + CurUnit.Frequencies[SelectedFrequency-1];
+      else
+        param += '0';    
+    }
+    
+    location.replace('/scifsettings.lua?'+param);
+  }
+  else
+  {
+    location.replace('/scifsettings.lua?reset');
+  }
+  
+}
+
+function SetEnable()
+{
+  SCIFEnabled =   document.getElementById("EnableButton").checked;
+  document.getElementById("SetButton").disabled  = false;
+}
+
+function OnLoad()
+{
+  SCIFEnabled = false;
+
+  TunerList[0] = document.Tuner1;
+  TunerList[1] = document.Tuner2;
+  TunerList[2] = document.Tuner3;
+  TunerList[3] = document.Tuner4;
+  TunerList[4] = document.Tuner5;
+  TunerList[5] = document.Tuner6;
+  TunerList[6] = document.Tuner7;
+  TunerList[7] = document.Tuner8;
+
+  document.Manufacturer.Select.length = 0;
+  for( i = 0; i < ManufacturerList.length ; i++ )
+  {    
+    ManuName = ManufacturerList[i].Name;
+    if( ManuName == '' ) ManuName = "-----------------";
+    document.Manufacturer.Select.options[i] = new Option(ManuName,i, false, true);                
+  }
+  
+  for( i = 0; i < Tuner.length; i++ )
+  {
+    if( Tuner[i].Slot > 0 ) SCIFEnabled = true;
+  }
+
+  if( SCIFEnabled )
+  {
+    document.Manufacturer.Select.selectedIndex = Manufacturer;
+    SetManufacturer(Manufacturer);
+    document.Unit.Select.selectedIndex = Unit;
+    SetUnit(Unit);
+    for( i = 0; i < Tuner.length; i++ )
+    {
+      if( i < TunerList.length )
+      {
+        TunerList[i].Select.selectedIndex = Tuner[i].Slot;
+      }
+    }
+  }
+  else
+  {
+    document.Manufacturer.Select.selectedIndex = document.Manufacturer.Select.length - 1;
+    SetManufacturer(document.Manufacturer.Select.length - 1);
+  }
+  document.getElementById("EnableButton").checked  = SCIFEnabled;
+  document.getElementById("SetButton").disabled  = true;
+  
+}
+
+</script>
+
+</head>
+
+
+<body onload="OnLoad()">
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+          <table align="center">
+            <tr>
+              <td>&nbsp;</td>
+              <td>
+                <form action="">
+                  <input id="EnableButton" type="checkbox" value="Check" checked="false" onclick="SetEnable()">                
+                    Enable Unicable (EN 50494)
+                  </input>
+                </form>
+              </td>
+            </tr>
+            <tr>
+              <td>Manufacturer</td>
+              <td>
+                <form name="Manufacturer" action="">
+                  <select name="Select" size="1" style="width: 300px" onchange="SetManufacturer(document.Manufacturer.Select.selectedIndex)" >
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Unit</td>
+              <td>
+                <form name="Unit" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetUnit(document.Unit.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Tuner 1</td>
+              <td>
+                <form name="Tuner1" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(1,document.Tuner1.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Tuner 2</td>
+              <td>
+                <form name="Tuner2" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(2,document.Tuner2.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Tuner 3</td>
+              <td>
+                <form name="Tuner3" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(3,document.Tuner3.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Tuner 4</td>
+              <td>
+                <form name="Tuner4" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(4,document.Tuner4.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+            
+            <tr>
+              <td>Tuner 5</td>
+              <td>
+                <form name="Tuner5" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(5,document.Tuner5.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Tuner 6</td>
+              <td>
+                <form name="Tuner6" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(6,document.Tuner6.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Tuner 7</td>
+              <td>
+                <form name="Tuner7" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(7,document.Tuner7.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Tuner 8</td>
+              <td>
+                <form name="Tuner8" action="">
+                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(8,document.Tuner8.Select.selectedIndex)">
+                    <option>----</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+
+            <tr><td colspan="2" align="right">
+              <div style="width: 300px">
+                <form name="SetUnicable" action="">
+                  <input type="Button" value="Cancel" onclick="location.replace('index.html')" >
+                  <input id="SetButton" type="Button" value="Set" onclick="SaveSettings()" >
+                </form>
+              </div>
+            </td></tr>
+          </table>
+        
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

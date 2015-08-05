@@ -1,0 +1,140 @@
+/*  
+    (C) 2012-13 Digital Devices GmbH. 
+
+    This file is part of the octoserve SAT>IP server.
+
+    Octoserve is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Octoserve is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with octoserve.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "octoserve.h"
+
+int streamsock(const char *port, int family, struct sockaddr *sadr)
+{
+	int one=1, sock;
+	struct addrinfo *ais, *ai, hints = {
+		.ai_flags = AI_PASSIVE, 
+		.ai_family = family,
+		.ai_socktype = SOCK_STREAM,
+		.ai_protocol = 0, .ai_addrlen = 0,
+		.ai_addr = NULL, .ai_canonname = NULL, .ai_next = NULL,
+	};
+	if (getaddrinfo(NULL, port, &hints, &ais) < 0)
+		return -1;
+	for (ai = ais; ai; ai = ai->ai_next)  {
+		sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+		if (sock == -1)
+			continue;
+		if (!setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) &&
+		    !bind(sock, ai->ai_addr, ai->ai_addrlen)) {
+			*sadr = *ai->ai_addr;
+			break;
+		}
+		close(sock);
+		sock = -1;
+	}
+	freeaddrinfo(ais);
+	return sock;
+}
+
+void sockname(struct sockaddr *sadr, char *name)
+{
+	void *adr;
+	char *unknown = "unknown";
+	
+	strcpy(name, unknown);
+	if (sadr->sa_family == AF_INET) 
+		adr = &((struct sockaddr_in *) sadr)->sin_addr;
+	else if (sadr->sa_family == AF_INET6) 
+		adr = &((struct sockaddr_in6 *) sadr)->sin6_addr;
+	else 
+		return;
+	inet_ntop(sadr->sa_family, adr, name, INET6_ADDRSTRLEN);
+	
+	printf("sockname: %s\n", name);
+}
+
+int get_ifa(const char *ifname, int iffam, struct sockaddr *sadr)
+{
+	struct ifaddrs *ifaddrs, *ifa;
+
+	if (getifaddrs(&ifaddrs) == -1)
+		return -1;
+	for (ifa = ifaddrs; ifa; ifa = ifa->ifa_next) {
+		if (!ifa->ifa_addr)
+			continue;
+		if (ifa->ifa_addr->sa_family != iffam)
+			continue;
+		if (strcmp(ifname, ifa->ifa_name))
+			continue;
+		*sadr = *ifa->ifa_addr;
+#if 1
+		{
+			void *adr;
+			char buf[INET6_ADDRSTRLEN];
+			
+			if (ifa->ifa_addr->sa_family == AF_INET) 
+				adr = &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
+			else 
+				adr = &((struct sockaddr_in6 *) ifa->ifa_addr)->sin6_addr;
+			inet_ntop(ifa->ifa_addr->sa_family, adr, buf, sizeof(buf));
+			printf("get_ifa %s:%s\n", ifname, buf);
+		}
+#endif
+		freeifaddrs(ifaddrs);
+		return 0;
+	}
+	freeifaddrs(ifaddrs);
+	return -1;
+}
+
+
+void sadr2str(const struct sockaddr *sadr, char *s, size_t len)
+{
+	switch(sadr->sa_family) {
+        case AF_INET:
+		inet_ntop(AF_INET,
+			  &(((struct sockaddr_in *)sadr)->sin_addr), s, len);
+		break;
+
+        case AF_INET6:
+		inet_ntop(AF_INET6,
+			  &(((struct sockaddr_in6 *)sadr)->sin6_addr), s, len);
+		break;
+	}
+}
+
+int sendlen(int sock, char *buf, int len)
+{
+	int done, todo; 
+
+	for (todo = len; todo; todo -= done, buf += done)
+		if ((done = send(sock, buf, todo, 0)) < 0)
+			return done;
+	return len;
+} 
+
+int sendstring(int sock, char *fmt, ...)
+{
+	int len;
+	uint8_t buf[2048];
+	va_list args;
+
+	va_start(args, fmt);
+	len = vsnprintf(buf, sizeof(buf), fmt, args);
+	if (len <= 0 || len >= sizeof(buf))
+		return;
+	sendlen(sock, buf, len);
+	va_end(args);
+}
+

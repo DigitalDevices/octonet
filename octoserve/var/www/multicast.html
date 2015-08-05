@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<script type="text/javascript" src="/mclist.lua"></script>
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+function OnLoad()
+{
+  if( Multicast.length == 0 )
+  {
+    document.getElementById("dlcurrent").disabled  = true;
+    document.getElementById("dlm3u").disabled  = true;
+    document.getElementById("MulticastTable").style.display = "none";
+  }
+}
+
+function WriteMCTable()
+{
+  if( Multicast.length > 0 )
+  {
+    for(var i = 0; i < Multicast.length; i = i + 1)
+    {
+      document.write('<tr>')
+      document.write('<td>'+(i+1)+'</td>')
+      document.write('<td>'+Multicast[i].Title+'</td>')
+      document.write('<td>'+Multicast[i].Dest+'</td>')
+      if( Multicast[i].LanPorts ) 
+        document.write('<td>'+Multicast[i].LanPorts+'</td>')
+      else
+        document.write('<td>&nbsp;</td>')      
+      document.write('</tr>')
+    }
+  }
+}
+
+</script>
+
+</head>
+<body onload="OnLoad()">
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+        <h1 align="center">Static Multicast Setup</h1>
+        <div id="MulticastTable">
+          <table cellpadding="2px" align="center" width="80%">
+            <tr>
+              <th>Stream</th>
+              <th>Title</th>
+              <th>Destination</th>
+              <th>Lan-Ports</th>
+            </tr>
+            <script type="text/javascript">WriteMCTable();</script>
+          </table>
+          <p/>
+        </div>
+
+        <table cellpadding="2px" align="center" width="80%">
+          <tr>
+            <td>
+              Current Settings
+            </td>
+            <td>
+              <form action="multicast.lua" method="get">
+                <input id="dlcurrent" type="submit" value="Download" ></input>
+                <input type="hidden" name="select" value="current" ></input>
+              </form>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              M3U List
+            </td>
+            <td>
+              <form action="multicast.lua" method="get">
+                <input id="dlm3u" type="submit" value="Download" ></input>
+                <input type="hidden" name="select" value="m3u" ></input>
+              </form>
+            </td>
+          </tr>
+          <tr>
+            <td>
+             Samples
+            </td>
+            <td>
+              <form action="multicast.lua" method="get">
+                <select name="name" size="1"  style="width: 300px">
+                  <option value="astra19e">Astra 19.2</option>
+                  <option value="kabelbw">Kabel BW</option>
+                  <option value="unitymedia">Unity Media</option>
+                </select>
+                <input type="hidden" name="select" value="sample" ></input>
+                <input type="submit" value="Download" ></input>
+              </form>
+            </td>
+          </tr>
+          <tr>
+            <td>
+             Select Sample
+            </td>
+            <td>
+              <form action="multicast.lua" method="get">
+                <select name="name" size="1"  style="width: 300px">
+                  <option value="astra19e">Astra 19.2</option>
+                  <option value="kabelbw">Kabel BW</option>
+                  <option value="unitymedia">Unity Media</option>
+                </select>
+                <input type="hidden" name="select" value="copy" ></input>
+                <input type="submit" value="Select & Enable" ></input>
+              </form>
+            </td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+          </tr>
+          </tr>
+            <td colspan="2">
+              <form action="multicast.lua" method="post" enctype="multipart/form-data">
+                <input type="file" name="filename" value="*.csv" size="30" accept="text/csv">
+                <input type="submit" value="Upload & Enable">
+              </form>
+            </td>
+          <tr>
+            <td>&nbsp;</td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <form action="multicast.lua" method="get">
+                <input type="submit" value="Disable" ></input>
+                <input type="hidden" name="select" value="disable" ></input>
+              </form>
+            </td>
+          </tr>
+        </table>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

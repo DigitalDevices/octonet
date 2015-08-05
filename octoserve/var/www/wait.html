@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+function Wait()
+{
+  if( WaitCounter == 0 )
+  {
+    location.replace('/index.html');
+  }
+  else
+  {
+    WaitCounter = WaitCounter - 1;
+    document.getElementById("waitcounter").firstChild.nodeValue  = WaitCounter;
+    window.setTimeout(Wait,1000);  
+  }
+}
+
+function OnLoad()
+{
+  WaitCounter = 5;
+  document.getElementById("waitcounter").firstChild.nodeValue  = WaitCounter;
+  window.setTimeout(Wait,1000);  
+}
+
+</script>
+
+</head>
+<body onload="OnLoad()">
+
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <img src="/BannerDD.jpg" alt="DD" width="910" height="130" />
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"></script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->                
+        <h1 id="waitcounter" align="center">&nbsp;</h1>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

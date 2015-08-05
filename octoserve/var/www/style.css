@@ -1,0 +1,78 @@
+body {
+	color:#000000;
+	background-color:#000000;
+	margin:0;
+  font-family:Arial,sans-serif;
+}
+
+.maintable {
+	color:#000000;
+  background-color:#FFFFFF;
+  text-align:center;
+  border:0;
+}
+
+.maintd {
+  vertical-align:top;
+}
+
+.menutable {
+	color:#000000;
+  background-color:#e0e0e0;
+  text-align:center;
+  border:5px;
+  width:95%;
+  font-size:120%;
+}
+
+.menucur {
+	color:#e0e0e0;
+  background-color:#000000;
+}
+
+.menutable a:link { text-decoration:none; color:#000000; }
+.menutable a:visited { text-decoration:none; color:#000000; }
+
+.content {
+	color:#000000;
+  background-color:#FFFFF0;
+  text-align:left;
+  vertical-align:top;
+  border:5px;
+  font-size:100%;
+}
+
+.table {
+	color:#000000;
+  text-align:center;
+  border:1px;
+}
+
+.tableleft {
+	color:#000000;
+  float:center;
+  text-align:left;
+  border:1px;
+}
+
+#streamstatus {
+	color:#000000;
+  text-align:center;
+  border:1px;
+  width:90%;
+}
+
+td#streamstatus {
+	color:#000080;
+}
+
+#tunerstatus {
+	color:#000000;
+  text-align:center;
+  border:1px;
+  width:60%;
+}
+
+a img {
+	border:none;
+}

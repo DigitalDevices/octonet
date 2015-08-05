@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<script type="text/javascript" src="/systemsettings.lua"></script>
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+
+
+function SaveSettings()
+{
+  param = "";
+  param += "telnet=" + (telnetEnabled?"1":"0");
+  param += "&";
+  param += "vlan=" + (vlanEnabled?"1":"0");
+  param += "&";
+  param += "nodms=" + (nodmsEnabled?"1":"0");
+  param += "&";
+  param += "nodvbt=" + (nodvbtEnabled?"1":"0");
+  param += "&";
+  param += "noswitch=" + (noswitchEnabled?"1":"0");
+  location.replace('/systemsettings.lua?'+param);  
+}
+
+function ClearSettings()
+{
+  telnetEnabled = false;
+  vlanEnabled = false;
+  nodmsEnabled = false;
+  nodvbtEnabled = false;
+  noswitchEnabled = false;
+  SaveSettings();
+}
+
+function OnLoad()
+{
+  document.getElementById("QOSButton").checked  = vlanEnabled;
+  document.getElementById("TelnetButton").checked  = telnetEnabled;
+  document.getElementById("NODMSButton").checked  = nodmsEnabled;
+  document.getElementById("NODVBTButton").checked  = nodvbtEnabled;
+  document.getElementById("NOSwitchButton").checked  = noswitchEnabled;
+}
+
+function Change()
+{
+  vlanEnabled = document.getElementById("QOSButton").checked;
+  telnetEnabled = document.getElementById("TelnetButton").checked;
+  nodmsEnabled = document.getElementById("NODMSButton").checked;
+  nodvbtEnabled = document.getElementById("NODVBTButton").checked;
+  noswitchEnabled = document.getElementById("NOSwitchButton").checked;
+  document.getElementById("SetButton").disabled = false;
+}
+
+</script>
+
+</head>
+<body onload="OnLoad()">
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+        <table class="tableleft" align="center" cellspacing="2px">
+          <tr>
+            <td>Layer 2 Quality of Service</td>
+            <td>
+              <form action="">
+                 <input id="QOSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+              </form>
+            </td>
+            <td>See note below</td>
+          <tr>
+
+          <tr>
+            <td>Telnet</td>
+            <td>
+              <form action="">
+                 <input id="TelnetButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+              </form>
+            </td>
+            <td>Enable it at your own risk</td>
+          <tr>
+          
+          <tr>
+            <td>NODMS</td>
+            <td>
+              <form action="">
+                 <input id="NODMSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+              </form>
+            </td>
+            <td>Disable DMS announcement.</td>
+          <tr>
+
+	  <tr>
+            <td>NODVBT</td>
+            <td>
+              <form action="">
+                <input id="NODVBTButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+              </form>
+            </td>
+            <td>Disable DVBT announcement.</td>
+          <tr>
+          
+	  <tr>
+            <td>No DVB switch</td>
+            <td>
+              <form action="">
+                <input id="NOSwitchButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+              </form>
+            </td>
+            <td>Disable DVB switch emulation on S8.</td>
+          <tr>
+          
+          <tr>
+            <td colspan="2" align="right">
+              <div style="width: 300px">
+                <form action="">
+                  <input type="Button" value="Cancel" onclick="location.replace('index.html')" >
+                  <input type="Button" value="Reset" onclick="ClearSettings()" >
+                  <input id="SetButton" type="Button" disabled="true" value="Set" onclick="SaveSettings()" >
+                </form>
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="margin:20px; clear:both"> 
+          <h3>Layer 2 Quality of Service</h3>
+          This is defined in the <b>IEEE 802.1Q</b> VLAN standard, and provides QoS in a local network.<br/>
+          For it to work all components in the LAN must either be transparent to it or need to support it.
+          <li><b>hubs:</b> always transparent.</li>
+          <li><b>dumb switches:</b> usually transparent, better ones use it to prioritise the traffic.</li>
+          <li><b>smart switches:</b> depends on setting.</li>
+          <li><b>PCs and the like:</b> newer systems support it by default, for older systems check the LAN adapter settings.</li>
+          <li><b>WLAN access points:</b> depends on firmware and model. OpenWRT based devices usually work.</li>
+          <br>
+          Dies ist im <b>IEEE 802.1Q</b> VLAN Standard definiert und erlaubt QoS im lokalem Netz.<br/>
+          Damit es funktioniert m&uuml;ssen alle Netzwerkkompenenten im LAN entweder transparent sein oder es unterst&uuml;tzen.
+          <li><b>Hubs:</b> sind immer transparent</li>
+          <li><b>Dumb Switches:</b> normalerweise transparent, bessere prioritisieren damit den Datenverkehr</li>
+          <li><b>Smart Switches:</b> h&auml;ngt von den Einstellungen ab</li>
+          <li><b>PCs und dergleichen:</b> neue Systeme unterst&uuml;tzten es defaultmässig, für &auml;ltere in den Einstellungen der Netzwerkarte nachschauen</li>
+          <li><b>WLAN Accesspoints:</b> h&auml;ngt von Modell und deren Firmware ab. OpenWRT basierte Ger&auml;te unterst&uuml;tzen es normalerweise</li>
+        </div>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>
+
+</html>

@@ -1,0 +1,6 @@
+SSDP: 192.168.2.177
+00: M-SEARCH * HTTP/1.1
+01: Host:239.255.255.250:1900
+02: Man:"ssdp:discover"
+03: ST:urn:ses-com:device:SatIPServer:1
+04: MX:3

@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add additional scripts and settings here -->
+<meta http-equiv="Pragma" content="no-cache" />
+<script id=script1 type="text/javascript" src="/octoserve/tunerstatus.js"></script>
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+function Show()
+{
+  for( i = 0; i < TunerList.length ; i++ )
+  {
+    if( TunerList[i].Active )
+    {
+      if( TunerList[i].Lock )
+      {
+        document.getElementById("elStatus"+i).firstChild.nodeValue  = "Locked";
+        document.getElementById("elStrength"+i).firstChild.nodeValue  = TunerList[i].Strength;
+        document.getElementById("elQuality"+i).firstChild.nodeValue  = TunerList[i].Quality;
+      }
+      else
+      {
+        document.getElementById("elStatus"+i).firstChild.nodeValue  = "No Signal";
+        document.getElementById("elStrength"+i).firstChild.nodeValue  = "";
+        document.getElementById("elQuality"+i).firstChild.nodeValue  = "";
+      }
+    }
+    else
+    {
+      document.getElementById("elStatus"+i).firstChild.nodeValue  = "";
+      document.getElementById("elStrength"+i).firstChild.nodeValue  = "";
+      document.getElementById("elQuality"+i).firstChild.nodeValue  = "";
+    }
+    
+  }
+}
+
+function renew()
+{
+  script = document.getElementById("script1");
+  head = document.getElementsByTagName('head')[0];
+  head.removeChild(script);
+  newscript = document.createElement('script');
+  newscript.id = "script1";
+  newscript.type = script.type;
+  newscript.src = script.src;
+  head.appendChild(newscript);
+  
+  Show();
+  window.setTimeout(renew,1000);  
+}
+
+</script>
+</head>
+<body>
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="maintd">
+      <div class="content">
+        <!-- Begin Content -->
+        
+          <table id="tunerstatus" align="center">
+          <tr>
+          <th>
+          Tuner
+          </th>
+          <th>
+          Lock
+          </th>
+          <th>
+          Strength
+          </th>
+          <th>
+          Quality
+          </th>
+          </tr>
+          <script type="text/javascript">
+          for( i = 0; i < TunerList.length ; i++ )
+          {    
+            document.write('<tr>');
+            document.write('<td>' + (i+1) + '</td>');  
+            document.write('<td id="elStatus'+i+'">&nbsp;</td>');
+            document.write('<td id="elStrength'+i+'">&nbsp;</td>');
+            document.write('<td id="elQuality'+i+'">&nbsp;</td>');    
+            document.write('</tr>');
+          }
+
+          Show();
+          window.setTimeout(renew,1000);  
+          </script>
+
+          </table>
+        
+        
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

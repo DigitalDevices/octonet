@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<script type="text/javascript" src="/systeminfo.lua"></script>
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+isChecking = false;
+UpdateInfo = "";
+CheckDone = false;
+UpdateAvailable = false;
+
+function FWVersion(fwdate)
+{
+  if( fwdate.length > 0 )
+  {
+    // Jahr, Monat, Tag, Stunden, Minuten
+    // date = new Date("20"+fwdate.substr(0,2),fwdate.substr(2,2)-1,fwdate.substr(4,2),fwdate.substr(6,2),fwdate.substr(8,2),"0");
+    
+    var date = new Date(1);
+    date.setUTCDate(fwdate.substr(4,2));
+    date.setUTCFullYear("20"+fwdate.substr(0,2));
+    date.setUTCMonth(fwdate.substr(2,2)-1);
+    date.setUTCHours(fwdate.substr(6,2));
+    date.setUTCMinutes(fwdate.substr(8,2));
+    
+    var ds = date.toGMTString();
+
+    return (ds.substring(5,ds.length-7));
+  }
+  return ("?");
+}
+
+
+function CheckUpdateDone()
+{
+  if( CheckDone )
+  {
+    script = document.getElementById("script1");
+    head = document.getElementsByTagName('head')[0];
+    head.removeChild(script);
+    
+    if( UpdateInfo != "" )    
+    {
+      document.getElementById("UpdateButton").value  = "Update";    
+      document.getElementById("updatemsg").firstChild.nodeValue  = "New firmware/system package available";    
+      document.getElementById("updatestatus").firstChild.nodeValue  = "Version: " + FWVersion(UpdateInfo);    
+      UpdateAvailable = true;
+    }
+    else
+      document.getElementById("updatestatus").firstChild.nodeValue  = "No update available";    
+    isChecking = false;
+    document.getElementById("UpdateButton").disabled  = false;    
+  }
+  else
+  {
+    window.setTimeout(CheckUpdateDone,100);  
+  }
+}
+
+function CheckUpdate()
+{
+  if( !isChecking )
+  {
+    document.getElementById("UpdateButton").disabled  = true;    
+    isChecking = true;
+    if( UpdateAvailable )
+    {
+      location.replace('/doupdate.html');
+    }
+    else
+    {
+      CheckDone = false;
+      document.getElementById("updatestatus").firstChild.nodeValue  = "***** Checking ******";
+      head = document.getElementsByTagName('head')[0];
+      newscript = document.createElement('script');
+      newscript.id = "script1";
+      newscript.type = "text/javascript";
+      newscript.src = "/update.lua?check";
+      head.appendChild(newscript);
+      window.setTimeout(CheckUpdateDone,100);  
+    }
+  }
+}
+</script>
+
+</head>
+<body>
+
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->                
+        <table class="table" align="center">
+          <tr>
+            <td id="updatemsg">Check for firmware/system update:</td>
+            <td>
+              <form action="">
+                 <input id="UpdateButton" type="Button" value="Check" onclick="CheckUpdate()" />
+              </form>
+            </td>
+          <tr>
+        
+          <tr>
+            <td id="updatestatus">&nbsp;</td>
+            <td>&nbsp;</td>
+          </tr>
+        </table>
+
+        
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

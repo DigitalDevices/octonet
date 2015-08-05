@@ -1,0 +1,165 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+
+<!-- Add page scripts here -->
+<script type="text/javascript">
+
+CheckDone = false;
+DownloadDone = false;
+VerifyDone = false;
+UpdateError = false;
+WaitCounter = 30;
+UpdateInfo = "";
+
+function FWVersion(fwdate)
+{
+  // Jahr, Monat, Tag, Stunden, Minuten
+  // date = new Date("20"+fwdate.substr(0,2),fwdate.substr(2,2)-1,fwdate.substr(4,2),fwdate.substr(6,2),fwdate.substr(8,2),"0");
+  date = new Date(1);
+  date.setUTCDate(fwdate.substr(4,2));
+  date.setUTCFullYear("20"+fwdate.substr(0,2));
+  date.setUTCMonth(fwdate.substr(2,2)-1);
+  date.setUTCHours(fwdate.substr(6,2));
+  date.setUTCMinutes(fwdate.substr(8,2));
+  
+  ds = date.toGMTString();
+
+  return ds.substring(5,ds.length-7);
+
+}
+
+function CheckUpdateStatus()
+{
+  script = document.getElementById("script1");
+  head = document.getElementsByTagName('head')[0];
+  head.removeChild(script);
+  newscript = document.createElement('script');
+  newscript.id = "script1";
+  newscript.type = "text/javascript";
+  newscript.src = "/update.lua?updatestatus";
+  head.appendChild(newscript);
+
+  if( UpdateError )
+  {
+      document.getElementById("UpdateButton").disabled  = false;    
+      document.getElementById("UpdateButton").value  = "Continue";    
+      document.getElementById("updatestatus").firstChild.nodeValue  = UpdateInfo;    
+  }  
+  else if( VerifyDone )
+  {
+      document.getElementById("UpdateButton").disabled  = false;    
+      document.getElementById("UpdateButton").value  = "Reboot";    
+      document.getElementById("updatestatus").firstChild.nodeValue  = "";    
+  }
+  else if( DownloadDone )
+  {
+      document.getElementById("updatestatus").firstChild.nodeValue  = "***** Verifying ******";    
+      DownloadDone = false;
+      window.setTimeout(CheckUpdateStatus,250);  
+  }
+  else if( CheckDone )
+  {
+      document.getElementById("updatestatus").firstChild.nodeValue  = "***** Downloading ******";    
+      CheckDone = false;
+      window.setTimeout(CheckUpdateStatus,250);  
+  }
+  else  
+    window.setTimeout(CheckUpdateStatus,250);  
+}
+
+function DoUpdate()
+{
+  CheckDone = false;
+  document.getElementById("updatestatus").firstChild.nodeValue  = "***** Checking ******";
+  head = document.getElementsByTagName('head')[0];
+  newscript = document.createElement('script');
+  newscript.id = "script1";
+  newscript.type = "text/javascript";
+  newscript.src = "/update.lua?update";
+  head.appendChild(newscript);
+  window.setTimeout(CheckUpdateStatus,250);  
+}
+
+function Reboot()
+{
+  document.getElementById("UpdateButton").disabled  = true;    
+  if( UpdateError )
+  {
+    location.replace('/index.html');
+  }
+  else
+  {
+    head = document.getElementsByTagName('head')[0];
+    newscript = document.createElement('script');
+    newscript.id = "script2";
+    newscript.type = "text/javascript";
+    newscript.src = "/reboot.lua?sjiwjsiowjs";
+    head.appendChild(newscript);  
+    WaitCounter = 70;
+    document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
+    window.setTimeout(Wait,1000);  
+  }
+}
+
+function Wait()
+{
+  document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
+  if( WaitCounter == 0 )
+  {
+    location.replace('/index.html');
+  }
+  else
+  {
+    WaitCounter = WaitCounter - 1;
+    window.setTimeout(Wait,1000);  
+  }
+}
+
+</script>
+
+</head>
+<body onload="DoUpdate()">
+
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <img src="/BannerDD.jpg" alt="DD" width="910" height="130" />
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->                
+        <h1 align="center">DO NOT TURN THE DEVICE OFF</h1>
+        <table class="table" align="center">
+          <tr>
+            <td id="updatestatus">&nbsp;&nbsp;</td>
+          </tr>
+          <tr>
+            <td>
+              <form action="">
+                 <input id="UpdateButton" type="Button" value="Continue" disabled="true" onclick="Reboot()" />
+              </form>
+            </td>
+          <tr>                  
+        </table>
+
+        
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>
