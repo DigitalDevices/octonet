@@ -1,0 +1,10 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+	if [ -e /config/boot.id ]; then
+	    echo -n `(cat /config/boot.id; echo  " 1 + p") | dc` > /config/boot.id
+	else
+	    echo -n "0" > /config/boot.id
+	fi    
+esac

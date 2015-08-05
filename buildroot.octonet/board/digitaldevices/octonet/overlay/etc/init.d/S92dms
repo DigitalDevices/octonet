@@ -1,0 +1,22 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+#        if  [ -e /config/dms.enabled ]; then
+          cd /var/dms
+	  export LUA_PATH="/var/channels/?.lua;;"
+          ./dms.lua >/dev/null 2>&1 &
+#        fi
+        ;;
+    stop)
+        killall dms.lua
+        sleep 2
+        ;;
+    restart|reload)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac

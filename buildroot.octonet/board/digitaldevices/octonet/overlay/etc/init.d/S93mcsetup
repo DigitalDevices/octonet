@@ -1,0 +1,20 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+        export  LUA_PATH="/var/channels/?.lua;;"
+        cd /var/mcsetup
+        ./mcsetup.lua server>/dev/null 2>&1 &
+        ;;
+    stop)
+        killall mcsetup.lua
+        sleep 2
+        ;;
+    restart|reload)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac

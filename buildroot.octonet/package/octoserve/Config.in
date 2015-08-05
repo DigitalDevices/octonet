@@ -1,0 +1,6 @@
+config BR2_PACKAGE_OCTOSERVE
+       bool "octoserve"
+       default n
+       select BR2_PACKAGE_DVB_APPS
+       help
+              http://www.digitaldevices.de

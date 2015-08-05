@@ -1,0 +1,152 @@
+diff -uNr buildroot-2014.05/package/dvb-apps/dvb-apps-0002-Fix-broken-bitops-on-arm.patch buildroot-2014.05.octonet/package/dvb-apps/dvb-apps-0002-Fix-broken-bitops-on-arm.patch
+--- buildroot-2014.05/package/dvb-apps/dvb-apps-0002-Fix-broken-bitops-on-arm.patch	1970-01-01 01:00:00.000000000 +0100
++++ buildroot-2014.05.octonet/package/dvb-apps/dvb-apps-0002-Fix-broken-bitops-on-arm.patch	2014-12-20 19:01:42.491905787 +0100
+@@ -0,0 +1,63 @@
++Binary files dvb-apps-83c746462ccb.orig/lib/libdvbapi/libdvbapi.a and dvb-apps-83c746462ccb/lib/libdvbapi/libdvbapi.a differ
++Binary files dvb-apps-83c746462ccb.orig/lib/libdvbcfg/libdvbcfg.a and dvb-apps-83c746462ccb/lib/libdvbcfg/libdvbcfg.a differ
++Binary files dvb-apps-83c746462ccb.orig/lib/libdvben50221/libdvben50221.a and dvb-apps-83c746462ccb/lib/libdvben50221/libdvben50221.a differ
++Binary files dvb-apps-83c746462ccb.orig/lib/libdvbsec/libdvbsec.a and dvb-apps-83c746462ccb/lib/libdvbsec/libdvbsec.a differ
++Binary files dvb-apps-83c746462ccb.orig/lib/libesg/libesg.a and dvb-apps-83c746462ccb/lib/libesg/libesg.a differ
++diff -rup dvb-apps-83c746462ccb.orig/lib/libucsi/endianops.h dvb-apps-83c746462ccb/lib/libucsi/endianops.h
++--- dvb-apps-83c746462ccb.orig/lib/libucsi/endianops.h	2012-12-06 10:38:07.000000000 +0100
+++++ dvb-apps-83c746462ccb/lib/libucsi/endianops.h	2013-09-25 23:33:39.981233882 +0200
++@@ -77,6 +77,8 @@ static inline void bswap48(uint8_t *buf)
++ #define EBIT7(x1,x2,x3,x4,x5,x6,x7) x7 x6 x5 x4 x3 x2 x1
++ #define EBIT8(x1,x2,x3,x4,x5,x6,x7,x8) x8 x7 x6 x5 x4 x3 x2 x1
++ 
+++#if 0
+++
++ static inline void bswap16(uint8_t * buf) {
++ 	*((uint16_t*)buf) = bswap_16((*(uint16_t*)buf));
++ }
++@@ -89,6 +91,42 @@ static inline void bswap64(uint8_t * buf
++ 	*((uint64_t*)buf) = bswap_64((*(uint64_t*)buf));
++ }
++ 
+++#else
+++
+++static  inline  void  bswap16(uint8_t * buf) {
+++	uint8_t tmp0 = buf[0];
+++
+++	buf[0] = buf[1];
+++	buf[1] = tmp0;
+++}
+++
+++static  inline  void  bswap32(uint8_t * buf) {
+++	uint8_t tmp0 = buf[0];
+++	uint8_t tmp1 = buf[1];
+++
+++	buf[0] = buf[3];
+++	buf[1] = buf[2];
+++	buf[2] = tmp1;
+++	buf[3] = tmp0;                                                                                                 
+++}
+++
+++static  inline  void  bswap64(uint8_t * buf) {
+++	uint8_t tmp0 = buf[0];
+++	uint8_t tmp1 = buf[1];
+++	uint8_t tmp2 = buf[2];
+++	uint8_t tmp3 = buf[3];
+++
+++	buf[0] = buf[7];
+++	buf[1] = buf[6];
+++	buf[2] = buf[5];
+++	buf[3] = buf[4];
+++	buf[4] = tmp3;
+++	buf[5] = tmp2;
+++	buf[6] = tmp1;
+++	buf[7] = tmp0;
+++}
+++#endif
+++
++ static inline void bswap24(uint8_t * buf) {
++ 	uint8_t tmp0 = buf[0];
++ 
++Binary files dvb-apps-83c746462ccb.orig/lib/libucsi/libucsi.a and dvb-apps-83c746462ccb/lib/libucsi/libucsi.a differ
++Only in dvb-apps-83c746462ccb.orig/util/gnutv: .#gnutv.c
++Only in dvb-apps-83c746462ccb.orig/util/gnutv: #gnutv.c#
+diff -uNr buildroot-2014.05/package/linux-headers/Config.in.host buildroot-2014.05.octonet/package/linux-headers/Config.in.host
+--- buildroot-2014.05/package/linux-headers/Config.in.host	2014-05-31 09:52:49.000000000 +0200
++++ buildroot-2014.05.octonet/package/linux-headers/Config.in.host	2014-12-20 19:03:58.370957507 +0100
+@@ -56,6 +56,10 @@
+ 		bool "Linux 3.14.x kernel headers"
+ 		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_14
+ 
++	config BR2_KERNEL_HEADERS_3_16
++		bool "Linux 3.16.x kernel headers"
++		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_16
++
+ 	config BR2_KERNEL_HEADERS_VERSION
+ 		bool "Manually specified Linux version"
+ endchoice
+@@ -77,6 +81,18 @@
+ 	  This is used to hide/show some packages that have strict
+ 	  requirements on the version of kernel headers.
+ 
++config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_17
++	bool "3.17.x"
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_17
++
++config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_16
++	bool "3.16.x"
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_16
++
++config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_15
++	bool "3.15.x"
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_15
++
+ config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_14
+ 	bool "3.14.x"
+ 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_14
+@@ -154,4 +170,7 @@
+ 	default "3.12.20"	if BR2_KERNEL_HEADERS_3_12
+ 	default "3.13.11"	if BR2_KERNEL_HEADERS_3_13
+ 	default "3.14.4"	if BR2_KERNEL_HEADERS_3_14
++	default "3.15.6"	if BR2_KERNEL_HEADERS_3_15
++	default "3.16.7"	if BR2_KERNEL_HEADERS_3_16
++	default "3.17.7"	if BR2_KERNEL_HEADERS_3_17
+ 	default BR2_DEFAULT_KERNEL_VERSION if BR2_KERNEL_HEADERS_VERSION
+diff -uNr buildroot-2014.05/toolchain/toolchain-common.in buildroot-2014.05.octonet/toolchain/toolchain-common.in
+--- buildroot-2014.05/toolchain/toolchain-common.in	2014-05-31 09:52:49.000000000 +0200
++++ buildroot-2014.05.octonet/toolchain/toolchain-common.in	2014-12-20 19:06:59.140337215 +0100
+@@ -180,6 +180,18 @@
+ 	bool
+ 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_13
+ 
++config BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_15
++	bool
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_14
++
++config BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_16
++	bool
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_15
++
++config BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_17
++	bool
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_16
++
+ # This order guarantees that the highest version is set, as kconfig
+ # stops affecting a value on the first matching default.
+ config BR2_TOOLCHAIN_HEADERS_AT_LEAST
+diff -uNr buildroot-2014.05/toolchain/toolchain-external/Config.in buildroot-2014.05.octonet/toolchain/toolchain-external/Config.in
+--- buildroot-2014.05/toolchain/toolchain-external/Config.in	2014-05-31 09:52:49.000000000 +0200
++++ buildroot-2014.05.octonet/toolchain/toolchain-external/Config.in	2014-12-20 19:05:51.804843418 +0100
+@@ -1018,6 +1018,18 @@
+ 	    m = ( LINUX_VERSION_CODE >> 8  ) & 0xFF
+ 	    p = ( LINUX_VERSION_CODE >> 0  ) & 0xFF
+ 
++config BR2_TOOLCHAIN_EXTERNAL_HEADERS_3_17
++	bool "3.17.x"
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_17
++
++config BR2_TOOLCHAIN_EXTERNAL_HEADERS_3_16
++	bool "3.16.x"
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_16
++
++config BR2_TOOLCHAIN_EXTERNAL_HEADERS_3_15
++	bool "3.15.x"
++	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_15
++
+ config BR2_TOOLCHAIN_EXTERNAL_HEADERS_3_14
+ 	bool "3.14.x"
+ 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_14

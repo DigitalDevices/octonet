@@ -1,0 +1,20 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+        if  [ -e /config/telnet.enabled ]; then
+          telnetd -l /bin/login
+        fi
+        ;;
+    stop)
+        killall telnetd
+        ;;
+    restart|reload)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+

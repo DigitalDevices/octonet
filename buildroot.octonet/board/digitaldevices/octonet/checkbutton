@@ -1,0 +1,10 @@
+	echo "64" > /sys/class/gpio/export
+	echo in > /sys/class/gpio/gpio64/direction
+	cat /sys/class/gpio/gpio64/value
+	key=`cat /sys/class/gpio/gpio64/value`
+	if [ $key -eq 0 ]; then
+	    rm /boot/uImage
+            #mv /config/rootfs.tar.bz2 /config/rootfs2.tar.bz2
+	    rm  /config/*.img
+	    reboot
+	fi

@@ -1,0 +1,58 @@
+diff -rup dvb-apps-83c746462ccb.orig/lib/libucsi/endianops.h dvb-apps-83c746462ccb/lib/libucsi/endianops.h
+--- dvb-apps-83c746462ccb.orig/lib/libucsi/endianops.h	2012-12-06 10:38:07.000000000 +0100
++++ dvb-apps-83c746462ccb/lib/libucsi/endianops.h	2013-09-25 23:33:39.981233882 +0200
+@@ -77,6 +77,8 @@ static inline void bswap48(uint8_t *buf)
+ #define EBIT7(x1,x2,x3,x4,x5,x6,x7) x7 x6 x5 x4 x3 x2 x1
+ #define EBIT8(x1,x2,x3,x4,x5,x6,x7,x8) x8 x7 x6 x5 x4 x3 x2 x1
+ 
++#if 0
++
+ static inline void bswap16(uint8_t * buf) {
+ 	*((uint16_t*)buf) = bswap_16((*(uint16_t*)buf));
+ }
+@@ -89,6 +91,42 @@ static inline void bswap64(uint8_t * buf
+ 	*((uint64_t*)buf) = bswap_64((*(uint64_t*)buf));
+ }
+ 
++#else
++
++static  inline  void  bswap16(uint8_t * buf) {
++	uint8_t tmp0 = buf[0];
++
++	buf[0] = buf[1];
++	buf[1] = tmp0;
++}
++
++static  inline  void  bswap32(uint8_t * buf) {
++	uint8_t tmp0 = buf[0];
++	uint8_t tmp1 = buf[1];
++
++	buf[0] = buf[3];
++	buf[1] = buf[2];
++	buf[2] = tmp1;
++	buf[3] = tmp0;                                                                                                 
++}
++
++static  inline  void  bswap64(uint8_t * buf) {
++	uint8_t tmp0 = buf[0];
++	uint8_t tmp1 = buf[1];
++	uint8_t tmp2 = buf[2];
++	uint8_t tmp3 = buf[3];
++
++	buf[0] = buf[7];
++	buf[1] = buf[6];
++	buf[2] = buf[5];
++	buf[3] = buf[4];
++	buf[4] = tmp3;
++	buf[5] = tmp2;
++	buf[6] = tmp1;
++	buf[7] = tmp0;
++}
++#endif
++
+ static inline void bswap24(uint8_t * buf) {
+ 	uint8_t tmp0 = buf[0];
+ 
+Binary files dvb-apps-83c746462ccb.orig/lib/libucsi/libucsi.a and dvb-apps-83c746462ccb/lib/libucsi/libucsi.a differ
+Only in dvb-apps-83c746462ccb.orig/util/gnutv: .#gnutv.c
+Only in dvb-apps-83c746462ccb.orig/util/gnutv: #gnutv.c#

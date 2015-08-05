@@ -1,0 +1,7 @@
+cd buildroot
+make BR2_EXTERNAL=../buildroot.octonet O=output-octonet-tc digitaldevices_octonet_tc_defconfig
+make BR2_EXTERNAL=../buildroot.octonet O=output-octonet-tc 
+make BR2_EXTERNAL=../buildroot.octonet O=output-octonet-init digitaldevices_octonet_init_defconfig
+make BR2_EXTERNAL=../buildroot.octonet O=output-octonet-init
+make BR2_EXTERNAL=../buildroot.octonet O=output-octonet digitaldevices_octonet_defconfig
+make BR2_EXTERNAL=../buildroot.octonet O=output-octonet

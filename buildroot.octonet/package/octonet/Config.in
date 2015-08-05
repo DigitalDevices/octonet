@@ -1,0 +1,5 @@
+config BR2_PACKAGE_OCTONET
+bool "octonet"
+        default n
+        help
+                http://www.linuxtv.org

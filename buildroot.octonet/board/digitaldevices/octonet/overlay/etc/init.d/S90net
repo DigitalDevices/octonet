@@ -1,0 +1,29 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+	if [ -e /config/static.ip ]; then
+	    /etc/init.d/S99octo stopoctoserve
+	    . /config/static.ip
+	    ifconfig eth0 $IP $NETMASK
+	    route add default gw $GATEWAY
+	    /etc/init.d/S99octo startoctoserve
+	else
+            udhcpc -s /etc/network/udhcpc.script -b -T 4 -A 300
+	fi
+	export LUA_PATH="/var/channels/?.lua;;"
+        httpd -h /var/www -c /etc/httpd.conf
+        ;;
+    stop)
+        killall udhcpc
+        killall zcip
+        killall httpd
+        ;;
+    restart|reload)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac

@@ -1,0 +1,2 @@
+source "$BR2_EXTERNAL/package/octonet/Config.in"
+source "$BR2_EXTERNAL/package/octoserve/Config.in"

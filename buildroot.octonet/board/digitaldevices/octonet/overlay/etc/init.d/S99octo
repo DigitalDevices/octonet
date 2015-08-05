@@ -1,0 +1,36 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+	;;
+    stop)
+        "$0" stopoctoserve
+        "$0" stopoctonet
+	;;
+    startoctonet)
+	modprobe octonet
+        ;;
+    stopoctonet)
+        rmmod -w octonet
+        ;;
+    restartoctonet)
+        "$0" stopoctoserve
+        "$0" stopoctonet
+        "$0" startoctonet
+        "$0" startoctoserve
+	;;
+    startoctoserve)
+	octoserve > /dev/null 2>&1 &
+        ;;
+    stopoctoserve)
+        killall octoserve
+	sleep 2
+        ;;
+    restartoctoserve)
+        "$0" stopoctoserve
+        "$0" startoctoserve
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|restartoctoserve}"
+        exit 1
+esac

@@ -1,0 +1,3 @@
+#!/bin/sh
+/usr/bin/lua /etc/switch/swsetup.lua gb yb
+/sbin/poweroff

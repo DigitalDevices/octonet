@@ -1,0 +1,44 @@
+#!/bin/sh
+
+case "$1" in
+  start)
+	sleep 3
+	if ! ubiattach -p /dev/mtd2; then 
+	    ubiformat /dev/mtd2 -e 0; ubiattach -p /dev/mtd2
+	else
+	    ubirmvol /dev/ubi0 -N rootfs    
+	fi
+
+	if ! [ -e /dev/ubi0_0 ]; then ubimkvol /dev/ubi0 -s 64MiB -N config; fi
+	if ! [ -e /dev/ubi0_1 ]; then ubimkvol /dev/ubi0 -s 128MiB -N rootfs; fi
+	
+	mkdir /config
+	mount -t ubifs /dev/ubi0_0 /config
+
+	img=`ls /config/octonet.*.img`
+	if [ "$img" = "" ]; then
+	    sleep 5
+	    if [ -e /dev/sda1 ]; then
+		mount /dev/sda1 /mnt
+		cp /mnt/octonet.*.img /config
+		umount /mnt
+	    fi
+	fi
+
+	img=`ls /config/octonet.*.img`
+	if [ "$img" = "" ]; then
+	    udhcpc
+	    sleep 3
+	    nimage=`wget http://download.digital-devices.de/download/linux/octonet/ -q -O -|grep img|sort|tail -n 1| cut -d\" -f 2`
+	    wget -P /config http://download.digital-devices.de/download/linux/octonet/$nimage
+	fi
+
+	mount -t ubifs /dev/ubi0_1 /mnt
+	rm -rf /mnt/*
+	tar -x -C /mnt -f /config/octonet.*.img
+	umount /mnt
+	umount /config
+	reboot
+	;;
+esac
+ 

@@ -1,0 +1,6 @@
+recover   if gpio input 64; then nand erase 2000000 e000000; fi
+fallback  nand read 72000000 100000 600000; bootm
+ubiboot   ubi part ubi && ubifsmount rootfs && ubifsload 72000000 /boot/uImage && bootm
+nandboot  dcache on; run recover; run ubiboot; run fallback
+mtdids    nand0=nand_mtd
+mtdparts  mtdparts=nand_mtd:0x2000000@0x000000(boot),0xe000000@0x2000000(ubi)

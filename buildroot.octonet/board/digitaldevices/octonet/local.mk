@@ -1,0 +1,4 @@
+LINUX_OVERRIDE_SRCDIR = ../linux.octonet
+LINUX_HEADERS_OVERRIDE_SRCDIR = ../linux.octonet
+#OCTOSERVE_OVERRIDE_SRCDIR = ../octoserve
+

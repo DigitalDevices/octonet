@@ -1,0 +1,1707 @@
+diff -uNr linux-3.17.7/arch/arm/mach-at91/at91sam9g45_devices.c linux.octonet/arch/arm/mach-at91/at91sam9g45_devices.c
+--- linux-3.17.7/arch/arm/mach-at91/at91sam9g45_devices.c	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/arch/arm/mach-at91/at91sam9g45_devices.c	2014-12-19 01:29:03.337952422 +0100
+@@ -304,7 +304,7 @@
+ 	},
+ };
+ 
+-static struct platform_device at91sam9g45_eth_device = {
++struct platform_device at91sam9g45_eth_device = {
+ 	.name		= "macb",
+ 	.id		= -1,
+ 	.dev		= {
+diff -uNr linux-3.17.7/arch/arm/mach-at91/board-octonet.c linux.octonet/arch/arm/mach-at91/board-octonet.c
+--- linux-3.17.7/arch/arm/mach-at91/board-octonet.c	1970-01-01 01:00:00.000000000 +0100
++++ linux.octonet/arch/arm/mach-at91/board-octonet.c	2014-12-19 01:29:03.337952422 +0100
+@@ -0,0 +1,472 @@
++/*
++ *  Board-specific setup code for the AT91SAM9M10G45 Evaluation Kit family
++ *
++ *  Covers: * AT91SAM9G45-EKES  board
++ *          * AT91SAM9M10G45-EK board
++ *
++ *  Copyright (C) 2009 Atmel Corporation.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ */
++
++#include <linux/types.h>
++#include <linux/gpio.h>
++#include <linux/init.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/spi/spi.h>
++#include <linux/fb.h>
++#include <linux/gpio_keys.h>
++#include <linux/input.h>
++#include <linux/leds.h>
++#include <linux/atmel-mci.h>
++#include <linux/delay.h>
++#include <linux/netdevice.h>
++#include <linux/phy.h>
++#include <linux/interrupt.h>
++#include <linux/input.h>
++#include <net/dsa.h>
++
++#include <linux/platform_data/at91_adc.h>
++
++#include <mach/hardware.h>
++#include <video/atmel_lcdc.h>
++#include <media/soc_camera.h>
++#include <media/atmel-isi.h>
++
++#include <asm/setup.h>
++#include <asm/mach-types.h>
++#include <asm/irq.h>
++
++#include <asm/mach/arch.h>
++#include <asm/mach/map.h>
++#include <asm/mach/irq.h>
++
++#include <mach/at91sam9_smc.h>
++#include <mach/system_rev.h>
++
++#include "at91_aic.h"
++#include "at91_shdwc.h"
++#include "board.h"
++#include "sam9_smc.h"
++#include "generic.h"
++#include "gpio.h"
++
++#include <linux/clk.h>
++#include "clock.h"
++
++#define SCKCR (0xd50)
++
++static void set_alarm(void)
++{
++	void __iomem *r = ioremap(0xfffff000, 0x1000);
++
++	if (!r)
++		return;
++	writel(0x02, r + 0xdcc); /* reset ALARM clock state */
++	iounmap(r);
++}
++
++static void set_slowclock(void)
++{
++	void __iomem *r = ioremap(0xfffff000, 0x1000);
++
++	if (!r)
++		return;
++	//writel(0x02, r + 0xdcc); /* reset ALARM clock state */
++        if (readl(r + SCKCR) == 1) {
++                writel(0x03, r + SCKCR);
++                mdelay(1400);
++                writel(0x0b, r + SCKCR);
++                mdelay(1);
++                writel(0x0a, r + SCKCR);
++        }
++	iounmap(r);
++}
++
++
++static void __init octonet_init_early(void)
++{
++	/* Initialize processor: 12.000 MHz crystal */
++	at91_initialize(12000000);
++
++	set_alarm();
++}
++
++/*
++ * USB HS Host port (common to OHCI & EHCI)
++ */
++static struct at91_usbh_data __initdata ek_usbh_hs_data = {
++	.ports		= 2,
++	.vbus_pin	= {-1, -1},
++	.vbus_pin_active_low = {1, 1},
++	.overcurrent_pin= {-EINVAL, -EINVAL},
++};
++
++
++/*
++ * USB HS Device port
++ */
++static struct usba_platform_data __initdata ek_usba_udc_data = {
++	.vbus_pin	= AT91_PIN_PB19,
++};
++
++/*
++ * MACB Ethernet device
++ */
++static struct macb_platform_data __initdata ek_macb_data = {
++	.phy_irq_pin	= 0,
++	.is_rmii	= 0,
++};
++
++/*
++ * NAND flash
++ */
++static struct mtd_partition __initdata ek_nand_partition[] = {
++	{
++		.name	= "boot",
++		.offset	= 0,
++		.size	= 0x100000,
++	},
++	{
++		.name	= "linux",
++		.offset	= MTDPART_OFS_NXTBLK,
++		.size	= 0x1f00000,
++	},
++	{
++		.name	= "ubi",
++		.offset	= MTDPART_OFS_NXTBLK,
++		.size	= MTDPART_SIZ_FULL,
++	},
++};
++
++static struct atmel_nand_data __initdata ek_nand_data = {
++	.ale		= 21,
++	.cle		= 22,
++	.rdy_pin	= AT91_PIN_PC8,
++	.enable_pin	= AT91_PIN_PC14,
++	.det_pin	= -EINVAL,
++	.ecc_mode	= NAND_ECC_SOFT_BCH,
++	.ecc_size	= 512,
++	.ecc_bytes	= 13,
++	.on_flash_bbt	= 1,
++	.parts		= ek_nand_partition,
++	.num_parts	= ARRAY_SIZE(ek_nand_partition),
++	.bus_width_16	= 0,
++};
++
++static struct sam9_smc_config __initdata ek_nand_smc_config = {
++	.ncs_read_setup		= 0,
++	.nrd_setup		= 2,
++	.ncs_write_setup	= 0,
++	.nwe_setup		= 2,
++
++	.ncs_read_pulse		= 4,
++	.nrd_pulse		= 4,
++	.ncs_write_pulse	= 4,
++	.nwe_pulse		= 4,
++
++	.read_cycle		= 7,
++	.write_cycle		= 7,
++
++	.mode			= AT91_SMC_READMODE | AT91_SMC_WRITEMODE | AT91_SMC_EXNWMODE_DISABLE,
++	.tdf_cycles		= 3,
++};
++
++static void __init ek_add_device_nand(void)
++{
++	/* setup bus-width (8 or 16) */
++	if (ek_nand_data.bus_width_16)
++		ek_nand_smc_config.mode |= AT91_SMC_DBW_16;
++	else
++		ek_nand_smc_config.mode |= AT91_SMC_DBW_8;
++
++	/* configure chip-select 3 (NAND) */
++	sam9_smc_configure(0, 3, &ek_nand_smc_config);
++
++	at91_add_device_nand(&ek_nand_data);
++}
++
++static struct resource octonet_dvb_resources[2] = { 
++        [0] = { 
++                .start  = 0x30000000, 
++                .end    = 0x30000000 + SZ_64K - 1, 
++                .flags  = IORESOURCE_MEM, 
++        }, 
++        [1] = { 
++                .start  = 0,
++                .end    = 0,
++                .flags  = IORESOURCE_IRQ, 
++        }, 
++}; 
++
++static void octonet_dvb_release(struct device *dev)
++{
++
++}
++
++static struct platform_device octonet_dvb_device = { 
++        .name           = "octonet-dvb", 
++        .id             = 0, 
++        .dev            = { 
++		.release           = octonet_dvb_release,
++        }, 
++        .resource       = octonet_dvb_resources, 
++        .num_resources  = ARRAY_SIZE(octonet_dvb_resources), 
++}; 
++
++static void __init add_octonet_dvb(void)
++{
++	u32 gpio = AT91_PIN_PC15;
++
++	at91_set_GPIO_periph(gpio, 0);
++	at91_set_gpio_input(gpio, 0);
++	at91_set_deglitch(gpio, 0);
++	octonet_dvb_device.resource[1].start = gpio_to_irq(gpio);
++	octonet_dvb_device.resource[1].end = gpio_to_irq(gpio);
++	platform_device_register(&octonet_dvb_device);
++}
++
++
++static struct gpio_keys_button octonet_buttons[] = {
++	{
++		.code		= KEY_POWER,
++		.gpio		= AT91_PIN_PC12,
++		.active_low	= 1,
++		.desc		= "power",
++		.wakeup		= 1,
++		.type           = EV_KEY,
++	},
++};
++
++static struct gpio_keys_platform_data octonet_button_data = {
++	.buttons	= octonet_buttons,
++	.nbuttons	= ARRAY_SIZE(octonet_buttons),
++};
++
++static struct platform_device octonet_button_device = {
++	.name		= "gpio-keys",
++	.id		= -1,
++	.num_resources	= 0,
++	.dev		= {
++		.platform_data	= &octonet_button_data,
++	}
++};
++
++static void __init octonet_add_buttons(void)
++{
++	int i;
++	
++	for (i = 0; i < ARRAY_SIZE(octonet_buttons); i++) {
++		at91_set_GPIO_periph(octonet_buttons[i].gpio, 1);
++		at91_set_deglitch(octonet_buttons[i].gpio, 1);
++	}
++	platform_device_register(&octonet_button_device);
++}
++
++
++static struct input_dev *pwr;
++static struct timer_list pwr_timer;
++
++static void pwr_timer_func(unsigned long ptr)
++{
++	input_event(pwr, EV_KEY, KEY_POWER, 1);
++	input_event(pwr, EV_KEY, KEY_POWER, 0);
++	input_sync(pwr);
++}
++
++
++#if 0
++static irqreturn_t pwr_irq(int irq, void *dev_id) 
++{
++	u32 val = gpio_get_value(AT91_PIN_PC12);
++	static int sw = 0;
++
++	if (val & 1) {
++		if (del_timer(&pwr_timer)) {
++			sw ^= 1;
++			input_event(pwr, EV_KEY, KEY_PAUSE, sw);
++			input_sync(pwr);
++		}
++	} else {
++		mod_timer(&pwr_timer, jiffies + 3 * HZ);
++	}
++	//input_event(pwr, EV_KEY, KEY_POWER, val ^ 1);
++	//input_sync(pwr);
++	return IRQ_HANDLED;
++}
++#else
++static irqreturn_t pwr_irq(int irq, void *dev_id) 
++{
++	u32 val = gpio_get_value(AT91_PIN_PC12);
++	static int sw = 0;
++
++	input_event(pwr, EV_KEY, KEY_POWER, val ^ 1);
++	input_sync(pwr);
++	return IRQ_HANDLED;
++}
++#endif
++
++static void __init add_octonet_button(void)
++{
++	u32 gpio = AT91_PIN_PC12;
++	u32 irq;
++
++	at91_set_GPIO_periph(gpio, 0);
++	at91_set_gpio_input(gpio, 0);
++	at91_set_deglitch(gpio, 0);
++
++	init_timer(&pwr_timer);
++	pwr_timer.function = pwr_timer_func;
++	pwr_timer.data = 0;
++	pwr = input_allocate_device();
++	if (!pwr) {
++		printk("could not allocate input device\n");
++		return;
++	}
++
++	set_bit(EV_KEY, pwr->evbit);
++	set_bit(KEY_POWER, pwr->keybit);
++	set_bit(KEY_PAUSE, pwr->keybit);
++	pwr->name = "octonet_pwr";
++	pwr->phys = "octonet_pwr/input0";
++
++	irq = gpio_to_irq(gpio);
++	request_irq(irq, pwr_irq, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "pwr", NULL);
++
++	input_register_device(pwr);
++}
++
++static struct dsa_chip_data switch_chip_data = {
++	.port_names[0]	= "lan1",
++	.port_names[1]	= "lan2",
++	.port_names[2]	= "lan3",
++	.port_names[3]	= "lan4",
++	.port_names[4]	= "lan5",
++	.port_names[5]	= "cpu",
++	.port_names[6]	= "fpga",
++};
++
++static struct dsa_platform_data switch_data = {
++	.nr_chips	= 1,
++	.chip		= &switch_chip_data,
++};
++
++static struct resource switch_resources[] = {
++	{
++		.start	= 0,
++		.end	= 0,
++		.flags	= IORESOURCE_IRQ,
++	},
++};
++
++static struct platform_device switch_device = {
++	.name		= "dsa",
++	.id		= 0,
++	.num_resources	= 0,
++	.resource	= switch_resources,
++	.dev.platform_data  = &switch_data,
++};
++
++extern struct platform_device at91sam9g45_eth_device;
++
++static void __init add_switch(void)
++{
++	int i;
++	struct platform_device *pdev = &at91sam9g45_eth_device;
++	struct net_device *netdev = platform_get_drvdata(pdev);
++	struct mii_bus *mii = (struct mii_bus *) dev_get_drvdata(&netdev->dev);
++
++//	printk("%08x %08x %08x\n", (u32) pdev, (u32) netdev, (u32) &netdev->dev);
++	switch_data.netdev = &netdev->dev;
++	for (i=0; i<5; i++)
++		switch_data.chip[i].mii_bus = &mii->dev;
++	platform_device_register(&switch_device);
++}
++
++
++
++static void set_pck(void)
++{
++	struct clk *pck0, *mck;
++	int res;
++
++	pck0 = clk_get(NULL, "pck0");
++
++	clk_enable(pck0);
++	return;
++
++
++	mck = clk_get(NULL, "mck");
++	at91_set_A_periph(AT91_PIN_PD26, 0);
++
++	printk("pck=%08x %d,  mck=%08x %d\n", 
++	       (u32) pck0, pck0->type, (u32) mck, mck->type);
++
++	res = clk_set_parent(pck0, mck);
++	printk("set_parent = %d\n", res);
++	//clk_put(mck);
++
++}
++
++#include <mach/at91sam9g45_matrix.h>
++#include <mach/at91_matrix.h>
++
++#undef AT91_SCKCR 
++#define AT91_SCKCR (void __iomem *)(0xfffffd50)
++
++static void octonet_init(void)
++{
++  //at91_matrix_write(AT91_MATRIX_EBICSA, 0x0001000a);
++
++	/* DGBU on ttyS0. (Rx & Tx only) */
++	at91_register_uart(0, 0, 0);
++	at91_add_device_serial();
++
++	/* USB HS Host */
++	at91_add_device_usbh_ohci(&ek_usbh_hs_data);
++	at91_add_device_usbh_ehci(&ek_usbh_hs_data);
++	/* USB HS Device */
++	//at91_add_device_usba(&ek_usba_udc_data);
++	/* Ethernet */
++	at91_add_device_eth(&ek_macb_data);
++
++	at91_set_gpio_input(AT91_PIN_PA19, 0);	
++	at91_set_gpio_input(AT91_PIN_PA18, 0);
++
++	at91_matrix_write(AT91_MATRIX_SCFG4, (8<<18)|(2<<16));
++	at91_matrix_write(AT91_MATRIX_PRBS4, 0x00000003);
++	//at91_matrix_write(AT91_MATRIX_SCFG5, (8<<18)|(2<<16));
++	//at91_matrix_write(AT91_MATRIX_PRBS5, 0x00000003);
++	//at91_matrix_write(AT91_MATRIX_VIDEO, AT91C_VDEC_SEL_OFF);
++	ek_add_device_nand();
++	//at91_add_device_i2c(0, NULL, 0);
++	add_octonet_dvb();
++
++	set_pck();
++
++	at91_shdwc_write(AT91_SHDW_MR, 0x30003);
++	//octonet_add_buttons();
++	set_slowclock();
++}
++
++static void octonet_init_late(void)
++{
++	add_switch();
++	add_octonet_button();
++}
++
++MACHINE_START(NAXY400, "DigitalDevices OctopusNet")
++	.init_time	= at91sam926x_pit_init,
++	.map_io		= at91_map_io,
++	.handle_irq	= at91_aic_handle_irq,
++	.init_early	= octonet_init_early,
++	.init_irq	= at91_init_irq_default,
++	.init_machine	= octonet_init,
++	.init_late	= octonet_init_late,
++MACHINE_END
+diff -uNr linux-3.17.7/arch/arm/mach-at91/Kconfig.non_dt linux.octonet/arch/arm/mach-at91/Kconfig.non_dt
+--- linux-3.17.7/arch/arm/mach-at91/Kconfig.non_dt	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/arch/arm/mach-at91/Kconfig.non_dt	2014-12-19 01:29:03.337952422 +0100
+@@ -319,6 +319,11 @@
+ 	  families: AT91SAM9G45, AT91SAM9G46, AT91SAM9M10 and AT91SAM9M11.
+ 	  <http://www.atmel.com/tools/SAM9M10-G45-EK.aspx>
+ 
++config MACH_OCTONET
++	bool "OctoNet"
++	help
++	  OctoNet
++
+ endif
+ 
+ # ----------------------------------------------------------
+diff -uNr linux-3.17.7/arch/arm/mach-at91/Makefile linux.octonet/arch/arm/mach-at91/Makefile
+--- linux-3.17.7/arch/arm/mach-at91/Makefile	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/arch/arm/mach-at91/Makefile	2014-12-19 01:29:05.902083522 +0100
+@@ -80,6 +80,7 @@
+ 
+ # AT91SAM9G45 board-specific support
+ obj-$(CONFIG_MACH_AT91SAM9M10G45EK) += board-sam9m10g45ek.o
++obj-$(CONFIG_MACH_OCTONET) += board-octonet.o
+ 
+ # AT91SAM board with device-tree
+ obj-$(CONFIG_MACH_AT91RM9200_DT) += board-dt-rm9200.o
+diff -uNr linux-3.17.7/arch/arm/tools/mach-types linux.octonet/arch/arm/tools/mach-types
+--- linux-3.17.7/arch/arm/tools/mach-types	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/arch/arm/tools/mach-types	2014-12-19 01:29:06.702124427 +0100
+@@ -517,6 +517,7 @@
+ cm_a510			MACH_CM_A510		CM_A510			3020
+ tx28			MACH_TX28		TX28			3043
+ pcontrol_g20		MACH_PCONTROL_G20	PCONTROL_G20		3062
++naxy400			MACH_NAXY400		NAXY400			3085
+ vpr200			MACH_VPR200		VPR200			3087
+ torbreck		MACH_TORBRECK		TORBRECK		3090
+ prima2_evb		MACH_PRIMA2_EVB		PRIMA2_EVB		3103
+diff -uNr linux-3.17.7/drivers/media/dvb-core/Makefile linux.octonet/drivers/media/dvb-core/Makefile
+--- linux-3.17.7/drivers/media/dvb-core/Makefile	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/media/dvb-core/Makefile	2014-12-19 01:29:06.702124427 +0100
+@@ -6,6 +6,7 @@
+ 
+ dvb-core-objs := dvbdev.o dmxdev.o dvb_demux.o dvb_filter.o 	\
+ 		 dvb_ca_en50221.o dvb_frontend.o 		\
+-		 $(dvb-net-y) dvb_ringbuffer.o dvb_math.o
++		 $(dvb-net-y) dvb_ringbuffer.o dvb_math.o       \
++		 dvb_netstream.o
+ 
+ obj-$(CONFIG_DVB_CORE) += dvb-core.o
+diff -uNr linux-3.17.7/drivers/media/dvb-frontends/Kconfig linux.octonet/drivers/media/dvb-frontends/Kconfig
+--- linux-3.17.7/drivers/media/dvb-frontends/Kconfig	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/media/dvb-frontends/Kconfig	2014-12-19 01:29:06.702124427 +0100
+@@ -35,6 +35,29 @@
+ 	help
+ 	  A Silicon tuner that supports DVB-S and DVB-S2 modes
+ 
++config DVB_STV0910
++	tristate "STV0910 based"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++	help
++	  DVB-S/S2/DSS Multistandard Professional/Broadcast demodulators.
++	  Say Y when you want to support these frontends.
++
++config DVB_MXL5XX
++	tristate "MXL5XX based"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++	help
++	  DVB-S/S2/DSS Multistandard Professional/Broadcast demodulators.
++	  Say Y when you want to support these frontends.
++
++config DVB_STV6111
++	tristate "STV6111 based tuners"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++	help
++	  A Silicon tuner that supports DVB-S and DVB-S2 modes
++
+ config DVB_M88DS3103
+ 	tristate "Montage M88DS3103"
+ 	depends on DVB_CORE && I2C && I2C_MUX
+@@ -54,6 +77,7 @@
+ 
+ 	  Say Y when you want to support this frontend.
+ 
++
+ config DVB_TDA18271C2DD
+ 	tristate "NXP TDA18271C2 silicon tuner"
+ 	depends on DVB_CORE && I2C
+@@ -406,6 +430,13 @@
+ 	help
+ 	  A DVB-T tuner module. Say Y when you want to support this frontend.
+ 
++config DVB_TDA18212DD
++	tristate "Philips TDA18212 based"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++	help
++	  A DVB-T tuner module. Say Y when you want to support this frontend.
++
+ config DVB_AF9013
+ 	tristate "Afatech AF9013 demodulator"
+ 	depends on DVB_CORE && I2C
+@@ -434,6 +465,20 @@
+ 	help
+ 	  A DVB-T/C tuner module. Say Y when you want to support this frontend.
+ 
++config DVB_STV0367DD
++	tristate "ST STV0367dd based"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++	help
++	  A DVB-T/C tuner module. Say Y when you want to support this frontend.
++
++config DVB_CXD2843
++	tristate "Sony CXD2843"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++	help
++	  A DVB-T/T2/C/C2 tuner module. Say Y when you want to support this frontend.
++
+ config DVB_CXD2820R
+ 	tristate "Sony CXD2820R"
+ 	depends on DVB_CORE && I2C
+@@ -684,6 +729,13 @@
+ 	help
+ 	  An SEC control chips.
+ 
++config DVB_LNBH25
++	tristate "LNBH25 SEC controllers"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++	help
++	  An SEC control chips.
++
+ config DVB_LNBP22
+ 	tristate "LNBP22 SEC controllers"
+ 	depends on DVB_CORE && I2C
+@@ -773,6 +825,11 @@
+ 	depends on DVB_CORE && I2C
+ 	default m if !MEDIA_SUBDRV_AUTOSELECT
+ 
++config DVB_CXD2099
++	tristate "cxd2099"
++	depends on DVB_CORE && I2C
++	default m if !MEDIA_SUBDRV_AUTOSELECT
++
+ comment "Tools to develop new frontends"
+ 
+ config DVB_DUMMY_FE
+diff -uNr linux-3.17.7/drivers/media/dvb-frontends/Makefile linux.octonet/drivers/media/dvb-frontends/Makefile
+--- linux-3.17.7/drivers/media/dvb-frontends/Makefile	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/media/dvb-frontends/Makefile	2014-12-19 01:33:36.799941558 +0100
+@@ -113,4 +113,11 @@
+ obj-$(CONFIG_DVB_RTL2832_SDR) += rtl2832_sdr.o
+ obj-$(CONFIG_DVB_M88RS2000) += m88rs2000.o
+ obj-$(CONFIG_DVB_AF9033) += af9033.o
+-
++obj-$(CONFIG_DVB_STV0367DD) += stv0367dd.o
++obj-$(CONFIG_DVB_TDA18212DD) += tda18212dd.o
++obj-$(CONFIG_DVB_CXD2099) += cxd2099.o
++obj-$(CONFIG_DVB_CXD2843) += cxd2843.o
++obj-$(CONFIG_DVB_STV6111) += stv6111.o
++obj-$(CONFIG_DVB_STV0910) += stv0910.o
++obj-$(CONFIG_DVB_LNBH25) += lnbh25.o
++obj-$(CONFIG_DVB_MXL5XX) += mxl5xx.o
+diff -uNr linux-3.17.7/drivers/media/pci/ddbridge/Kconfig linux.octonet/drivers/media/pci/ddbridge/Kconfig
+--- linux-3.17.7/drivers/media/pci/ddbridge/Kconfig	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/media/pci/ddbridge/Kconfig	2014-12-19 01:29:06.702124427 +0100
+@@ -1,11 +1,16 @@
++
+ config DVB_DDBRIDGE
+ 	tristate "Digital Devices bridge support"
+-	depends on DVB_CORE && PCI && I2C
++	depends on MEDIA_PCI_SUPPORT && DVB_CORE && PCI && I2C
+ 	select DVB_LNBP21 if MEDIA_SUBDRV_AUTOSELECT
+ 	select DVB_STV6110x if MEDIA_SUBDRV_AUTOSELECT
+ 	select DVB_STV090x if MEDIA_SUBDRV_AUTOSELECT
+ 	select DVB_DRXK if MEDIA_SUBDRV_AUTOSELECT
+ 	select DVB_TDA18271C2DD if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_TDA18212DD if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_STV0367DD if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_CXD2099 if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_CXD2843 if MEDIA_SUBDRV_AUTOSELECT
+ 	---help---
+ 	  Support for cards with the Digital Devices PCI express bridge:
+ 	  - Octopus PCIe Bridge
+@@ -16,3 +21,25 @@
+ 	  - cineS2(v6)
+ 
+ 	  Say Y if you own such a card and want to use it.
++
++
++config DVB_OCTONET
++       tristate "Digital Devices octonet support"
++	depends on MEDIA_DIGITAL_TV_SUPPORT && DVB_CORE && I2C
++	select DVB_LNBP21 if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_STV6110x if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_STV090x if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_DRXK if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_TDA18271C2DD if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_TDA18212DD if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_STV0367DD if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_CXD2099 if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_CXD2843 if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_STV0910 if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_STV6111 if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_LNBH25 if MEDIA_SUBDRV_AUTOSELECT
++	select DVB_MXL5XX if MEDIA_SUBDRV_AUTOSELECT
++	---help---
++	  Support for OctopusNet
++
++	  Say Y if you own such a card and want to use it.
+diff -uNr linux-3.17.7/drivers/media/pci/ddbridge/Makefile linux.octonet/drivers/media/pci/ddbridge/Makefile
+--- linux-3.17.7/drivers/media/pci/ddbridge/Makefile	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/media/pci/ddbridge/Makefile	2014-12-19 01:29:06.702124427 +0100
+@@ -5,10 +5,9 @@
+ ddbridge-objs := ddbridge-core.o
+ 
+ obj-$(CONFIG_DVB_DDBRIDGE) += ddbridge.o
++obj-$(CONFIG_DVB_OCTONET) += octonet.o
+ 
+ ccflags-y += -Idrivers/media/dvb-core/
+ ccflags-y += -Idrivers/media/dvb-frontends/
+ ccflags-y += -Idrivers/media/tuners/
+ 
+-# For the staging CI driver cxd2099
+-ccflags-y += -Idrivers/staging/media/cxd2099/
+diff -uNr linux-3.17.7/drivers/media/pci/Kconfig linux.octonet/drivers/media/pci/Kconfig
+--- linux-3.17.7/drivers/media/pci/Kconfig	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/media/pci/Kconfig	2014-12-19 01:29:06.702124427 +0100
+@@ -43,8 +43,9 @@
+ source "drivers/media/pci/pt1/Kconfig"
+ source "drivers/media/pci/mantis/Kconfig"
+ source "drivers/media/pci/ngene/Kconfig"
+-source "drivers/media/pci/ddbridge/Kconfig"
+ endif
+ 
+ endif #MEDIA_PCI_SUPPORT
+ endif #PCI
++
++source "drivers/media/pci/ddbridge/Kconfig"
+diff -uNr linux-3.17.7/drivers/mtd/nand/atmel_nand.c linux.octonet/drivers/mtd/nand/atmel_nand.c
+--- linux-3.17.7/drivers/mtd/nand/atmel_nand.c	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/mtd/nand/atmel_nand.c	2014-12-19 01:30:14.845609001 +0100
+@@ -2099,6 +2099,8 @@
+ 	}
+ 
+ 	nand_chip->ecc.mode = host->board.ecc_mode;
++	nand_chip->ecc.size = host->board.ecc_size;
++	nand_chip->ecc.bytes = host->board.ecc_bytes;
+ 	nand_chip->chip_delay = 20;		/* 20us command delay time */
+ 
+ 	if (host->board.bus_width_16)	/* 16-bit bus width */
+diff -uNr linux-3.17.7/drivers/net/ethernet/cadence/macb.c linux.octonet/drivers/net/ethernet/cadence/macb.c
+--- linux-3.17.7/drivers/net/ethernet/cadence/macb.c	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/net/ethernet/cadence/macb.c	2014-12-19 01:29:08.054193557 +0100
+@@ -316,6 +316,7 @@
+ 	int phy_irq;
+ 	int ret;
+ 
++#ifndef CONFIG_MACH_OCTONET
+ 	phydev = phy_find_first(bp->mii_bus);
+ 	if (!phydev) {
+ 		netdev_err(dev, "no PHY found\n");
+@@ -351,7 +352,7 @@
+ 	bp->speed = 0;
+ 	bp->duplex = -1;
+ 	bp->phy_dev = phydev;
+-
++#endif
+ 	return 0;
+ }
+ 
+@@ -1714,9 +1715,11 @@
+ 	/* carrier starts down */
+ 	netif_carrier_off(dev);
+ 
++#ifndef CONFIG_MACH_OCTONET
+ 	/* if the phy is not yet register, retry later*/
+ 	if (!bp->phy_dev)
+ 		return -EAGAIN;
++#endif
+ 
+ 	/* RX buffers initialization */
+ 	macb_init_rx_buffer_size(bp, bufsz);
+@@ -1733,8 +1736,20 @@
+ 	bp->macbgem_ops.mog_init_rings(bp);
+ 	macb_init_hw(bp);
+ 
++#ifdef CONFIG_MACH_OCTONET
++	{
++		u32 reg;
++		
++		reg = macb_readl(bp, NCFGR);
++		reg |= MACB_BIT(FD);
++		reg |= MACB_BIT(SPD);
++		macb_writel(bp, NCFGR, reg);
++	}
++	netif_carrier_on(dev);
++#else
+ 	/* schedule a link state check */
+ 	phy_start(bp->phy_dev);
++#endif
+ 
+ 	netif_start_queue(dev);
+ 
+@@ -1936,10 +1951,14 @@
+ 	if (!netif_running(dev))
+ 		return -EINVAL;
+ 
++#ifdef CONFIG_MACH_OCTONET
++	return 0;
++#else
+ 	if (!phydev)
+ 		return -ENODEV;
+ 
+ 	return phy_mii_ioctl(phydev, rq, cmd);
++#endif
+ }
+ EXPORT_SYMBOL_GPL(macb_ioctl);
+ 
+@@ -2234,10 +2253,28 @@
+ 		    macb_is_gem(bp) ? "GEM" : "MACB", dev->base_addr,
+ 		    dev->irq, dev->dev_addr);
+ 
++#ifndef CONFIG_MACH_OCTONET
+ 	phydev = bp->phy_dev;
+ 	netdev_info(dev, "attached PHY driver [%s] (mii_bus:phy_addr=%s, irq=%d)\n",
+ 		    phydev->drv->name, dev_name(&phydev->dev), phydev->irq);
++#endif
++#ifdef CONFIG_MACH_OCTONET
++	printk("OctoNet fixed to 100Mbit duplex\n");
++	bp->link = 1;
++	bp->speed = SPEED_100;
++	bp->duplex = DUPLEX_FULL;
++	{
++		u32 reg;
++		
++		reg = macb_readl(bp, NCFGR);
++		reg |= MACB_BIT(FD);
++		reg |= MACB_BIT(SPD);
++		macb_writel(bp, NCFGR, reg);
+ 
++	}
++	macb_writel(bp, USRIO, MACB_BIT(CLKEN));
++	netif_carrier_on(dev);
++#endif
+ 	return 0;
+ 
+ err_out_unregister_netdev:
+diff -uNr linux-3.17.7/drivers/staging/media/cxd2099/cxd2099.c linux.octonet/drivers/staging/media/cxd2099/cxd2099.c
+--- linux-3.17.7/drivers/staging/media/cxd2099/cxd2099.c	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/staging/media/cxd2099/cxd2099.c	1970-01-01 01:00:00.000000000 +0100
+@@ -1,719 +0,0 @@
+-/*
+- * cxd2099.c: Driver for the CXD2099AR Common Interface Controller
+- *
+- * Copyright (C) 2010-2011 Digital Devices GmbH
+- *
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License
+- * version 2 only, as published by the Free Software Foundation.
+- *
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+- * 02110-1301, USA
+- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+- */
+-
+-#include <linux/slab.h>
+-#include <linux/kernel.h>
+-#include <linux/module.h>
+-#include <linux/moduleparam.h>
+-#include <linux/i2c.h>
+-#include <linux/wait.h>
+-#include <linux/delay.h>
+-#include <linux/mutex.h>
+-#include <linux/io.h>
+-
+-#include "cxd2099.h"
+-
+-#define MAX_BUFFER_SIZE 248
+-
+-struct cxd {
+-	struct dvb_ca_en50221 en;
+-
+-	struct i2c_adapter *i2c;
+-	struct cxd2099_cfg cfg;
+-
+-	u8     regs[0x23];
+-	u8     lastaddress;
+-	u8     clk_reg_f;
+-	u8     clk_reg_b;
+-	int    mode;
+-	int    ready;
+-	int    dr;
+-	int    slot_stat;
+-
+-	u8     amem[1024];
+-	int    amem_read;
+-
+-	int    cammode;
+-	struct mutex lock;
+-};
+-
+-static int i2c_write_reg(struct i2c_adapter *adapter, u8 adr,
+-			 u8 reg, u8 data)
+-{
+-	u8 m[2] = {reg, data};
+-	struct i2c_msg msg = {.addr = adr, .flags = 0, .buf = m, .len = 2};
+-
+-	if (i2c_transfer(adapter, &msg, 1) != 1) {
+-		dev_err(&adapter->dev,
+-			"Failed to write to I2C register %02x@%02x!\n",
+-			reg, adr);
+-		return -1;
+-	}
+-	return 0;
+-}
+-
+-static int i2c_write(struct i2c_adapter *adapter, u8 adr,
+-		     u8 *data, u8 len)
+-{
+-	struct i2c_msg msg = {.addr = adr, .flags = 0, .buf = data, .len = len};
+-
+-	if (i2c_transfer(adapter, &msg, 1) != 1) {
+-		dev_err(&adapter->dev, "Failed to write to I2C!\n");
+-		return -1;
+-	}
+-	return 0;
+-}
+-
+-static int i2c_read_reg(struct i2c_adapter *adapter, u8 adr,
+-			u8 reg, u8 *val)
+-{
+-	struct i2c_msg msgs[2] = {{.addr = adr, .flags = 0,
+-				   .buf = &reg, .len = 1},
+-				  {.addr = adr, .flags = I2C_M_RD,
+-				   .buf = val, .len = 1} };
+-
+-	if (i2c_transfer(adapter, msgs, 2) != 2) {
+-		dev_err(&adapter->dev, "error in i2c_read_reg\n");
+-		return -1;
+-	}
+-	return 0;
+-}
+-
+-static int i2c_read(struct i2c_adapter *adapter, u8 adr,
+-		    u8 reg, u8 *data, u8 n)
+-{
+-	struct i2c_msg msgs[2] = {{.addr = adr, .flags = 0,
+-				 .buf = &reg, .len = 1},
+-				{.addr = adr, .flags = I2C_M_RD,
+-				 .buf = data, .len = n} };
+-
+-	if (i2c_transfer(adapter, msgs, 2) != 2) {
+-		dev_err(&adapter->dev, "error in i2c_read\n");
+-		return -1;
+-	}
+-	return 0;
+-}
+-
+-static int read_block(struct cxd *ci, u8 adr, u8 *data, u8 n)
+-{
+-	int status;
+-
+-	status = i2c_write_reg(ci->i2c, ci->cfg.adr, 0, adr);
+-	if (!status) {
+-		ci->lastaddress = adr;
+-		status = i2c_read(ci->i2c, ci->cfg.adr, 1, data, n);
+-	}
+-	return status;
+-}
+-
+-static int read_reg(struct cxd *ci, u8 reg, u8 *val)
+-{
+-	return read_block(ci, reg, val, 1);
+-}
+-
+-
+-static int read_pccard(struct cxd *ci, u16 address, u8 *data, u8 n)
+-{
+-	int status;
+-	u8 addr[3] = {2, address & 0xff, address >> 8};
+-
+-	status = i2c_write(ci->i2c, ci->cfg.adr, addr, 3);
+-	if (!status)
+-		status = i2c_read(ci->i2c, ci->cfg.adr, 3, data, n);
+-	return status;
+-}
+-
+-static int write_pccard(struct cxd *ci, u16 address, u8 *data, u8 n)
+-{
+-	int status;
+-	u8 addr[3] = {2, address & 0xff, address >> 8};
+-
+-	status = i2c_write(ci->i2c, ci->cfg.adr, addr, 3);
+-	if (!status) {
+-		u8 buf[256] = {3};
+-		memcpy(buf+1, data, n);
+-		status = i2c_write(ci->i2c, ci->cfg.adr, buf, n+1);
+-	}
+-	return status;
+-}
+-
+-static int read_io(struct cxd *ci, u16 address, u8 *val)
+-{
+-	int status;
+-	u8 addr[3] = {2, address & 0xff, address >> 8};
+-
+-	status = i2c_write(ci->i2c, ci->cfg.adr, addr, 3);
+-	if (!status)
+-		status = i2c_read(ci->i2c, ci->cfg.adr, 3, val, 1);
+-	return status;
+-}
+-
+-static int write_io(struct cxd *ci, u16 address, u8 val)
+-{
+-	int status;
+-	u8 addr[3] = {2, address & 0xff, address >> 8};
+-	u8 buf[2] = {3, val};
+-
+-	status = i2c_write(ci->i2c, ci->cfg.adr, addr, 3);
+-	if (!status)
+-		status = i2c_write(ci->i2c, ci->cfg.adr, buf, 2);
+-	return status;
+-}
+-
+-#if 0
+-static int read_io_data(struct cxd *ci, u8 *data, u8 n)
+-{
+-	int status;
+-	u8 addr[3] = { 2, 0, 0 };
+-
+-	status = i2c_write(ci->i2c, ci->cfg.adr, addr, 3);
+-	if (!status)
+-		status = i2c_read(ci->i2c, ci->cfg.adr, 3, data, n);
+-	return 0;
+-}
+-
+-static int write_io_data(struct cxd *ci, u8 *data, u8 n)
+-{
+-	int status;
+-	u8 addr[3] = {2, 0, 0};
+-
+-	status = i2c_write(ci->i2c, ci->cfg.adr, addr, 3);
+-	if (!status) {
+-		u8 buf[256] = {3};
+-		memcpy(buf+1, data, n);
+-		status = i2c_write(ci->i2c, ci->cfg.adr, buf, n + 1);
+-	}
+-	return 0;
+-}
+-#endif
+-
+-static int write_regm(struct cxd *ci, u8 reg, u8 val, u8 mask)
+-{
+-	int status;
+-
+-	status = i2c_write_reg(ci->i2c, ci->cfg.adr, 0, reg);
+-	if (!status && reg >= 6 && reg <= 8 && mask != 0xff)
+-		status = i2c_read_reg(ci->i2c, ci->cfg.adr, 1, &ci->regs[reg]);
+-	ci->regs[reg] = (ci->regs[reg] & (~mask)) | val;
+-	if (!status) {
+-		ci->lastaddress = reg;
+-		status = i2c_write_reg(ci->i2c, ci->cfg.adr, 1, ci->regs[reg]);
+-	}
+-	if (reg == 0x20)
+-		ci->regs[reg] &= 0x7f;
+-	return status;
+-}
+-
+-static int write_reg(struct cxd *ci, u8 reg, u8 val)
+-{
+-	return write_regm(ci, reg, val, 0xff);
+-}
+-
+-#ifdef BUFFER_MODE
+-static int write_block(struct cxd *ci, u8 adr, u8 *data, int n)
+-{
+-	int status;
+-	u8 buf[256] = {1};
+-
+-	status = i2c_write_reg(ci->i2c, ci->cfg.adr, 0, adr);
+-	if (!status) {
+-		ci->lastaddress = adr;
+-		memcpy(buf + 1, data, n);
+-		status = i2c_write(ci->i2c, ci->cfg.adr, buf, n + 1);
+-	}
+-	return status;
+-}
+-#endif
+-
+-static void set_mode(struct cxd *ci, int mode)
+-{
+-	if (mode == ci->mode)
+-		return;
+-
+-	switch (mode) {
+-	case 0x00: /* IO mem */
+-		write_regm(ci, 0x06, 0x00, 0x07);
+-		break;
+-	case 0x01: /* ATT mem */
+-		write_regm(ci, 0x06, 0x02, 0x07);
+-		break;
+-	default:
+-		break;
+-	}
+-	ci->mode = mode;
+-}
+-
+-static void cam_mode(struct cxd *ci, int mode)
+-{
+-	if (mode == ci->cammode)
+-		return;
+-
+-	switch (mode) {
+-	case 0x00:
+-		write_regm(ci, 0x20, 0x80, 0x80);
+-		break;
+-	case 0x01:
+-#ifdef BUFFER_MODE
+-		if (!ci->en.read_data)
+-			return;
+-		dev_info(&ci->i2c->dev, "enable cam buffer mode\n");
+-		/* write_reg(ci, 0x0d, 0x00); */
+-		/* write_reg(ci, 0x0e, 0x01); */
+-		write_regm(ci, 0x08, 0x40, 0x40);
+-		/* read_reg(ci, 0x12, &dummy); */
+-		write_regm(ci, 0x08, 0x80, 0x80);
+-#endif
+-		break;
+-	default:
+-		break;
+-	}
+-	ci->cammode = mode;
+-}
+-
+-
+-
+-static int init(struct cxd *ci)
+-{
+-	int status;
+-
+-	mutex_lock(&ci->lock);
+-	ci->mode = -1;
+-	do {
+-		status = write_reg(ci, 0x00, 0x00);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x01, 0x00);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x02, 0x10);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x03, 0x00);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x05, 0xFF);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x06, 0x1F);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x07, 0x1F);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x08, 0x28);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x14, 0x20);
+-		if (status < 0)
+-			break;
+-
+-#if 0
+-		/* Input Mode C, BYPass Serial, TIVAL = low, MSB */
+-		status = write_reg(ci, 0x09, 0x4D);
+-		if (status < 0)
+-			break;
+-#endif
+-		/* TOSTRT = 8, Mode B (gated clock), falling Edge,
+-		 * Serial, POL=HIGH, MSB */
+-		status = write_reg(ci, 0x0A, 0xA7);
+-		if (status < 0)
+-			break;
+-
+-		status = write_reg(ci, 0x0B, 0x33);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x0C, 0x33);
+-		if (status < 0)
+-			break;
+-
+-		status = write_regm(ci, 0x14, 0x00, 0x0F);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x15, ci->clk_reg_b);
+-		if (status < 0)
+-			break;
+-		status = write_regm(ci, 0x16, 0x00, 0x0F);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x17, ci->clk_reg_f);
+-		if (status < 0)
+-			break;
+-
+-		if (ci->cfg.clock_mode) {
+-			if (ci->cfg.polarity) {
+-				status = write_reg(ci, 0x09, 0x6f);
+-				if (status < 0)
+-					break;
+-			} else {
+-				status = write_reg(ci, 0x09, 0x6d);
+-				if (status < 0)
+-					break;
+-			}
+-			status = write_reg(ci, 0x20, 0x68);
+-			if (status < 0)
+-				break;
+-			status = write_reg(ci, 0x21, 0x00);
+-			if (status < 0)
+-				break;
+-			status = write_reg(ci, 0x22, 0x02);
+-			if (status < 0)
+-				break;
+-		} else {
+-			if (ci->cfg.polarity) {
+-				status = write_reg(ci, 0x09, 0x4f);
+-				if (status < 0)
+-					break;
+-			} else {
+-				status = write_reg(ci, 0x09, 0x4d);
+-				if (status < 0)
+-					break;
+-			}
+-
+-			status = write_reg(ci, 0x20, 0x28);
+-			if (status < 0)
+-				break;
+-			status = write_reg(ci, 0x21, 0x00);
+-			if (status < 0)
+-				break;
+-			status = write_reg(ci, 0x22, 0x07);
+-			if (status < 0)
+-				break;
+-		}
+-
+-		status = write_regm(ci, 0x20, 0x80, 0x80);
+-		if (status < 0)
+-			break;
+-		status = write_regm(ci, 0x03, 0x02, 0x02);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x01, 0x04);
+-		if (status < 0)
+-			break;
+-		status = write_reg(ci, 0x00, 0x31);
+-		if (status < 0)
+-			break;
+-
+-		/* Put TS in bypass */
+-		status = write_regm(ci, 0x09, 0x08, 0x08);
+-		if (status < 0)
+-			break;
+-		ci->cammode = -1;
+-		cam_mode(ci, 0);
+-	} while (0);
+-	mutex_unlock(&ci->lock);
+-
+-	return 0;
+-}
+-
+-static int read_attribute_mem(struct dvb_ca_en50221 *ca,
+-			      int slot, int address)
+-{
+-	struct cxd *ci = ca->data;
+-#if 0
+-	if (ci->amem_read) {
+-		if (address <= 0 || address > 1024)
+-			return -EIO;
+-		return ci->amem[address];
+-	}
+-
+-	mutex_lock(&ci->lock);
+-	write_regm(ci, 0x06, 0x00, 0x05);
+-	read_pccard(ci, 0, &ci->amem[0], 128);
+-	read_pccard(ci, 128, &ci->amem[0], 128);
+-	read_pccard(ci, 256, &ci->amem[0], 128);
+-	read_pccard(ci, 384, &ci->amem[0], 128);
+-	write_regm(ci, 0x06, 0x05, 0x05);
+-	mutex_unlock(&ci->lock);
+-	return ci->amem[address];
+-#else
+-	u8 val;
+-	mutex_lock(&ci->lock);
+-	set_mode(ci, 1);
+-	read_pccard(ci, address, &val, 1);
+-	mutex_unlock(&ci->lock);
+-	/* printk(KERN_INFO "%02x:%02x\n", address,val); */
+-	return val;
+-#endif
+-}
+-
+-static int write_attribute_mem(struct dvb_ca_en50221 *ca, int slot,
+-			       int address, u8 value)
+-{
+-	struct cxd *ci = ca->data;
+-
+-	mutex_lock(&ci->lock);
+-	set_mode(ci, 1);
+-	write_pccard(ci, address, &value, 1);
+-	mutex_unlock(&ci->lock);
+-	return 0;
+-}
+-
+-static int read_cam_control(struct dvb_ca_en50221 *ca,
+-			    int slot, u8 address)
+-{
+-	struct cxd *ci = ca->data;
+-	u8 val;
+-
+-	mutex_lock(&ci->lock);
+-	set_mode(ci, 0);
+-	read_io(ci, address, &val);
+-	mutex_unlock(&ci->lock);
+-	return val;
+-}
+-
+-static int write_cam_control(struct dvb_ca_en50221 *ca, int slot,
+-			     u8 address, u8 value)
+-{
+-	struct cxd *ci = ca->data;
+-
+-	mutex_lock(&ci->lock);
+-	set_mode(ci, 0);
+-	write_io(ci, address, value);
+-	mutex_unlock(&ci->lock);
+-	return 0;
+-}
+-
+-static int slot_reset(struct dvb_ca_en50221 *ca, int slot)
+-{
+-	struct cxd *ci = ca->data;
+-
+-	mutex_lock(&ci->lock);
+-#if 0
+-	write_reg(ci, 0x00, 0x21);
+-	write_reg(ci, 0x06, 0x1F);
+-	write_reg(ci, 0x00, 0x31);
+-#else
+-#if 0
+-	write_reg(ci, 0x06, 0x1F);
+-	write_reg(ci, 0x06, 0x2F);
+-#else
+-	cam_mode(ci, 0);
+-	write_reg(ci, 0x00, 0x21);
+-	write_reg(ci, 0x06, 0x1F);
+-	write_reg(ci, 0x00, 0x31);
+-	write_regm(ci, 0x20, 0x80, 0x80);
+-	write_reg(ci, 0x03, 0x02);
+-	ci->ready = 0;
+-#endif
+-#endif
+-	ci->mode = -1;
+-	{
+-		int i;
+-#if 0
+-		u8 val;
+-#endif
+-		for (i = 0; i < 100; i++) {
+-			msleep(10);
+-#if 0
+-			read_reg(ci, 0x06, &val);
+-			dev_info(&ci->i2c->dev, "%d:%02x\n", i, val);
+-			if (!(val&0x10))
+-				break;
+-#else
+-			if (ci->ready)
+-				break;
+-#endif
+-		}
+-	}
+-	mutex_unlock(&ci->lock);
+-	/* msleep(500); */
+-	return 0;
+-}
+-
+-static int slot_shutdown(struct dvb_ca_en50221 *ca, int slot)
+-{
+-	struct cxd *ci = ca->data;
+-
+-	dev_info(&ci->i2c->dev, "slot_shutdown\n");
+-	mutex_lock(&ci->lock);
+-	write_regm(ci, 0x09, 0x08, 0x08);
+-	write_regm(ci, 0x20, 0x80, 0x80); /* Reset CAM Mode */
+-	write_regm(ci, 0x06, 0x07, 0x07); /* Clear IO Mode */
+-	ci->mode = -1;
+-	mutex_unlock(&ci->lock);
+-	return 0;
+-}
+-
+-static int slot_ts_enable(struct dvb_ca_en50221 *ca, int slot)
+-{
+-	struct cxd *ci = ca->data;
+-
+-	mutex_lock(&ci->lock);
+-	write_regm(ci, 0x09, 0x00, 0x08);
+-	set_mode(ci, 0);
+-#ifdef BUFFER_MODE
+-	cam_mode(ci, 1);
+-#endif
+-	mutex_unlock(&ci->lock);
+-	return 0;
+-}
+-
+-
+-static int campoll(struct cxd *ci)
+-{
+-	u8 istat;
+-
+-	read_reg(ci, 0x04, &istat);
+-	if (!istat)
+-		return 0;
+-	write_reg(ci, 0x05, istat);
+-
+-	if (istat&0x40) {
+-		ci->dr = 1;
+-		dev_info(&ci->i2c->dev, "DR\n");
+-	}
+-	if (istat&0x20)
+-		dev_info(&ci->i2c->dev, "WC\n");
+-
+-	if (istat&2) {
+-		u8 slotstat;
+-
+-		read_reg(ci, 0x01, &slotstat);
+-		if (!(2&slotstat)) {
+-			if (!ci->slot_stat) {
+-				ci->slot_stat = DVB_CA_EN50221_POLL_CAM_PRESENT;
+-				write_regm(ci, 0x03, 0x08, 0x08);
+-			}
+-
+-		} else {
+-			if (ci->slot_stat) {
+-				ci->slot_stat = 0;
+-				write_regm(ci, 0x03, 0x00, 0x08);
+-				dev_info(&ci->i2c->dev, "NO CAM\n");
+-				ci->ready = 0;
+-			}
+-		}
+-		if (istat&8 &&
+-		    ci->slot_stat == DVB_CA_EN50221_POLL_CAM_PRESENT) {
+-			ci->ready = 1;
+-			ci->slot_stat |= DVB_CA_EN50221_POLL_CAM_READY;
+-		}
+-	}
+-	return 0;
+-}
+-
+-
+-static int poll_slot_status(struct dvb_ca_en50221 *ca, int slot, int open)
+-{
+-	struct cxd *ci = ca->data;
+-	u8 slotstat;
+-
+-	mutex_lock(&ci->lock);
+-	campoll(ci);
+-	read_reg(ci, 0x01, &slotstat);
+-	mutex_unlock(&ci->lock);
+-
+-	return ci->slot_stat;
+-}
+-
+-#ifdef BUFFER_MODE
+-static int read_data(struct dvb_ca_en50221 *ca, int slot, u8 *ebuf, int ecount)
+-{
+-	struct cxd *ci = ca->data;
+-	u8 msb, lsb;
+-	u16 len;
+-
+-	mutex_lock(&ci->lock);
+-	campoll(ci);
+-	mutex_unlock(&ci->lock);
+-
+-	dev_info(&ci->i2c->dev, "read_data\n");
+-	if (!ci->dr)
+-		return 0;
+-
+-	mutex_lock(&ci->lock);
+-	read_reg(ci, 0x0f, &msb);
+-	read_reg(ci, 0x10, &lsb);
+-	len = (msb<<8)|lsb;
+-	read_block(ci, 0x12, ebuf, len);
+-	ci->dr = 0;
+-	mutex_unlock(&ci->lock);
+-
+-	return len;
+-}
+-
+-static int write_data(struct dvb_ca_en50221 *ca, int slot, u8 *ebuf, int ecount)
+-{
+-	struct cxd *ci = ca->data;
+-
+-	mutex_lock(&ci->lock);
+-	printk(kern_INFO "write_data %d\n", ecount);
+-	write_reg(ci, 0x0d, ecount>>8);
+-	write_reg(ci, 0x0e, ecount&0xff);
+-	write_block(ci, 0x11, ebuf, ecount);
+-	mutex_unlock(&ci->lock);
+-	return ecount;
+-}
+-#endif
+-
+-static struct dvb_ca_en50221 en_templ = {
+-	.read_attribute_mem  = read_attribute_mem,
+-	.write_attribute_mem = write_attribute_mem,
+-	.read_cam_control    = read_cam_control,
+-	.write_cam_control   = write_cam_control,
+-	.slot_reset          = slot_reset,
+-	.slot_shutdown       = slot_shutdown,
+-	.slot_ts_enable      = slot_ts_enable,
+-	.poll_slot_status    = poll_slot_status,
+-#ifdef BUFFER_MODE
+-	.read_data           = read_data,
+-	.write_data          = write_data,
+-#endif
+-
+-};
+-
+-struct dvb_ca_en50221 *cxd2099_attach(struct cxd2099_cfg *cfg,
+-				      void *priv,
+-				      struct i2c_adapter *i2c)
+-{
+-	struct cxd *ci;
+-	u8 val;
+-
+-	if (i2c_read_reg(i2c, cfg->adr, 0, &val) < 0) {
+-		dev_info(&i2c->dev, "No CXD2099 detected at %02x\n", cfg->adr);
+-		return NULL;
+-	}
+-
+-	ci = kzalloc(sizeof(struct cxd), GFP_KERNEL);
+-	if (!ci)
+-		return NULL;
+-
+-	mutex_init(&ci->lock);
+-	ci->cfg = *cfg;
+-	ci->i2c = i2c;
+-	ci->lastaddress = 0xff;
+-	ci->clk_reg_b = 0x4a;
+-	ci->clk_reg_f = 0x1b;
+-
+-	ci->en = en_templ;
+-	ci->en.data = ci;
+-	init(ci);
+-	dev_info(&i2c->dev, "Attached CXD2099AR at %02x\n", ci->cfg.adr);
+-	return &ci->en;
+-}
+-EXPORT_SYMBOL(cxd2099_attach);
+-
+-MODULE_DESCRIPTION("cxd2099");
+-MODULE_AUTHOR("Ralph Metzler");
+-MODULE_LICENSE("GPL");
+diff -uNr linux-3.17.7/drivers/staging/media/cxd2099/cxd2099.h linux.octonet/drivers/staging/media/cxd2099/cxd2099.h
+--- linux-3.17.7/drivers/staging/media/cxd2099/cxd2099.h	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/staging/media/cxd2099/cxd2099.h	1970-01-01 01:00:00.000000000 +0100
+@@ -1,51 +0,0 @@
+-/*
+- * cxd2099.h: Driver for the CXD2099AR Common Interface Controller
+- *
+- * Copyright (C) 2010-2011 Digital Devices GmbH
+- *
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License
+- * version 2 only, as published by the Free Software Foundation.
+- *
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+- * 02110-1301, USA
+- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+- */
+-
+-#ifndef _CXD2099_H_
+-#define _CXD2099_H_
+-
+-#include <dvb_ca_en50221.h>
+-
+-struct cxd2099_cfg {
+-	u32 bitrate;
+-	u8  adr;
+-	u8  polarity:1;
+-	u8  clock_mode:1;
+-};
+-
+-#if defined(CONFIG_DVB_CXD2099) || \
+-	(defined(CONFIG_DVB_CXD2099_MODULE) && defined(MODULE))
+-struct dvb_ca_en50221 *cxd2099_attach(struct cxd2099_cfg *cfg,
+-				      void *priv, struct i2c_adapter *i2c);
+-#else
+-
+-static inline struct dvb_ca_en50221 *cxd2099_attach(struct cxd2099_cfg *cfg,
+-					void *priv, struct i2c_adapter *i2c)
+-{
+-	dev_warn(&i2c->dev, "%s: driver disabled by Kconfig\n", __func__);
+-	return NULL;
+-}
+-#endif
+-
+-#endif
+diff -uNr linux-3.17.7/drivers/staging/media/cxd2099/Kconfig linux.octonet/drivers/staging/media/cxd2099/Kconfig
+--- linux-3.17.7/drivers/staging/media/cxd2099/Kconfig	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/staging/media/cxd2099/Kconfig	1970-01-01 01:00:00.000000000 +0100
+@@ -1,12 +0,0 @@
+-config DVB_CXD2099
+-	tristate "CXD2099AR Common Interface driver"
+-	depends on DVB_CORE && PCI && I2C
+-	---help---
+-	  Support for the CI module found on cards based on
+-	  - Micronas ngene PCIe bridge: cineS2 etc.
+-	  - Digital Devices PCIe bridge: Octopus series
+-
+-	  For now, data is passed through '/dev/dvb/adapterX/sec0':
+-	    - Encrypted data must be written to 'sec0'.
+-	    - Decrypted data can be read from 'sec0'.
+-	    - Setup the CAM using device 'ca0'.
+diff -uNr linux-3.17.7/drivers/staging/media/cxd2099/Makefile linux.octonet/drivers/staging/media/cxd2099/Makefile
+--- linux-3.17.7/drivers/staging/media/cxd2099/Makefile	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/staging/media/cxd2099/Makefile	1970-01-01 01:00:00.000000000 +0100
+@@ -1,5 +0,0 @@
+-obj-$(CONFIG_DVB_CXD2099) += cxd2099.o
+-
+-ccflags-y += -Idrivers/media/dvb-core/
+-ccflags-y += -Idrivers/media/dvb-frontends/
+-ccflags-y += -Idrivers/media/tuners/
+diff -uNr linux-3.17.7/drivers/staging/media/cxd2099/TODO linux.octonet/drivers/staging/media/cxd2099/TODO
+--- linux-3.17.7/drivers/staging/media/cxd2099/TODO	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/staging/media/cxd2099/TODO	1970-01-01 01:00:00.000000000 +0100
+@@ -1,12 +0,0 @@
+-For now, data is passed through '/dev/dvb/adapterX/sec0':
+- - Encrypted data must be written to 'sec0'.
+- - Decrypted data can be read from 'sec0'.
+- - Setup the CAM using device 'ca0'.
+-
+-But this is wrong. There are some discussions about the proper way for
+-doing it, as seen at:
+-	http://www.mail-archive.com/linux-media@vger.kernel.org/msg22196.html
+-
+-While there's no proper fix for it, the driver should be kept in staging.
+-
+-Patches should be submitted to: linux-media@vger.kernel.org.
+diff -uNr linux-3.17.7/drivers/staging/media/Kconfig linux.octonet/drivers/staging/media/Kconfig
+--- linux-3.17.7/drivers/staging/media/Kconfig	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/staging/media/Kconfig	2014-12-19 01:29:09.170250619 +0100
+@@ -23,8 +23,6 @@
+ 
+ source "drivers/staging/media/bcm2048/Kconfig"
+ 
+-source "drivers/staging/media/cxd2099/Kconfig"
+-
+ source "drivers/staging/media/davinci_vpfe/Kconfig"
+ 
+ source "drivers/staging/media/dt3155v4l/Kconfig"
+diff -uNr linux-3.17.7/drivers/staging/media/Makefile linux.octonet/drivers/staging/media/Makefile
+--- linux-3.17.7/drivers/staging/media/Makefile	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/drivers/staging/media/Makefile	2014-12-19 01:29:09.170250619 +0100
+@@ -1,6 +1,5 @@
+ obj-$(CONFIG_DVB_AS102)		+= as102/
+ obj-$(CONFIG_I2C_BCM2048)	+= bcm2048/
+-obj-$(CONFIG_DVB_CXD2099)	+= cxd2099/
+ obj-$(CONFIG_LIRC_STAGING)	+= lirc/
+ obj-$(CONFIG_VIDEO_DT3155)	+= dt3155v4l/
+ obj-$(CONFIG_VIDEO_DM365_VPFE)	+= davinci_vpfe/
+diff -uNr linux-3.17.7/include/linux/platform_data/atmel.h linux.octonet/include/linux/platform_data/atmel.h
+--- linux-3.17.7/include/linux/platform_data/atmel.h	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/include/linux/platform_data/atmel.h	2014-12-19 01:29:09.170250619 +0100
+@@ -75,6 +75,8 @@
+ 
+ 	/* default is false, only for at32ap7000 chip is true */
+ 	bool		need_reset_workaround;
++	int             ecc_size;
++	int             ecc_bytes;
+ };
+ 
+  /* Serial */
+diff -uNr linux-3.17.7/net/Kconfig linux.octonet/net/Kconfig
+--- linux-3.17.7/net/Kconfig	2014-12-16 18:37:26.000000000 +0100
++++ linux.octonet/net/Kconfig	2014-12-19 01:29:09.170250619 +0100
+@@ -53,8 +53,8 @@
+ 
+ config INET
+ 	bool "TCP/IP networking"
+-	select CRYPTO
+-	select CRYPTO_AES
++#	select CRYPTO
++#	select CRYPTO_AES
+ 	---help---
+ 	  These are the protocols used on the Internet and on most local
+ 	  Ethernets. It is highly recommended to say Y here (this will enlarge
