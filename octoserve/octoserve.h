@@ -1,5 +1,5 @@
 /*  
-    (C) 2012-13 Digital Devices GmbH. 
+    (C) 2012-15 Digital Devices GmbH. 
 
     This file is part of the octoserve SAT>IP server.
 
@@ -73,9 +73,14 @@
 #define DEBUG_IGMP    32
 #define DEBUG_SWITCH  64
 
+#if 0
 #define dbgprintf(_mask_, ...) \
 	 do { if (debug & _mask_) fprintf(stderr, __VA_ARGS__); } while (0) 
-
+#else
+#define dbgprintf(_mask_, ...) \
+         do { if (debug & _mask_) { fprintf(stderr, "[%5u] ", mtime(NULL)); \
+			            fprintf(stderr, __VA_ARGS__); } } while (0) 
+#endif
 
 #define SYS_DVBC2 19
 
@@ -305,7 +310,7 @@ struct ossess {
 	
 	uint32_t timeout_len;
 	time_t timeout;
-
+ 
 	int nsfd;
 	struct ostrans trans;
 	struct dvb_params p;
@@ -338,6 +343,8 @@ struct oscon {
 	pthread_t pt;
 	int sock;
 	int nr;
+
+	time_t timeout;
 
 	struct ostrans trans;
 
@@ -444,6 +451,7 @@ struct octoserve {
 	int scif_type;
 	int has_feswitch;
 	int do_feswitch;
+	int strict_satip;
 
 	int dvbfe_num;
 	struct dvbfe dvbfe[MAX_DVB_FE];
@@ -501,7 +509,7 @@ void dump(const uint8_t *b, int l);
 void proc_igmp(struct octoserve *os, uint8_t *b, int l, uint8_t *mh);
 void mc_join(struct octoserve *os, uint8_t *ip, uint8_t *mac, uint8_t *group);
 void mc_leave(struct octoserve *os, uint8_t *ip, uint8_t *group);
-void mc_check(struct ossess *sess);
+void mc_check(struct ossess *sess, int update);
 void mc_del(struct ossess *sess);
 
 void send_igmp_query(struct octoserve *os, uint8_t *group, uint8_t timeout);
@@ -518,5 +526,7 @@ int set_pmt(struct dvbca *ca, uint32_t *pmt);
 int set_nonblock(int fd);
 int sendlen(int sock, char *buf, int len);
 int sendstring(int sock, char *fmt, ...);
+
+time_t mtime(time_t *t);
 
 #endif

@@ -1,5 +1,5 @@
 /*  
-    (C) 2012-14 Digital Devices GmbH. 
+    (C) 2012-15 Digital Devices GmbH. 
 
     This file is part of the octoserve SAT>IP server.
 
@@ -22,6 +22,19 @@
 #include <getopt.h>
 
 uint32_t debug;
+uint32_t flags;
+uint32_t conform = 0;
+#define FLAGS_TRANSPORT 1
+
+
+uint64_t mtime_nano(void)
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts))
+		return 0;
+	return ts.tv_sec * 1000000000 + ts.tv_nsec;
+}
 
 void dump(const uint8_t *b, int l)
 {
@@ -313,6 +326,40 @@ static struct dvbfe *alloc_fe(struct octoserve *os, int type)
 	return NULL;
 }
 
+static void release_con(struct oscon *con)
+{
+	close(con->sock);
+	con->state = 0;
+	dbgprintf(DEBUG_SYS, "releasing con %d\n", con->nr);
+}
+
+static void shutdown_con(struct oscon *con)
+{
+	con->session = 0;
+	con->state = 3;
+	con->timeout = mtime(NULL) + 10;
+	dbgprintf(DEBUG_SYS, "shutdown con %u at %u\n", con->nr, con->timeout);
+}
+
+static void *_release_session(struct ossess *oss)
+{
+	struct octoserve *os = oss->os;
+	int i;
+
+	dbgprintf(DEBUG_SYS, "releasing session %d\n", oss->nr);
+	for (i = 0; i < MAX_CONNECT; i++) {
+		if (os->con[i].state &&
+		    (os->con[i].session == oss))
+			shutdown_con(&os->con[i]);
+	}
+	if (oss->nsfd >= 0) {
+		dbgprintf(DEBUG_SYS, "closing netstream of session %d\n", oss->nr);
+		close(oss->nsfd);
+	}
+	oss->playing = 0;
+	oss->state = 0;
+}
+
 static void *release_stream(struct osstrm *str)
 {
 	struct octoserve *os = str->os;
@@ -321,8 +368,8 @@ static void *release_stream(struct osstrm *str)
 
 	for (i = 0; i < MAX_SESSION; i++) {
 		if (os->session[i].state && 
-		    os->session[i].stream == str)
-			os->session[i].stream = 0;
+		    (os->session[i].stream == str))
+			_release_session(&os->session[i]);
 	}
 	str->state = 0;
 	release_fe(os, str->fe);
@@ -347,8 +394,7 @@ static struct osstrm *alloc_stream(struct octoserve *os)
 			str->sport2 = 8000 + 2 * i + 1;
 			pthread_mutex_unlock(&os->lock);
 			dbgprintf(DEBUG_SYS, "Allocated stream %d\n", str->nr);
-			return str;
-		}
+			return str;}
 	}
 	pthread_mutex_unlock(&os->lock);
 	return NULL;
@@ -362,7 +408,7 @@ static struct osstrm *get_stream(struct octoserve *os, int id)
 	pthread_mutex_lock(&os->lock);
 	for (i = 0; i < MAX_STREAM; i++) {
 		str = &os->stream[i];
-		if (str->state && str->nr == id) {
+		if (str->state && (str->nr == id)) {
 			r = str;
 			break;
 		}
@@ -379,21 +425,10 @@ static void *release_session(struct ossess *oss)
 	dbgprintf(DEBUG_SYS, "release session nr %d id %010d\n", oss->nr, oss->id);
 	pthread_mutex_lock(&os->lock);
 	mc_del(oss);
-	if (oss->stream) {
-		if (oss->stream->session == oss)
-			release_stream(oss->stream);
-	}
-	for (i = 0; i < MAX_CONNECT; i++) {
-		if (os->con[i].state &&
-		    os->con[i].session == oss)
-			os->con[i].session = 0;
-	}
-	if (oss->nsfd >= 0) {
-		dbgprintf(DEBUG_SYS, "close NS\n");
-		close(oss->nsfd);
-	}
-	oss->playing = 0;
-	oss->state = 0;
+	if (oss->stream && (oss->stream->session == oss)) // stream owner?
+		release_stream(oss->stream);
+	else 
+		_release_session(oss);
 	pthread_mutex_unlock(&os->lock);
 }
 
@@ -405,7 +440,7 @@ static struct ossess *get_session(struct octoserve *os, uint32_t id)
 	pthread_mutex_lock(&os->lock);
 	for (i = 0; i < MAX_SESSION; i++) {
 		oss = &os->session[i];
-		if (oss->state && oss->id == id) {
+		if (oss->state && (oss->id == id)) {
 			pthread_mutex_unlock(&os->lock);
 			return oss;
 		}
@@ -417,11 +452,12 @@ static struct ossess *get_session(struct octoserve *os, uint32_t id)
 static void check_mccs(struct ossess *sess)
 {
 	time_t tdiff, t;
-
+	int update = 0;
+	
 	if (!sess->trans.mcast)
 		return;
 
-	tdiff = time(&t) - sess->mcc_time;
+	tdiff = mtime(&t) - sess->mcc_time;
 	switch (sess->mcc_state) {
 	case 1:
 		if (tdiff >= 1) {
@@ -441,21 +477,23 @@ static void check_mccs(struct ossess *sess)
 		}
 		break;
 	case 3:
-		if (tdiff >= 4) {
+		if (tdiff >= 2) {
 			sess->mcc_state = 0;
 			sess->mcc_time = t;
 			printf("%u: mcc_state 2 done, tag = %d\n", t, sess->mcc_tag);
+			update = 1;
 		}
 		break;
 	case 0:
+		update = 1;
 		break;
 	}
-	mc_check(sess);
+	mc_check(sess, update);
 }
 
 void session_timeout(struct ossess *sess)
 {
-	time(&sess->timeout);	
+	mtime(&sess->timeout);	
 	sess->timeout += sess->timeout_len;
 	dbgprintf(DEBUG_RTSP, "new timeout %d\n", sess->timeout);
 }
@@ -466,14 +504,14 @@ void check_session_timeouts(struct octoserve *os)
 	int i;
 	struct ossess *sess;
 
-	time(&t);
+	mtime(&t);
 	pthread_mutex_lock(&os->lock);
 	for (i = 0; i < MAX_SESSION; i++) {
 		sess = &os->session[i];
 		check_mccs(sess);
 
 		if (sess->state &&
-		    sess->timeout < t) {
+		    (sess->timeout < t)) {
 			struct oscon *con;
 			int j;
 	
@@ -482,7 +520,7 @@ void check_session_timeouts(struct octoserve *os)
 			for (j = 0; j < MAX_CONNECT; j++) {
 				con = &os->con[j];
 				if (con->state && con->session && 
-				    con->session == sess) {
+				    (con->session == sess)) {
 					session_timeout(sess);
 					break;
 				}
@@ -503,7 +541,7 @@ static uint32_t get_id(struct octoserve *os)
 		id = random();
 		for (i = 0; i < MAX_SESSION; i++) {
 			oss = &os->session[i];
-			if (oss->state && oss->id == id)
+			if (oss->state && (oss->id == id))
 				break;
 		}
 		if (i == MAX_SESSION)
@@ -530,7 +568,7 @@ static struct ossess *alloc_session(struct octoserve *os)
 			oss->timeout_len = 60;
 			session_timeout(oss);
 			LIST_INIT(&oss->mccs);
-			time(&oss->mcc_time);
+			mtime(&oss->mcc_time);
 			dbgprintf(DEBUG_SYS,
 				  "Allocated session nr=%d id=%d\n",
 				  oss->nr, oss->id);
@@ -540,13 +578,6 @@ static struct ossess *alloc_session(struct octoserve *os)
 	}
 	pthread_mutex_unlock(&os->lock);
 	return NULL;
-}
-
-static void *release_con(struct oscon *con)
-{
-	close(con->sock);
-	con->state = 0;
-	dbgprintf(DEBUG_SYS, "released con %d\n", con->nr);
 }
 
 static struct oscon *alloc_con(struct octoserve *os)
@@ -593,7 +624,7 @@ static void send_option(struct oscon *con)
 		       "%s"
 		       "\r\n", 
 		       con->seq, opt);
-	if (len > 0 && len < sizeof(buf)) {
+	if ((len > 0) && (len < sizeof(buf))) {
 		sendlen(con->sock, buf, len);
 		dbgprintf(DEBUG_RTSP, "Send: %s\n", buf);
 	}
@@ -736,7 +767,7 @@ static int send_describe(struct oscon *con, int only)
 {
 	struct osstrm *str;
 	struct ostrans *t;
-	uint8_t buf[4096], buf2[1024], buf3[1024]; 
+	uint8_t buf[4096], buf2[4096 + 1024], buf3[1024]; 
 	int len, len2, i;
 	int start = 0, end = MAX_STREAM;
 	char *p;
@@ -756,24 +787,42 @@ static int send_describe(struct oscon *con, int only)
 		return -404;
 #endif
 	if (only >= 0) {
+		if (only >= MAX_STREAM)
+			return -404;
 		start = only - 1;
 		end = only;
+		str = &con->os->stream[start];
+		if (!str->state)
+			return -404;
 	}
-	len = snprintf(buf, sizeof(buf),
-			"v=0\r\n"
-			"o=- 5678901234 1 IN %s %s\r\n"
-			"s=SatIPServer:1 %d,%d,%d\r\n"
-			"t=0 0\r\n",
-			con->trans.family == AF_INET ? "IP4" : "IP6", 
-			con->sadr_ip, 
-			con->os->dvbs2num,
-			con->os->dvbtnum + con->os->dvbt2num,
-			con->os->dvbcnum + con->os->dvbc2num		
-		);
+	if (con->os->dvbtnum + con->os->dvbt2num + con->os->dvbcnum + con->os->dvbc2num)
+		len = snprintf(buf, sizeof(buf),
+			       "v=0\r\n"
+			       "o=- 5678901234 7890123456 IN %s %s\r\n"
+			       "s=SatIPServer:1 %d,%d,%d\r\n"
+			       "t=0 0\r\n",
+			       con->trans.family == AF_INET ? "IP4" : "IP6", 
+			       con->sadr_ip, 
+			       con->os->dvbs2num,
+			       con->os->dvbtnum + con->os->dvbt2num,
+			       con->os->dvbcnum + con->os->dvbc2num		
+			);
+	else
+		len = snprintf(buf, sizeof(buf),
+			       "v=0\r\n"
+			       "o=- 5678901234 7890123456 IN %s %s\r\n"
+			       "s=SatIPServer:1 %d\r\n"
+			       "t=0 0\r\n",
+			       con->trans.family == AF_INET ? "IP4" : "IP6", 
+			       con->sadr_ip, 
+			       con->os->dvbs2num		
+			);
+		
 	if (len <= 0 || len >= sizeof(buf))
 		return -500;
 	for (i = start; i < end; i++) {
 		char *adr = "0.0.0.0", abuf[32];
+		int j, sendonly = 0;
 		int alen;
 
 		str = &con->os->stream[i];
@@ -781,6 +830,12 @@ static int send_describe(struct oscon *con, int only)
 			continue;
 		t = &str->session->trans;
 
+		for (j = sendonly = 0; j < MAX_SESSION; j++) {
+			if (con->os->session[j].state && 
+			    con->os->session[j].stream == str &&
+			    con->os->session[j].playing)
+				sendonly = 1;
+		}
 		session_string(str->session, buf3, sizeof(buf3));
 		
 		if (t->mcast) {
@@ -808,21 +863,29 @@ static int send_describe(struct oscon *con, int only)
 				adr,
 				str->nr,
 				buf3,
-				str->session->playing ? "sendonly" : "inactive"
+				sendonly ? "sendonly" : "inactive"
 			);
 		if (len2 <= 0 || len2 >= sizeof(buf) - len)
 			return -500;
 		len += len2;
 	}
-	len2=sprintf(buf2, "RTSP/1.0 200 OK\r\nCSeq: %d\r\n"
-		     "Content-Type: application/sdp\r\n"
-		     "Content-Base: rtsp://%s/\r\n"
-		     "Content-Length: %d\r\n"
-		     "\r\n", 
-		     con->seq, con->sadr_ip, len);
-	
+	len2 = sprintf(buf2, "RTSP/1.0 200 OK\r\nCSeq: %d\r\n"
+		       "Content-Type: application/sdp\r\n"
+		       "Content-Base: rtsp://%s/\r\n"
+		       "Content-Length: %d\r\n"
+		       "\r\n", 
+		       con->seq, con->sadr_ip, len);
+
+	/* URGH, some receivers (cough Kathr** cough) cannot handle
+           split RTSP messages */
+#if 0
 	sendlen(con->sock, buf2, len2);
 	sendlen(con->sock, buf, len);
+#else
+	memcpy(buf2 + len2, buf, len);
+	sendlen(con->sock, buf2, len + len2);
+	//dump(buf2, len + len2);
+#endif
 	dbgprintf(DEBUG_RTSP, "Send:\n%s", buf2);
 	dbgprintf(DEBUG_RTSP, "%s\n", buf);
 	return 0;
@@ -1279,17 +1342,27 @@ static int setup_nsp(struct ostrans *trans, struct dvb_ns_params *nsp)
 
 static int merge_pids(struct dvb_params *op, struct dvb_params *p)
 {
-	int i;
+	int i, r = 0;
 
 	if (p->set & (1UL << PARAM_PID)) 
-		for (i = 0 ; i < 1024 ; i++) 
-			op->pid[i] = p->pid[i];
-	if (p->set & (1UL << PARAM_APID)) 
-		for (i = 0 ; i < 1024 ; i++) 
-			op->pid[i] |= p->pid[i];
+		for (i = 0 ; i < 1024 ; i++)
+			if (op->pid[i] != p->pid[i]) {
+				r |= 1;
+				op->pid[i] = p->pid[i];
+			}
+	if (p->set & (1UL << PARAM_APID))
+		for (i = 0 ; i < 1024 ; i++)
+			if (!(op->pid[i] & p->pid[i])) {
+				r |= 2;
+				op->pid[i] |= p->pid[i];
+			}
 	if (p->set & (1UL << PARAM_DPID)) 
-		for (i = 0 ; i < 1024 ; i++) 
-			op->pid[i] &= ~p->dpid[i];
+		for (i = 0 ; i < 1024 ; i++)
+			if (op->pid[i] & p->dpid[i]) {
+				r |= 4;
+				op->pid[i] &= ~p->dpid[i];
+			}
+	return r;
 }
 
 static int merge_params(struct dvb_params *op, struct dvb_params *p)
@@ -1318,7 +1391,11 @@ static int setup_session(struct oscon *con, int newtrans)
 	
 	if (!str)
 		return -500;
-	merge_pids(sp, p);
+	if (conform) {
+		if (str->session != sess && merge_pids(sp, p) < 0)
+			return -455;
+	} else
+		merge_pids(sp, p);
 	if (str->session == sess) { /* stream owner */
 		merge_params(sp, p);
 		
@@ -1356,6 +1433,10 @@ static int setup_session(struct oscon *con, int newtrans)
 		newtrans = 1;
 	} 
  	if (newtrans) {
+		if (str->session != sess &&
+		    sess->trans.mcast &&
+		    conform)
+			return -455;
 		if (setup_nsp(&sess->trans, &nsp) < 0)
 			return -1;
 		if (set_ns(sess, &nsp) < 0)
@@ -1412,8 +1493,7 @@ static int start_session(struct ossess *sess)
 {
 	if (sess->playing)
 		return 0;
-	dbgprintf(DEBUG_SYS, "START\n");
-	printf("start session %d\n", sess->nr);
+	dbgprintf(DEBUG_SYS, "start session %d\n", sess->nr);
 	if (sess->stream->ca) {
 		uint8_t canum = sess->stream->ca->nr - 1;
 		if (sess->nsfd >= 0)
@@ -1465,7 +1545,7 @@ static struct ossess *match_session(struct octoserve *os, uint8_t *group)
 	return NULL;
 }
 
-void mc_check(struct ossess *sess)
+void mc_check(struct ossess *sess, int update)
 {
 	struct osmcc *mcc, *next;
 	struct octoserve *os = sess->os;
@@ -1485,10 +1565,12 @@ void mc_check(struct ossess *sess)
 			free(mcc);
 		}
 	}
-	if (os->has_switch)
-		update_switch_vec(sess);
-	if (!sess->mccs.lh_first)
-		stop_session(sess);
+	if (update) {
+		if (os->has_switch)
+			update_switch_vec(sess);
+		if (!sess->mccs.lh_first)
+			stop_session(sess);
+	}
 	pthread_mutex_unlock(&os->lock);
 }
 
@@ -1575,7 +1657,7 @@ void mc_query(struct ossess *sess)
 {
 	/* query in group if anybody still there */
 	if (!sess->mcc_state) {
-		time(&sess->mcc_time);
+		mtime(&sess->mcc_time);
 		sess->mcc_state = 1;
 	}
 }
@@ -1617,7 +1699,6 @@ static void send_play(struct oscon *con)
 	uint8_t buf[1024];
 	int len;
 
-	dbgprintf(DEBUG_SYS, "%s\n", __FUNCTION__);
 	len = sprintf(buf, 
 		      "RTSP/1.0 200 OK\r\n"
 		      "CSeq: %d\r\n"
@@ -1800,6 +1881,123 @@ static void cpyarg(char *d, char *s)
 	strcpy(d, s);
 }
 
+
+static int cmp_trans(struct ostrans *t,  struct ostrans *u)
+{
+	if (t->mcast != u->mcast)
+		return 1;
+	
+	if (t->cport != u->cport)
+		return 2;
+	if (t->cport2 != u->cport2)
+		return 3;
+	if (t->flags != u->flags)
+		return 4;
+	if (t->ttl != u->ttl)
+		return 5;
+	return 0;
+}
+
+static int proc_setup(struct oscon *con)
+{
+	struct osstrm *str = 0;
+	int newtrans = 0;
+	int res;
+	
+	if (!con->transport_parsed) {
+		/* no proper transport params given */
+		send_error(con, 400);
+		return -1;
+	}
+	if (con->session_parsed && !con->session) {
+		/* no session with given ID found */
+		send_error(con, 454);
+		return -1;
+	}
+	if (parse_url(con, 0) < 0) {
+		/* invalid params in URL */
+		send_error(con, 400);
+		return -1;
+	} 
+	if (con->p.set & (1UL << PARAM_STREAMID)) {
+		dbgprintf(DEBUG_SYS, "existing stream %d\n",
+			  con->p.param[PARAM_STREAMID]);
+		str = get_stream(con->os, con->p.param[PARAM_STREAMID]);
+		if (!str) {
+			/* no stream with given ID  */
+			send_error(con, 400);
+			return -1;
+		}
+		if (con->session && con->session != str->session) {
+			/* if we already have a session ID we
+			   have to be stream owner  */
+			send_error(con, 400);
+			return -1;
+		}
+	}
+	if (!con->session) {
+		/* alloc new session */
+		con->session = alloc_session(con->os);
+		if (!con->session) {
+			send_error(con, 400);
+			return -1;
+		}
+		con->state = 2;
+		if (!con->session->stream) {
+			if (str) {
+				/* use existing stream and stream params*/
+				con->session->stream = str;
+				if (con->session->stream->session) {
+					memcpy(&con->session->p,
+					       &con->session->stream->session->p,
+					       sizeof(struct dvb_params));
+				}
+			} else {
+				con->session->stream = alloc_stream(con->os);
+				if (!con->session->stream) {
+					send_error(con, 400);
+					return -1;
+				}
+				con->session->stream->session = con->session;
+			}
+		}
+		newtrans = 1;
+	}
+	if (newtrans || cmp_trans(&con->session->trans, &con->trans)) {
+		con->trans.sport = con->session->stream->sport;
+		con->trans.sport2 = con->session->stream->sport2;
+		
+		/* set transport struct according to session
+		   and transport parameters */
+		if (con->trans.mcast && con->trans.cport == 0) {
+			con->trans.cport = con->trans.sport;
+			con->trans.cport2 = con->trans.sport2;
+		}
+		
+		if (con->trans.mcast &&
+		    !(con->trans.flags & TRANS_ALT_DEST)) {
+			uint8_t mac[6] = { 0x01, 0x00, 0x5e, 
+					   con->os->ssdp.devid & 0x7f, 1,
+					   con->session->stream->nr };
+			uint8_t ip[4]  = { 239, con->os->ssdp.devid, 1,
+					   con->session->stream->nr };
+			
+			memcpy(con->trans.mcmac, mac, 6);
+			memcpy(con->trans.mcip, ip, 4);
+		}
+		con->session->trans = con->trans;
+		newtrans = 1;
+	}
+	res = setup_session(con, newtrans);
+	if (res < 0) {
+		release_session(con->session);
+		send_error(con, -res);
+	} else
+		send_setup(con);
+	return 0;
+}
+
+
 static int proc_line(struct oscon *con)
 {
 	char *line = con->buf;
@@ -1858,107 +2056,11 @@ static int proc_line(struct oscon *con)
 					send_error(con, -res);
 				break;
 			}
+			
 			case M_SETUP:
-			{
-				struct osstrm *str = 0;
-				int newtrans = 0;
-				
-				if (!con->transport_parsed) {
-					/* no proper transport params given */
-					send_error(con, 400);
-					break;
-				}
-				if (con->session_parsed && !con->session) {
-					/* no session with given ID found */
-					send_error(con, 454);
-					break;
-				}
-				if (parse_url(con, 0) < 0) {
-					/* invalid params in URL */
-					send_error(con, 400);
-					break;
-				} 
-				if (con->p.set & (1UL << PARAM_STREAMID)) {
-					dbgprintf(DEBUG_SYS, "existing stream %d\n",
-						  con->p.param[PARAM_STREAMID]);
-					str = get_stream(con->os, con->p.param[PARAM_STREAMID]);
-					if (!str) {
-						/* no stream with given ID  */
-						send_error(con, 400);
-						break;
-					}
-					if (con->session && con->session != str->session) {
-						/* if we already have a session ID we
-						   have to be stream owner  */
-						send_error(con, 400);
-						break;
-					}
-				}
-				if (!con->session) {
-					/* alloc new session */
-					con->session = alloc_session(con->os);
-					if (!con->session) {
-						send_error(con, 400);
-						break;
-					}
-					if (!con->session->stream) {
-						if (str) {
-							/* use existing stream and stream params*/
-							con->session->stream = str;
-							if (con->session->stream->session) {
-								memcpy(&con->session->p,
-								       &con->session->stream->session->p,
-								       sizeof(struct dvb_params));
-							}
-						} else {
-							con->session->stream = alloc_stream(con->os);
-							if (!con->session->stream) {
-								send_error(con, 400);
-								break;
-							}
-							con->session->stream->session = con->session;
-						}
-					}
-					newtrans = 1;
-				}
-				if (newtrans ||
-				    con->session->trans.mcast != con->trans.mcast ||
-				    con->session->trans.cport != con->trans.cport ||
-				    con->session->trans.cport2 != con->trans.cport2 ||
-				    con->session->trans.flags != con->trans.flags ||
-				    con->session->trans.ttl != con->trans.ttl) {
-					con->trans.sport = con->session->stream->sport;
-					con->trans.sport2 = con->session->stream->sport2;
-					
-					/* set transport struct according to session
-					   and transport parameters */
-					if (con->trans.mcast && con->trans.cport == 0) {
-						con->trans.cport = con->trans.sport;
-						con->trans.cport2 = con->trans.sport2;
-					}
-					
-					if (con->trans.mcast &&
-					    !(con->trans.flags & TRANS_ALT_DEST)) {
-						uint8_t mac[6] = { 0x01, 0x00, 0x5e, 
-								   con->os->ssdp.devid & 0x7f, 1,
-								   con->session->stream->nr };
-						uint8_t ip[4]  = { 239, con->os->ssdp.devid, 1,
-								   con->session->stream->nr };
-						
-						memcpy(con->trans.mcmac, mac, 6);
-						memcpy(con->trans.mcip, ip, 4);
-					}
-					con->session->trans = con->trans;
-					newtrans = 1;
-				}
-				res = setup_session(con, newtrans);
-				if (res < 0) {
-					release_session(con->session);
-					send_error(con, -res);
-				} else
-					send_setup(con);
+				proc_setup(con);
 				break;
-			}
+
 			case M_PLAY:
 				if (!con->session || !con->session->stream) {
 					send_error(con, 400);
@@ -1989,7 +2091,6 @@ static int proc_line(struct oscon *con)
 				}
 				send_teardown(con);
 				release_session(con->session);
-				con->session = 0;
 				break;
 			default:
 				send_error(con, 501);
@@ -2019,6 +2120,7 @@ static int proc_line(struct oscon *con)
 		con->session = get_session(con->os, sid);
 		if (con->session)
 			session_timeout(con->session);
+		con->state = 2;
 		con->session_parsed = 1;
 	} else if (!strncasecmp(line, "User-Agent:", 11)) {
 		char *p = line + 11;
@@ -2106,6 +2208,19 @@ static void init_con(struct oscon *con)
 #endif
 }
 
+
+static void con_check(struct octoserve *os)
+{
+	int i;
+	time_t t = mtime(NULL);
+
+	for (i = 0; i < MAX_CONNECT; i++) {
+		if (os->con[i].state == 3 &&
+		    t > os->con[i].timeout)
+			release_con(&os->con[i]);
+	}
+}
+
 int con_loop(struct oscon *con)
 {
 	uint8_t buf[1024];
@@ -2119,20 +2234,19 @@ int con_loop(struct oscon *con)
 			goto release;
 		return 0;
 	}
-	dump(buf, len);
+	if (debug & DEBUG_RTSP)
+		dump(buf, len);
 	//printf("received %d bytes\n", len);
 	for (i = 0; i < len; i++) {
 		// FIXME send URI too long
 		if (con->bufp >= 8192) {
-			release_con(con);
-			return -1;
+			goto release;
 		}
 		con->buf[con->bufp++] = buf[i];
 		if (buf[i] == '\n') {
 			if (con->bufp < 2 || 
 			    con->buf[con->bufp - 2] != '\r') {
-				release_con(con);
-				return -1;
+				goto release;
 			}
 			con->buf[con->bufp - 2] = 0;
 			if (con->buf[0])
@@ -2146,6 +2260,7 @@ int con_loop(struct oscon *con)
 	}
 	return 0;
 release:
+	dbgprintf(DEBUG_SYS, "release\n");
 	release_con(con);
 	return -1;
 }
@@ -2231,7 +2346,7 @@ static int alloc_igmp_socket(struct octoserve *os)
 		   &one, sizeof(one));
 	setsockopt(os->igmp_sock, IPPROTO_IP, IP_ROUTER_ALERT, 
 		   &one, sizeof(one));
-	time(&os->igmp_time);
+	mtime(&os->igmp_time);
 	/* first query after 125-94=31 seconds */
 	os->igmp_mode = 0;
 	os->igmp_time -= 94;
@@ -2326,7 +2441,7 @@ static void os_serve(struct octoserve *os)
 			   &imr, sizeof(imr));
 	}
 #endif
-	time(&t);
+	mtime(&t);
 	while (!os->exit) {
 		int csock, ncon;
 		struct sockaddr cadr;
@@ -2334,7 +2449,7 @@ static void os_serve(struct octoserve *os)
 		uint8_t buf[2048];
 		int num, n;
 
-		time(&u);
+		mtime(&u);
 		if (u > t) {
 			t = u;
 			check_session_timeouts(os);
@@ -2384,6 +2499,8 @@ static void os_serve(struct octoserve *os)
 			    FD_ISSET(os->con[i].sock, &fds))
 				con_loop(&os->con[i]);
 #endif
+		con_check(os);
+
 		
 		if (FD_ISSET(os->rtsp_sock, &fds)) {
 			struct oscon *con;
@@ -2517,24 +2634,27 @@ static void awrite(char *fn, char *txt)
 int main(int argc, char **argv)
 {
 	int nodms = 0, nossdp = 0, nodvbt = 0, vlan = 0, noswitch = 0;
-
+		
 	printf("Octoserve " OCTOSERVE_VERSION
 	       ", Copyright (C) 2012-15 Digital Devices GmbH\n"); 
 	debug = 0;
+	flags = 0;
 	while (1) {
                 int option_index = 0;
 		int c;
                 static struct option long_options[] = {
 			{"debug", required_argument, 0, 'd'},
+			{"flags", required_argument, 0, 'f'},
 			{"nossdp", no_argument, 0, 'n'},
 			{"nodms", no_argument, 0, 'm'},
 			{"nodvbt", no_argument, 0, 't'},
 			{"noswitch", no_argument, 0, 's'},
+			{"conform", no_argument, 0, 'c'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"d:hnmt",
+				"d:f:nmtsch",
 				long_options, &option_index);
 		if (c==-1)
  			break;
@@ -2542,6 +2662,9 @@ int main(int argc, char **argv)
 		switch (c) {
 		case 'd':
 			debug = strtoul(optarg, NULL, 16);
+			break;
+		case 'f':
+			flags = strtoul(optarg, NULL, 16);
 			break;
 		case 'n':
 			nossdp = 1;
@@ -2554,6 +2677,9 @@ int main(int argc, char **argv)
 			break;
 		case 's':
 			noswitch = 1;
+			break;
+		case 'c':
+			conform = 1;
 			break;
 		case 'h':
 		default:

@@ -119,8 +119,10 @@ int sendlen(int sock, char *buf, int len)
 	int done, todo; 
 
 	for (todo = len; todo; todo -= done, buf += done)
-		if ((done = send(sock, buf, todo, 0)) < 0)
+		if ((done = send(sock, buf, todo, 0)) < 0) {
+			printf("sendlen error\n");
 			return done;
+		}
 	return len;
 } 
 
@@ -136,5 +138,16 @@ int sendstring(int sock, char *fmt, ...)
 		return;
 	sendlen(sock, buf, len);
 	va_end(args);
+}
+
+time_t mtime(time_t *t)
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts))
+		return 0;
+	if (t)
+		*t = ts.tv_sec;
+	return ts.tv_sec;
 }
 

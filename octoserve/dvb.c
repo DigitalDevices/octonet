@@ -153,7 +153,7 @@ static int set_fe(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds)
 	struct dtv_properties c;
 	int ret;
 	
-	printf("ds = %u\n", ds);
+	dbgprintf(DEBUG_DVB, "ds = %u\n", ds);
 	
 	c.num = 7;
 	c.props = p;
@@ -335,9 +335,11 @@ static int tune_sat(struct dvbfe *fe)
 			    fe->scif_slot, fe->scif_freq, ds);
 		pthread_mutex_unlock(&fe->os->uni_lock);
 	} else if (fe->scif_type == 2) {
+		pthread_mutex_lock(&fe->os->uni_lock);
 		set_en50607(fe->fd, freq / 1000, fe->param[PARAM_SR],
 			    fe->param[PARAM_SRC] - 1, fe->param[PARAM_POL] - 1, hi,
 			    fe->scif_slot, fe->scif_freq, ds);
+		pthread_mutex_unlock(&fe->os->uni_lock);
 	} else {
 		diseqc(fe->fd, fe->param[PARAM_SRC] - 1, fe->param[PARAM_POL] - 1, hi);
 		set_fe(fe->fd, freq, fe->param[PARAM_SR] * 1000, ds);

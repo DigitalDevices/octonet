@@ -19,6 +19,8 @@
 
 #include "octoserve.h"
 
+extern uint32_t debug;
+
 char httpxml[] =
 	"HTTP/1.0 200 OK\r\nConnection: close\r\n"
 	"Content-Length: %d\r\nContent-Type: text/xml\r\nMime-Version: 1.0\r\n"
@@ -44,22 +46,22 @@ char xmldesc[] =
 
 	"<icon>\r\n<mimetype>image/png</mimetype>\r\n"
 	"<width>120</width>\r\n<height>120</height>\r\n"
-	"<depth>24</depth>\r\n<url>www/icons/dd-120.png</url>\r\n"
+	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-120.png</url>\r\n"
 	"</icon>\r\n"
 
 	"<icon>\r\n<mimetype>image/jpg</mimetype>\r\n"
 	"<width>120</width>\r\n<height>120</height>\r\n"
-	"<depth>24</depth>\r\n<url>www/icons/dd-120.jpg</url>\r\n"
+	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-120.jpg</url>\r\n"
 	"</icon>\r\n"
 
 	"<icon>\r\n<mimetype>image/png</mimetype>\r\n"
 	"<width>48</width>\r\n<height>48</height>\r\n"
-	"<depth>24</depth>\r\n<url>www/icons/dd-48.png</url>\r\n"
+	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-48.png</url>\r\n"
 	"</icon>\r\n"
 
 	"<icon>\r\n<mimetype>image/jpg</mimetype>\r\n"
 	"<width>48</width>\r\n<height>48</height>\r\n"
-	"<depth>24</depth>\r\n<url>www/icons/dd-48.jpg</url>\r\n"
+	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-48.jpg</url>\r\n"
 	"</icon>\r\n"
 
 	"</iconList>\r\n"
@@ -363,6 +365,7 @@ void handle_http(struct os_ssdp *ss)
 					send_http_error(ss->csock, 405);
 					break;
 				}
+				dbgprintf(DEBUG_SSDP, "%s\n", buf);
 				if (!strncasecmp("GET /octonet.xml", buf, 16)) {
 					send_xml(ss);
 					break;

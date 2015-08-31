@@ -84,7 +84,20 @@ int mdio_wait_switch(int fd, uint8_t adr, uint8_t reg)
 
 int mdio_open()
 {
-	return open("/dev/ddbridge/card0", O_RDWR);
+	int i, r;
+
+	for (i = 0; i < 100; i++) {
+		r = open("/dev/ddbridge/card0", O_RDWR);
+		if (r >= 0)
+			return r;
+		if (r < 0)
+			if (errno != EBUSY)
+				return r;
+			else 
+				usleep(100000);
+	}
+	dbgprintf(DEBUG_SWITCH, "MDIO BUSY\n");
+	return r;
 }
 
 int mdio_close(int fd)

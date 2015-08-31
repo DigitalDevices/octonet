@@ -26,9 +26,9 @@ extern uint32_t debug;
 static void ssdp_reset_setup(struct os_ssdp *ss)
 {
 	ss->setup = 0;
-	time(&ss->setupt);
+	mtime(&ss->setupt);
 	ss->setupt += 5;
-	time(&ss->annt);
+	mtime(&ss->annt);
 }
 
 static int read_id(char *type, uint32_t *id)
@@ -171,7 +171,7 @@ static int ssdp_announce(struct octoserve *os, int alive, int notify)
 	time_t t;
 
 	if (notify) {
-		time(&t);
+		mtime(&t);
 		if (!ss->setup)
 			if (t >= ss->setupt) {
 				ss->setup = 1;
@@ -194,7 +194,7 @@ static int ssdp_defend(struct os_ssdp *ss)
 	int s = ss->v6 ? ss->sock6 : ss->sock;
 
 	sockname(&ss->cadr, host);
-	printf("defend against HOST:%s\n", host);
+	dbgprintf(DEBUG_SSDP, "defend against HOST:%s\n", host);
 
 	len = snprintf(buf, sizeof(buf), 
 		       "M-SEARCH * HTTP/1.1\r\n"
@@ -335,7 +335,7 @@ static void handle_ssdp(struct octoserve *os, char *m, int ml)
 		}
 		for (tl = 0; tl < ll && l[tl] != ':'; tl++);
 		if (tl == ll)
-			return;
+			continue;
 		for (as = tl + 1; as < ll && isspace(l[as]); as++);
 		al = ll - as;
 
@@ -344,8 +344,11 @@ static void handle_ssdp(struct octoserve *os, char *m, int ml)
 			
 			if (!strncmp(l + as, "239.255.255.250:1900", al)) 
 				htype = 1;
-			else 
+			else {
 				htype = 2;
+				if (mx < 0)
+					mx = 1;
+			}
 			h = host;
 			p = l + as;
 			while (*p && *p != ':')
@@ -389,16 +392,17 @@ static void handle_ssdp(struct octoserve *os, char *m, int ml)
 		}
 	}
 	ss->csport = sport;
-	dbgprintf(DEBUG_SSDP, "host=%s, hport=%u, type=%d, htype=%d mx=%d\n", host, hport, type, htype, mx); 
+	dbgprintf(DEBUG_SSDP, "host=%s, hport=%u, type=%d, htype=%d mx=%d\n",
+		  host, hport, type, htype, mx); 
 	/* M-SEARCH */
 	if (ss->setup) {
 		if (type == 1 && mx > 0) {
+			//ssdp_msearch(ss, htype == 2 ? 0 : 1, st);
 			ssdp_msearch(ss, 0, st);
 		}
 		/* NOTIFY */
-		if (type == 2 && devid == ss->devid && memcmp(uu, ss->uuid, 16)) {
+		if (type == 2 && devid == ss->devid && memcmp(uu, ss->uuid, 16))
 			ssdp_defend(ss);
-		}
 	} else {
 		if (type == 1 && htype == 2 && ss->devid == devid) {
 			send_reply_msearch(ss, 0, 1, 2);

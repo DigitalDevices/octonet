@@ -62,8 +62,10 @@ void proc_igmp(struct octoserve *os, uint8_t *b, int l, uint8_t *macheader)
 		return;
 	if (cs16(p, pl) != ((p[2] << 8) | p[3])) {
 		dbgprintf(DEBUG_IGMP, "IGMP CS error\n");
+#if 0
 		if (debug & DEBUG_IGMP)
 			dump(b, l);
+#endif
 		return;
 	}
 
@@ -84,7 +86,7 @@ void proc_igmp(struct octoserve *os, uint8_t *b, int l, uint8_t *macheader)
 		if (a1 < a2) {
 			/* somebody else with lower IP is already sending queries */
 			os->igmp_mode = 3;
-			time(&os->igmp_time);
+			mtime(&os->igmp_time);
 			os->igmp_tag++;
 			os->igmp_timeout = b[hl + 1] / 10 + 1;
 			dbgprintf(DEBUG_IGMP, "IGMP slave, tag = %u, timeout = %u\n",
@@ -212,7 +214,7 @@ void check_igmp(struct octoserve *os)
 {
 	time_t tdiff, t;
 
-	tdiff = time(&t) - os->igmp_time;
+	tdiff = mtime(&t) - os->igmp_time;
 	switch (os->igmp_mode) {
 	case 0:
 		if (tdiff > 124) {
