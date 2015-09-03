@@ -56,6 +56,21 @@ function Change()
   document.getElementById("SetButton").disabled = false;
 }
 
+function SetPassword()
+{
+  pwd1 = document.getElementById("pwd1").value;
+  pwd2 = document.getElementById("pwd2").value;
+  if( pwd1 != pwd2 )
+  {
+    document.getElementById("pwd1").value = "";
+    document.getElementById("pwd2").value = "";
+    document.getElementById("PwdError").style = "color:#F02000";
+    return 0;
+  }
+  document.getElementById("PwdError").style = "color:#FFFFFF";
+  location.replace('/setpasswd.lua?'+pwd1);  
+}
+
 </script>
 
 </head>
@@ -83,7 +98,7 @@ function Change()
               </form>
             </td>
             <td>See note below</td>
-          <tr>
+          </tr>
 
           <tr>
             <td>Telnet</td>
@@ -93,7 +108,7 @@ function Change()
               </form>
             </td>
             <td>Enable it at your own risk</td>
-          <tr>
+          </tr>
           
           <tr>
             <td>NODMS</td>
@@ -103,9 +118,9 @@ function Change()
               </form>
             </td>
             <td>Disable DMS announcement.</td>
-          <tr>
+          </tr>
 
-	  <tr>
+          <tr>
             <td>NODVBT</td>
             <td>
               <form action="">
@@ -113,9 +128,9 @@ function Change()
               </form>
             </td>
             <td>Disable DVBT announcement.</td>
-          <tr>
+          </tr>
           
-	  <tr>
+          <tr>
             <td>No DVB switch</td>
             <td>
               <form action="">
@@ -123,7 +138,7 @@ function Change()
               </form>
             </td>
             <td>Disable DVB switch emulation on S8.</td>
-          <tr>
+          </tr>
           
           <tr>
             <td colspan="2" align="right">
@@ -137,6 +152,39 @@ function Change()
             </td>
           </tr>
         </table>
+        <br/>
+        <!--
+        <table class="tableleft" align="center" cellspacing="2px">
+          <form action="">
+          <tr>
+            <td align="right">
+              New password
+            </td>
+            <td>
+              <input id="pwd1" type="Password" value="" size="30">
+            </td>
+          </tr>
+          <tr>
+            <td align="right">
+              Repeat new password
+            </td>
+            <td>
+              <input id="pwd2" type="Password" value="" size="30">
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div Id="PwdError" Style="color:#FFFFFF">
+                Repeated password doesn't match
+              </div>
+            </td>
+            <td align="right">
+              <input id="SetButton" type="Button" value="Set Password" onclick="SetPassword()" >
+            </td>
+          </tr>
+          </form>
+        </table>
+        -->
         <div style="margin:20px; clear:both"> 
           <h3>Layer 2 Quality of Service</h3>
           This is defined in the <b>IEEE 802.1Q</b> VLAN standard, and provides QoS in a local network.<br/>
