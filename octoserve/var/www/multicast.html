@@ -116,7 +116,7 @@ function WriteMCTable()
              Select Sample
             </td>
             <td>
-              <form action="multicast.lua" method="get">
+              <form action="mcconfig.lua" method="get">
                 <select name="name" size="1"  style="width: 300px">
                   <option value="astra19e">Astra 19.2</option>
                   <option value="kabelbw">Kabel BW</option>
@@ -132,7 +132,7 @@ function WriteMCTable()
           </tr>
           </tr>
             <td colspan="2">
-              <form action="multicast.lua" method="post" enctype="multipart/form-data">
+              <form action="mcconfig.lua" method="post" enctype="multipart/form-data">
                 <input type="file" name="filename" value="*.csv" size="30" accept="text/csv">
                 <input type="submit" value="Upload & Enable">
               </form>
@@ -142,7 +142,7 @@ function WriteMCTable()
           </tr>
           <tr>
             <td colspan="2">
-              <form action="multicast.lua" method="get">
+              <form action="mcconfig.lua" method="get">
                 <input type="submit" value="Disable" ></input>
                 <input type="hidden" name="select" value="disable" ></input>
               </form>

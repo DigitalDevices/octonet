@@ -124,17 +124,6 @@ if method == "GET" then
     path = "m3u"
     disposition = "mclist.m3u"
     subtype = "m3u"
-  elseif string.match(query,"select=copy") then
-    local name = string.match(query,"name=(%w+)")
-    if name then
-      path = "/var/mcsetup/"..name..".csv"
-      disposition = "copy"
-    else
-      SendError("404","Request Error")
-      return
-    end
-  elseif string.match(query,"select=disable") then
-    disposition = "disable"
   end
 
   if disposition == "disable" then
@@ -178,46 +167,6 @@ if method == "GET" then
   else
     SendError("404",disposition.." not found")
   end
-
-elseif method == "POST" and clength and ctype then
-
-  if not string.match(ctype,"multipart/form%-data") then
-    SendError("404","??")
-    return
-  end
-
-  local boundary = string.match(ctype,"boundary=(.*)") 
-  if not boundary then
-    SendError("404","???")
-    return
-  end
-
-  while true do
-    local line = io.stdin:read()
-    line = string.gsub(line,"\r","")
-    if line == "" then break end
-  end
-
-  data = io.stdin:read(16384)
-  data = string.sub(data,1,#data - #boundary - 4)
-  if data:match("^\239\187\191") then data = data:sub(4) end
-  
-  data = string.gsub(data,"\r\n","\n") -- Windows -> Unix
-  data = string.gsub(data,"\r","\n") -- MAC -> Unix
-  
-  -- if data:match("^TITLE,REQUEST,PIDS,PROTO,IP,PORT,TTL,LANPORTS") then
-  if data:match("^TITLE,REQUEST,PIDS,LANPORTS") or data:match("^TITLE,REQUEST,PIDS,PROTO,IP,PORT,TTL,LANPORTS") then
-    file = io.open("/config/mcsetup.csv","w")
-    if file then 
-      file:write(data)
-      file:close()
-      os.execute('echo "1" >/tmp/mc.tmp;mv -f /tmp/mc.tmp /tmp/mc.signal');
-    end
-  end
-  
-  http_print(proto.." 303")
-  http_print("Location: http://"..host.."/multicast.html")
-  http_print()
   
 else
   SendError("500","What")  
