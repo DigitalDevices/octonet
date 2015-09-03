@@ -1,0 +1,9 @@
+
+# files and directories which are generated during the patch and build process
+
+/buildroot/
+/buildroot*.bz2
+/linux.octonet/
+/linux*.xz
+/u-boot/
+/u-boot*.bz2
