@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- (c)2012 Digital Devices GmbH.  All rights reserved -->
-<!-- $Id: SCIFDataBase.xml 590 2014-12-11 13:07:00Z manfred $ -->
+<!-- $Id: SCIFDataBase.xml 609 2015-04-13 22:59:53Z manfred $ -->
 <SCIFDataBase xmlns="http://schemas.DigitalDevices.de/SCIFDataBase">
   <OutdoorUnit Name="IDLP-40UNIDQ+S" Manufacturer="Inverto" Type="LNB">
     <UBSlot Frequency="1680"/>

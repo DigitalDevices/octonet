@@ -39,7 +39,7 @@ if DoCheck then
   local configdir = tmp:read("*a")
   tmp:close()
 
-  for v in string.gmatch(serverdir,"\"(octonet%.%d+%.img)\"") do
+  for v in string.gmatch(serverdir,"[\"/](octonet%.%d+%.img)\"") do
     if v > NewImage then
       NewImage = v
     end
