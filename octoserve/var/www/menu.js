@@ -48,8 +48,12 @@ MenuItems[10].Text = "Reboot";
 MenuItems[10].Link = "reboot.html";
 
 MenuItems[11] = new Object();
-MenuItems[11].Text = "Licenses";
-MenuItems[11].Link = "licenses.html";
+MenuItems[11].Text = "Hardware Monitor";
+MenuItems[11].Link = "monitor.html";
+
+MenuItems[12] = new Object();
+MenuItems[12].Text = "Licenses";
+MenuItems[12].Link = "licenses.html";
 
 // add additional items here
 
