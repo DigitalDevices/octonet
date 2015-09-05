@@ -3,7 +3,7 @@
 case "$1" in
     start)
         modprobe octonet
-        lua /var/monitor/fancontrol.lua
+        /var/monitor/fancontrol.lua &
         ;;
     stop)
         ;;
