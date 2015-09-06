@@ -17,7 +17,7 @@ local userver = "download.digital-devices.de/download/linux"
 if query == "set=beta" then
   local file = io.open("/config/updateserver","w")
   if file then
-    file:write(userver.."/beta/".."\n")
+    file:write(userver.."/beta".."\n")
     file:close()
   end
 elseif query == "set=std" then

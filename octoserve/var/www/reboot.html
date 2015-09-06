@@ -10,6 +10,18 @@
 <!-- Add page scripts here -->
 <script type="text/javascript">
 
+var xmlhttp = new XMLHttpRequest();
+
+xmlhttp.onreadystatechange=function()
+{
+}
+
+function Request(url) 
+{
+   xmlhttp.open("GET", url, true);
+   xmlhttp.send();
+}
+
 function DisableButtons()
 {
   document.getElementById("RebootButton").disabled  = true;    
@@ -20,12 +32,7 @@ function DisableButtons()
 function Reboot()
 {
   DisableButtons();
-  head = document.getElementsByTagName('head')[0];
-  newscript = document.createElement('script');
-  newscript.id = "script2";
-  newscript.type = "text/javascript";
-  newscript.src = "/reboot.lua?sjiwjsiowjs";
-  head.appendChild(newscript);  
+  Request("/reboot.lua?sjiwjsiowjs");
   WaitCounter = 20;
   document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
   window.setTimeout(Wait,1000);  
@@ -34,12 +41,7 @@ function Reboot()
 function RestartOcto()
 {
   DisableButtons();
-  head = document.getElementsByTagName('head')[0];
-  newscript = document.createElement('script');
-  newscript.id = "script2";
-  newscript.type = "text/javascript";
-  newscript.src = "/reboot.lua?restart_octo";
-  head.appendChild(newscript);  
+  Request("/reboot.lua?restart_octo");
   WaitCounter = 4;
   document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
   window.setTimeout(Wait,1000);  
@@ -48,12 +50,7 @@ function RestartOcto()
 function RestartDMS()
 {
   DisableButtons();
-  head = document.getElementsByTagName('head')[0];
-  newscript = document.createElement('script');
-  newscript.id = "script2";
-  newscript.type = "text/javascript";
-  newscript.src = "/reboot.lua?restart_dms";
-  head.appendChild(newscript);  
+  Request("/reboot.lua?restart_dms");
   WaitCounter = 4;
   document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
   window.setTimeout(Wait,1000);  
