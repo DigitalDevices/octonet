@@ -5,12 +5,12 @@ rm output-octonet/build/linux-custom/.stamp_*
 DDDVB=../dddvb
 LINUX=../linux.octonet
 
-if [ -e /home/rjkm/projects ]; then
-   rm -rf ../dddvb
-   cp -rpdu /home/rjkm/projects/dddvb ../
-   rm -rf ../octoserve
-   cp -rpdu /home/rjkm/projects/octoserve ../
-fi
+#if [ -e /home/rjkm/projects ]; then
+#   rm -rf ../dddvb
+#   cp -rpdu /home/rjkm/projects/dddvb ../
+#   rm -rf ../octoserve
+#   cp -rpdu /home/rjkm/projects/octoserve ../
+#fi
 
 cp $DDDVB/ddbridge/*.[ch] $LINUX/drivers/media/pci/ddbridge/
 cp $DDDVB/dvb-core/*.[ch] $LINUX/drivers/media/dvb-core/
