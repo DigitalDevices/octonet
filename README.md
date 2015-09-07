@@ -16,6 +16,9 @@ On Debian/Ubuntu:
   >git clone -b internal https://github.com/DigitalDevices/internal_octonet.git <your directory>
   >cd <your directory>
   >git submodule update --init --remote
+  >cd dddvb
+  >git checkout internal
+  >cd ..
   
   >sh mk.patch
 ```
