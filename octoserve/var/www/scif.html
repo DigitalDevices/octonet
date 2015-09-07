@@ -65,11 +65,12 @@ function SaveSettings()
 {
   if( SCIFEnabled )
   {
-    param = 'Manufacturer='+SelectedManufacturer+'&Unit='+SelectedUnit+'&Type=1';
+    CurUnit = ManufacturerList[SelectedManufacturer].UnitList[SelectedUnit];
+    Protocol = CurUnit.Protocol == "EN50607" ? '2' : '1'; 	    
+    param = 'Manufacturer='+SelectedManufacturer+'&Unit='+SelectedUnit+'&Type='+Protocol;
     for( i = 0; i < TunerList.length; i++ )
     {
       param += '&Tuner'+(i+1)+'=';
-      CurUnit = ManufacturerList[SelectedManufacturer].UnitList[SelectedUnit];
       SelectedFrequency = TunerList[i].Select.selectedIndex;
       if( SelectedFrequency > 0 )
         param += SelectedFrequency + ',' + CurUnit.Frequencies[SelectedFrequency-1];

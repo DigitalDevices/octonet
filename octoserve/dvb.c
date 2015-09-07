@@ -262,7 +262,7 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
 		.msg = {0x70, 0x00, 0x00, 0x00, 0x00},
 		.msg_len = 4
 	};
-	uint32_t t = (freq / 1000) - 100;
+	uint32_t t = freq - 100;
 
 	hor &= 1;
 	cmd.msg[1] = slot << 3;
@@ -1241,8 +1241,6 @@ void scif_config(struct octoserve *os, char *name, char *val)
 		char *end;
 		unsigned long int nr = strtoul(val, &end, 10), freq = 0;
 
-		if (nr > 8)
-			return;
 		if (*end == ',') {
 			val = end + 1;
 			freq = strtoul(val, &end, 10);

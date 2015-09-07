@@ -27,7 +27,7 @@ for i,child in ipairs(dom.kids) do
         local Manufacturer = unit.attr["Manufacturer"];
         local Type = unit.attr["Type"];
 	local Protocol = unit.attr["Protocol"];
-        if not Protocol then Protocol = "" end
+        if not Protocol then Protocol = "EN50494" end
         if not Manufacturer then Manufacturer = "" end
         if not Type then Type = "LNB" end
         -- print ( "    ",Name,Manufacturer,Type)
@@ -39,7 +39,7 @@ for i,child in ipairs(dom.kids) do
           ManufacturerArray[ManufacturerCount] = CurManu
         end
         CurManu.UnitCount = CurManu.UnitCount + 1
-        local CurUnit = { Name = Name, Type = Type, Frequencies = {} } 
+        local CurUnit = { Name = Name, Type = Type, Protocol = Protocol, Frequencies = {} } 
         CurManu.UnitList[CurManu.UnitCount] = CurUnit
         local fcount = 0
         for k,Frequency in ipairs(unit.kids) do
@@ -74,6 +74,7 @@ for i,CurManu in ipairs(ManufacturerArray) do
     print("")
     print(string.format("ManufacturerList[%d].UnitList[%d] = new Object();",i-1,j-1))
     print(string.format("ManufacturerList[%d].UnitList[%d].Name = \"%s\";",i-1,j-1,CurUnit.Name))
+    print(string.format("ManufacturerList[%d].UnitList[%d].Protocol = \"%s\";",i-1,j-1,CurUnit.Protocol))
     print(string.format("ManufacturerList[%d].UnitList[%d].Frequencies = new Array();",i-1,j-1))
     for k,Frequency in ipairs(CurUnit.Frequencies) do
       print(string.format("ManufacturerList[%d].UnitList[%d].Frequencies[%d] = %d;",i-1,j-1,k-1,Frequency))
