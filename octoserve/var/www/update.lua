@@ -1,6 +1,34 @@
 #!/usr/bin/lua
 
-local query = ""
+local host = os.getenv("HTTP_HOST")
+local proto = os.getenv("SERVER_PROTOCOL")
+local query = os.getenv("QUERY_STRING")
+local method = os.getenv("REQUEST_METHOD")
+local clength = os.getenv("CONTENT_LENGTH")
+local ctype = os.getenv("CONTENT_TYPE")
+
+function http_print(s)
+  if s then
+    io.stdout:write(tostring(s).."\r\n")
+  else
+    io.stdout:write("\r\n")
+  end
+end
+
+function SendError(err,desc)
+  http_print(proto.." "..err)
+  http_print()
+  local file = io.open("e404.html")
+  if file then
+    local tmp = file:read("*a")
+    tmp = string.gsub(tmp,"404 Not Found",err .. " " .. desc)
+    http_print(tmp)
+    file:close()
+  end
+end
+
+if not query then query = "" end
+if not proto then proto = "HTTP/1.0" end
 local DoUpdate = false
 local DoCheck = false
 
@@ -11,8 +39,6 @@ if arg[1] then
   else
     query = arg[1]
   end
-else
-  query = os.getenv("QUERY_STRING")
 end
 
 if query == "check" then
@@ -97,45 +123,45 @@ if DoUpdate then
   return
 end
 
-print("HTTP/1.0 200 ")
-print("Pragma: no-cache")
-print("Content-Type: application/x-javascript")
-print("")
-
+JSONData = ""
 if query == "check" then
 
-  if NewImage > CurImage then
-    print(string.format("UpdateInfo = \"%s\";",string.match(NewImage,"octonet%.(%d+)")))
-  else
-    print("UpdateInfo = \"\";")
-  end
-  print("CheckDone = true;")
+   JSONData = "{ \"Info\":\""
+   if NewImage > CurImage then
+      JSONData = JSONData .. string.match(NewImage,"octonet%.(%d+)")
+   end
+   JSONData = JSONData .. "\"}"
+  
 elseif query == "update" then
-  os.remove("/tmp/updatestatus")
-  print("UpdateStarted = true;")
-  os.execute("lua update.lua doupdate >/dev/null 2>/dev/null &")
+
+   os.remove("/tmp/updatestatus")
+   JSONData = "{ \"Status\":\"Started\", \"Error\":false }"
+   os.execute("lua update.lua doupdate >/dev/null 2>/dev/null &")
+   
 elseif query == "updatestatus" then
-  local tmp = io.open("/tmp/updatestatus")
-  local updatestatus = ""
-  if tmp then
-    updatestatus = tmp:read()
-    tmp:close()
-  end
-  if updatestatus == "CheckDone" then
-    print("CheckDone = true;")    
-  elseif updatestatus == "DownloadDone" then
-    print("DownloadDone = true;")    
-  elseif updatestatus == "VerifyDone" then
-    print("VerifyDone = true;")    
-  elseif string.match(updatestatus,"(Error)") then
-    print(string.format("UpdateInfo = \'%s\';",updatestatus))
-    print("UpdateError = true;")    
-  end
+
+   local tmp = io.open("/tmp/updatestatus")
+   local updatestatus = ""
+   if tmp then
+      updatestatus = tmp:read()
+      tmp:close()
+   end
+   UpdateError = "false"
+      if string.match(updatestatus,"(Error)") then
+   UpdateError = "true"
+   end
+   JSONData = "{ \"Status\":\""..updatestatus.."\", \"Error\":"..UpdateError.." }"
+  
 else
-  print(string.format("UpdateInfo = \'%s\';",query))
-  print("UpdateError = true;")
+   JSONData = "{ \"Status\":\""..query.."\", \"Error\":true }"
 end
 
+http_print(proto.." 200" )
+http_print("Pragma: no-cache")
+http_print("Content-Type: application/json; charset=UTF-8")
+http_print(string.format("Content-Length: %d",#JSONData))
+http_print()
+http_print(JSONData)
 
 
 

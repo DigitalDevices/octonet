@@ -43,11 +43,16 @@ end
 local fwdate = "";
 if images[1] then fwdate = images[1] end
 
-beta = "false"
+suffix = ""
 tmp = io.open("/config/updateserver")
 if tmp then
-  beta = "true"
-  tmp:close()
+   local updateserver = tmp:read("*l")
+   if updateserver == "download.digital-devices.de/download/linux/beta" then
+      suffix = "BETA"
+   else
+      suffix = "("..updateserver..")"
+   end
+   tmp:close()
 end
 
 http_print(string.format("var linuxver = \"%s\";",uname))
@@ -57,4 +62,4 @@ http_print(string.format("var fpgatype = \"%0X\";",registers[3] / 65536))
 -- http_print(string.format("var fpgatype = \"%0X\";",registers[3] >> 16))
 http_print(string.format("var fwdate = \"%s\";",fwdate))
 http_print(string.format("var host = \"%s\";",host))
-http_print(string.format("var beta = %s;",beta))
+http_print(string.format("var suffix = \"%s\";",suffix))

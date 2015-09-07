@@ -12,8 +12,6 @@
 <script type="text/javascript">
 
 isChecking = false;
-UpdateInfo = "";
-CheckDone = false;
 UpdateAvailable = false;
 
 function FWVersion(fwdate)
@@ -37,31 +35,37 @@ function FWVersion(fwdate)
   return ("?");
 }
 
+var xmlhttp = new XMLHttpRequest();
 
-function CheckUpdateDone()
+xmlhttp.onreadystatechange=function() {
+    if (xmlhttp.readyState == 4 )
+    {
+      if ( xmlhttp.status == 200)
+      {
+        myFunction(xmlhttp.responseText);
+      }
+      isChecking = false;
+    }
+}
+
+function Request(url) 
 {
-  if( CheckDone )
-  {
-    script = document.getElementById("script1");
-    head = document.getElementsByTagName('head')[0];
-    head.removeChild(script);
-    
-    if( UpdateInfo != "" )    
+   xmlhttp.open("GET", url, true);
+   xmlhttp.send();
+}
+
+function myFunction(response) {
+    var UpdateStatus = JSON.parse(response);
+    if( UpdateStatus.Info != "" )
     {
       document.getElementById("UpdateButton").value  = "Update";    
       document.getElementById("updatemsg").firstChild.nodeValue  = "New firmware/system package available";    
-      document.getElementById("updatestatus").firstChild.nodeValue  = "Version: " + FWVersion(UpdateInfo);    
+      document.getElementById("updatestatus").firstChild.nodeValue  = "Version: " + FWVersion(UpdateStatus.Info);    
       UpdateAvailable = true;
     }
     else
       document.getElementById("updatestatus").firstChild.nodeValue  = "No update available";    
-    isChecking = false;
     document.getElementById("UpdateButton").disabled  = false;    
-  }
-  else
-  {
-    window.setTimeout(CheckUpdateDone,100);  
-  }
 }
 
 function CheckUpdate()
@@ -76,15 +80,7 @@ function CheckUpdate()
     }
     else
     {
-      CheckDone = false;
-      document.getElementById("updatestatus").firstChild.nodeValue  = "***** Checking ******";
-      head = document.getElementsByTagName('head')[0];
-      newscript = document.createElement('script');
-      newscript.id = "script1";
-      newscript.type = "text/javascript";
-      newscript.src = "/update.lua?check";
-      head.appendChild(newscript);
-      window.setTimeout(CheckUpdateDone,100);  
+      Request("/update.lua?check");
     }
   }
 }

@@ -8,12 +8,9 @@
 <!-- Add page scripts here -->
 <script type="text/javascript">
 
-CheckDone = false;
-DownloadDone = false;
-VerifyDone = false;
-UpdateError = false;
 WaitCounter = 30;
-UpdateInfo = "";
+UpdateError = false;
+isReboot = false;
 
 function FWVersion(fwdate)
 {
@@ -32,56 +29,72 @@ function FWVersion(fwdate)
 
 }
 
-function CheckUpdateStatus()
-{
-  script = document.getElementById("script1");
-  head = document.getElementsByTagName('head')[0];
-  head.removeChild(script);
-  newscript = document.createElement('script');
-  newscript.id = "script1";
-  newscript.type = "text/javascript";
-  newscript.src = "/update.lua?updatestatus";
-  head.appendChild(newscript);
+var xmlhttp = new XMLHttpRequest();
 
-  if( UpdateError )
-  {
-      document.getElementById("UpdateButton").disabled  = false;    
-      document.getElementById("UpdateButton").value  = "Continue";    
-      document.getElementById("updatestatus").firstChild.nodeValue  = UpdateInfo;    
-  }  
-  else if( VerifyDone )
-  {
-      document.getElementById("UpdateButton").disabled  = false;    
-      document.getElementById("UpdateButton").value  = "Reboot";    
-      document.getElementById("updatestatus").firstChild.nodeValue  = "";    
-  }
-  else if( DownloadDone )
-  {
-      document.getElementById("updatestatus").firstChild.nodeValue  = "***** Verifying ******";    
-      DownloadDone = false;
-      window.setTimeout(CheckUpdateStatus,250);  
-  }
-  else if( CheckDone )
-  {
-      document.getElementById("updatestatus").firstChild.nodeValue  = "***** Downloading ******";    
-      CheckDone = false;
-      window.setTimeout(CheckUpdateStatus,250);  
-  }
-  else  
-    window.setTimeout(CheckUpdateStatus,250);  
+xmlhttp.onreadystatechange=function() {
+    if (xmlhttp.readyState == 4 )
+    {
+      if ( xmlhttp.status == 200)
+      {
+        myFunction(xmlhttp.responseText);
+      }
+      isChecking = false;
+    }
+}
+
+function Request(url) 
+{
+   xmlhttp.open("GET", url, true);
+   xmlhttp.send();
+}
+
+function myFunction(response) {
+   if( isReboot ) return;
+   var UpdateStatus = JSON.parse(response);
+   
+   if( UpdateStatus.Error )
+   {
+     document.getElementById("UpdateButton").disabled  = false;    
+     document.getElementById("UpdateButton").value  = "Continue";    
+     document.getElementById("updatestatus").firstChild.nodeValue  = UpdateStatus.Status;   
+     UpdateError = true;
+   }    
+   else if( UpdateStatus.Status == "Started" )
+   {
+     window.setTimeout(RequestStatus,250);  
+   }
+   else if( UpdateStatus.Status == "VerifyDone" )
+   {
+     document.getElementById("UpdateButton").disabled  = false;    
+     document.getElementById("UpdateButton").value  = "Reboot";    
+     document.getElementById("updatestatus").firstChild.nodeValue  = "";    
+   }
+   else if( UpdateStatus.Status == "DownloadDone" )
+   {
+     document.getElementById("updatestatus").firstChild.nodeValue  = "***** Verifying ******";    
+     window.setTimeout(RequestStatus,250);  
+   }
+   else if( UpdateStatus.Status == "CheckDone" )
+   {
+     document.getElementById("updatestatus").firstChild.nodeValue  = "***** Downloading ******";    
+     window.setTimeout(RequestStatus,250);  
+   }
+   else  
+     window.setTimeout(RequestStatus,250);  
+    
+}
+
+function RequestStatus()
+{
+   xmlhttp.open("GET", "/update.lua?updatestatus", true);
+   xmlhttp.send();
 }
 
 function DoUpdate()
 {
   CheckDone = false;
   document.getElementById("updatestatus").firstChild.nodeValue  = "***** Checking ******";
-  head = document.getElementsByTagName('head')[0];
-  newscript = document.createElement('script');
-  newscript.id = "script1";
-  newscript.type = "text/javascript";
-  newscript.src = "/update.lua?update";
-  head.appendChild(newscript);
-  window.setTimeout(CheckUpdateStatus,250);  
+  Request("/update.lua?update");
 }
 
 function Reboot()
@@ -93,12 +106,8 @@ function Reboot()
   }
   else
   {
-    head = document.getElementsByTagName('head')[0];
-    newscript = document.createElement('script');
-    newscript.id = "script2";
-    newscript.type = "text/javascript";
-    newscript.src = "/reboot.lua?sjiwjsiowjs";
-    head.appendChild(newscript);  
+    isReboot = true;
+    Request("/reboot.lua?sjiwjsiowjs");
     WaitCounter = 70;
     document.getElementById("updatestatus").firstChild.nodeValue  = WaitCounter;
     window.setTimeout(Wait,1000);  
