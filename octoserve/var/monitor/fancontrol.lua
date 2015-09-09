@@ -51,7 +51,16 @@ local Sensor = {}
 local TempList = {}
 local StartIndex = 1
 local count = interval
-local fanstate = 1
+local fanstate = -1
+
+local ddbridge = io.open("/sys/class/ddbridge/ddbridge0/devid0","r");
+if ddbridge then
+  local devid = ddbridge:read("*l")
+  ddbridge:close()
+  if devid == "0307dd01" then 
+    fanstate = 1
+  end 
+end
 
 --~ sleep(30)
 
@@ -65,8 +74,6 @@ end
 if NumSensors == 0 then
    return
 end
-
-SetFan(0)
 
 while true do
    sleep(1)  
