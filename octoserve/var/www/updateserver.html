@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<!-- Add page scripts here -->
+
+<script type="text/javascript">
+
+var xmlhttp = new XMLHttpRequest();
+var url = "/updateserver.lua";
+
+xmlhttp.onreadystatechange=function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        myFunction(xmlhttp.responseText);
+    }
+}
+
+function myFunction(response) {
+    var p = JSON.parse(response);
+    var el = document.getElementById("userver");
+    el.value = p.UpdateServer;
+}
+
+function OnLoad()
+{
+   xmlhttp.open("GET", url, true);
+   xmlhttp.send();
+}
+
+</script>
+
+</head>
+<body onload="OnLoad()">
+
+<table class="maintable" align="center">
+  <colgroup>
+    <col width="182px"/>
+    <col width="728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+        <h3 align="center">Select Local Update Server</h3>
+        <table class="table" align="center">
+          <tr>
+            <td>
+               <p/>
+               <form action="updateserver.lua" method="get">
+                  http://
+                  <input id="userver" type="text" name="set" size="30" value="" >
+                  /octonet/
+                  <br><input type="submit" value="Select Local Update Server">
+               </form>
+               <p/>
+               <form action="updateserver.lua" method="get">
+                  <input type="hidden" name="set" value="std" >
+                  <input type="submit" value="Select Standard Update Server">
+               </form>
+            </td>
+         </tr>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>
