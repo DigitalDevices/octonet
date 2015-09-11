@@ -24,8 +24,8 @@ if query == "set=beta" then
     delimages = true
   end
 elseif query == "set=std" then
-   local tmp = io.open("/config/updateserver","r")
-   if tmp then
+   local file = io.open("/config/updateserver","r")
+   if file then
      file:close()
      os.remove("/config/updateserver")
      delimages = true
