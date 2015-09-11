@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>OctopusNet</title>
 <link rel="stylesheet" type="text/css" href="/style.css">
 <script type="text/javascript" src="/menu.js"></script>
@@ -24,6 +24,8 @@ function SaveSettings()
   param += "nodvbt=" + (nodvbtEnabled?"1":"0");
   param += "&";
   param += "noswitch=" + (noswitchEnabled?"1":"0");
+  param += "&";
+  param += "strict=" + (strictEnabled?"1":"0");
   location.replace('/systemsettings.lua?'+param);  
 }
 
@@ -34,6 +36,7 @@ function ClearSettings()
   nodmsEnabled = false;
   nodvbtEnabled = false;
   noswitchEnabled = false;
+  strictEnabled = false;
   SaveSettings();
 }
 
@@ -44,6 +47,7 @@ function OnLoad()
   document.getElementById("NODMSButton").checked  = nodmsEnabled;
   document.getElementById("NODVBTButton").checked  = nodvbtEnabled;
   document.getElementById("NOSwitchButton").checked  = noswitchEnabled;
+  document.getElementById("STRICTButton").checked  = strictEnabled;
 }
 
 function Change()
@@ -53,6 +57,7 @@ function Change()
   nodmsEnabled = document.getElementById("NODMSButton").checked;
   nodvbtEnabled = document.getElementById("NODVBTButton").checked;
   noswitchEnabled = document.getElementById("NOSwitchButton").checked;
+  strictEnabled = document.getElementById("STRICTButton").checked;
   document.getElementById("SetButton").disabled = false;
 }
 
@@ -71,6 +76,15 @@ function SetPassword()
   location.replace('/setpasswd.lua?'+pwd1);  
 }
 
+function ToggleHelp(id)
+{
+  var el = document.getElementById(id);
+  if( el.style.display == "none")
+    el.style.display = "block";
+  else
+    el.style.display = "none";    
+}
+
 </script>
 
 </head>
@@ -87,121 +101,192 @@ function SetPassword()
   <tr>
     <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
     <td class="content">
-      <div>
+      <div style="position: absolute; width:720px">
         <!-- Begin Content -->
-        <table class="tableleft" align="center" cellspacing="2px">
-          <tr>
-            <td>Layer 2 Quality of Service</td>
-            <td>
-              <form action="">
-                 <input id="QOSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
-              </form>
-            </td>
-            <td>See note below</td>
-          </tr>
-
-          <tr>
-            <td>Telnet</td>
-            <td>
-              <form action="">
-                 <input id="TelnetButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
-              </form>
-            </td>
-            <td>Enable it at your own risk</td>
-          </tr>
-          
-          <tr>
-            <td>NODMS</td>
-            <td>
-              <form action="">
-                 <input id="NODMSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
-              </form>
-            </td>
-            <td>Disable DMS announcement.</td>
-          </tr>
-
-          <tr>
-            <td>NODVBT</td>
-            <td>
-              <form action="">
-                <input id="NODVBTButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
-              </form>
-            </td>
-            <td>Disable DVBT announcement.</td>
-          </tr>
-          
-          <tr>
-            <td>No DVB switch</td>
-            <td>
-              <form action="">
-                <input id="NOSwitchButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
-              </form>
-            </td>
-            <td>Disable DVB switch emulation on S8.</td>
-          </tr>
-          
-          <tr>
-            <td colspan="2" align="right">
-              <div style="width: 300px">
+        <div>
+          <table class="tableleft" align="center" cellspacing="2px">
+            <tr>
+              <td>Layer 2 Quality of Service</td>
+              <td>
                 <form action="">
-                  <input type="Button" value="Cancel" onclick="location.replace('index.html')" >
-                  <input type="Button" value="Reset" onclick="ClearSettings()" >
-                  <input id="SetButton" type="Button" disabled="true" value="Set" onclick="SaveSettings()" >
+                   <input id="QOSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
                 </form>
-              </div>
-            </td>
-          </tr>
-        </table>
+              </td>
+              <td>See note:
+                <a href="javascript:ToggleHelp('qos_hlpE')">English</a>
+                <a href="javascript:ToggleHelp('qos_hlpD')">Deutsch</a>
+              </td>
+            </tr>
+
+            <tr>
+              <td>Telnet</td>
+              <td>
+                <form action="">
+                   <input id="TelnetButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                </form>
+              </td>
+              <td>Enable it at your own risk</td>
+            </tr>
+            
+            <tr>
+              <td>Disable DMS announcement</td>
+              <td>
+                <form action="">
+                   <input id="NODMSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                </form>
+              </td>
+              <td></td>
+            </tr>
+
+            <tr>
+              <td>Disable DVBT announcement</td>
+              <td>
+                <form action="">
+                  <input id="NODVBTButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                </form>
+              </td>
+              <td></td>
+            </tr>
+            
+            <tr>
+              <td>Enforce strict SAT>IP</td>
+              <td>
+                <form action="">
+                  <input id="STRICTButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                </form>
+              </td>
+              <td>See note:
+                <a href="javascript:ToggleHelp('strict_hlpE')">English</a>
+                <a href="javascript:ToggleHelp('strict_hlpD')">Deutsch</a>
+              </td>
+            </tr>
+            
+            <tr>
+              <td>Disable multiswitch emulation</td>
+              <td>
+                <form action="">
+                  <input id="NOSwitchButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                </form>
+              </td>
+              <td>See note:
+                <a href="javascript:ToggleHelp('nosw_hlpE')">English</a>
+                <a href="javascript:ToggleHelp('nosw_hlpD')">Deutsch</a>
+              </td>
+            </tr>
+            
+            <tr>
+              <td colspan="2" align="right">
+                <div style="width: 300px">
+                  <form action="">
+                    <input type="Button" value="Cancel" onclick="location.replace('index.html')" >
+                    <input type="Button" value="Reset" onclick="ClearSettings()" >
+                    <input id="SetButton" type="Button" disabled="true" value="Set" onclick="SaveSettings()" >
+                  </form>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
         <br/>
-        <!--
-        <table class="tableleft" align="center" cellspacing="2px">
-          <form action="">
-          <tr>
-            <td align="right">
-              New password
-            </td>
-            <td>
-              <input id="pwd1" type="Password" value="" size="30">
-            </td>
-          </tr>
-          <tr>
-            <td align="right">
-              Repeat new password
-            </td>
-            <td>
-              <input id="pwd2" type="Password" value="" size="30">
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <div Id="PwdError" Style="color:#FFFFFF">
-                Repeated password doesn't match
-              </div>
-            </td>
-            <td align="right">
-              <input id="SetButton" type="Button" value="Set Password" onclick="SetPassword()" >
-            </td>
-          </tr>
-          </form>
-        </table>
-        -->
-        <div style="margin:20px; clear:both"> 
-          <h3>Layer 2 Quality of Service</h3>
-          This is defined in the <b>IEEE 802.1Q</b> VLAN standard, and provides QoS in a local network.<br/>
-          For it to work all components in the LAN must either be transparent to it or need to support it.
-          <li><b>hubs:</b> always transparent.</li>
-          <li><b>dumb switches:</b> usually transparent, better ones use it to prioritise the traffic.</li>
-          <li><b>smart switches:</b> depends on setting.</li>
-          <li><b>PCs and the like:</b> newer systems support it by default, for older systems check the LAN adapter settings.</li>
-          <li><b>WLAN access points:</b> depends on firmware and model. OpenWRT based devices usually work.</li>
-          <br>
-          Dies ist im <b>IEEE 802.1Q</b> VLAN Standard definiert und erlaubt QoS im lokalem Netz.<br/>
-          Damit es funktioniert m&uuml;ssen alle Netzwerkkompenenten im LAN entweder transparent sein oder es unterst&uuml;tzen.
-          <li><b>Hubs:</b> sind immer transparent</li>
-          <li><b>Dumb Switches:</b> normalerweise transparent, bessere prioritisieren damit den Datenverkehr</li>
-          <li><b>Smart Switches:</b> h&auml;ngt von den Einstellungen ab</li>
-          <li><b>PCs und dergleichen:</b> neue Systeme unterst&uuml;tzten es defaultmässig, für &auml;ltere in den Einstellungen der Netzwerkarte nachschauen</li>
-          <li><b>WLAN Accesspoints:</b> h&auml;ngt von Modell und deren Firmware ab. OpenWRT basierte Ger&auml;te unterst&uuml;tzen es normalerweise</li>
+        <div id="passwd" style="display: none"">
+          <table class="tableleft" align="center" cellspacing="2px">
+            <form action="">
+            <tr>
+              <td align="right">
+                New password
+              </td>
+              <td>
+                <input id="pwd1" type="Password" value="" size="30">
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                Repeat new password
+              </td>
+              <td>
+                <input id="pwd2" type="Password" value="" size="30">
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div Id="PwdError" Style="color:#FFFFFF">
+                  Repeated password doesn't match
+                </div>
+              </td>
+              <td align="right">
+                <input id="SetButton" type="Button" value="Set Password" onclick="SetPassword()" >
+              </td>
+            </tr>
+            </form>
+          </table>
+        </div>
+        <div id="qos_hlpE"  onclick="ToggleHelp('qos_hlpE')"
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+          <div style="position: relative; margin:20px; clear:both">
+            <h3>Layer 2 Quality of Service</h3>
+            This is defined in the <b>IEEE 802.1Q</b> VLAN standard, and provides QoS in a local network.<br/>
+            For it to work all components in the LAN must either be transparent to it or need to support it.
+            <li><b>hubs:</b> always transparent.</li>
+            <li><b>dumb switches:</b> usually transparent, better ones use it to prioritise the traffic.</li>
+            <li><b>smart switches:</b> depends on setting.</li>
+            <li><b>PCs and the like:</b> newer systems support it by default, for older systems check the LAN adapter settings.</li>
+            <li><b>WLAN access points:</b> depends on firmware and model. OpenWRT based devices usually work.</li>
+          </div>
+        </div>
+        <div id="qos_hlpD" onclick="ToggleHelp('qos_hlpD')" 
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+          <div style="position: relative; margin:20px; clear:both">
+            <h3>Layer 2 Quality of Service</h3>
+            Dies ist im <b>IEEE 802.1Q</b> VLAN Standard definiert und erlaubt QoS im lokalem Netz.<br/>
+            Damit es funktioniert m&uuml;ssen alle Netzwerkkompenenten im LAN entweder transparent sein oder es unterst&uuml;tzen.
+            <li><b>Hubs:</b> sind immer transparent</li>
+            <li><b>Dumb Switches:</b> normalerweise transparent, bessere prioritisieren damit den Datenverkehr</li>
+            <li><b>Smart Switches:</b> h&auml;ngt von den Einstellungen ab</li>
+            <li><b>PCs und dergleichen:</b> neue Systeme unterst&uuml;tzten es defaultmässig, für &auml;ltere in den Einstellungen der Netzwerkarte nachschauen</li>
+            <li><b>WLAN Accesspoints:</b> h&auml;ngt von Modell und deren Firmware ab. OpenWRT basierte Ger&auml;te unterst&uuml;tzen es normalerweise</li>
+          </div>
+        </div>
+        <div id="nosw_hlpE"  onclick="ToggleHelp('nosw_hlpE')"
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+          <div style="position: relative; margin:20px; clear:both">
+            <h3>Multiswitch emulation on OctopusNet S8</h3>
+            Multiswitch emulation allows to connect directly a Quad/Quattro LNB to the 4 inputs on the S8.
+            Disabling configures the S8 to a standard 4 input system
+          </div>
+        </div>
+        <div id="nosw_hlpD"  onclick="ToggleHelp('nosw_hlpD')"
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+          <div style="position: relative; margin:20px; clear:both">
+            <h3>Multischalter-Emulation OctopusNet S8</h3>
+            Multischalter-Emulation erlaubt den direkten Anschlu&szlig; eines Quad/Quattro LNB an die S8
+            Abschalten konfiguriert die S8 als ein Standard System mit 4 Eing&auml;ngen
+          </div>
+        </div>
+        <div id="strict_hlpE"  onclick="ToggleHelp('strict_hlpE')"
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+          <div style="position: relative; margin:20px; clear:both">
+            <h3>Enforce strict SAT>IP</h3>
+            <p/>
+            The SAT>IP specification allows a second client to receive a stream created by another client.
+            The OctopusNet allows to modify some parameters (like PIDs) on this second stream. The original stream is not affected bei this.
+            <p/>
+            Enforce strict SAT>IP disables this enhancment.
+            <br/>
+            Do this for testing clients to ensure they are compatible with other SAT>IP servers
+          </div>
+        </div>
+        <div id="strict_hlpD"  onclick="ToggleHelp('strict_hlpD')"
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+          <div style="position: relative; margin:20px; clear:both">
+            <h3>Erzwinge strictes SAT>IP</h3>
+            <p/>
+            Die SAT>IP Specification erlaubt einem zweiten Client das Empfangen eines von einem anderen Client angelegten Stream. Die OctopusNet erlaubt 
+            die &Auml;nderung eingiger Parameter (z.B. PIDs) für diesen Stream. Der orginale Stream wird dadurch nicht beinflusst.
+            <p/>
+            Das Erzwingen von stricten SAT>IP achaltet diese Erweiterung ab.
+            <br/>
+            Beim Testen von Clients ist es sinnvoll diesen Parameter zu setzen um die Kompatibilit&auml;t mit anderen SAT>IP Servern sicherzustellen.
+          </div>
         </div>
         <!-- End Content -->
       </div>

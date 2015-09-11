@@ -71,17 +71,18 @@ if query ~= "" then
       name,value = string.match(v,"(%w+)%=(%d+)")
       if( WriteSetting(name,value == "1") ) then
         if name == "telnet" then 
-          os.rename("/etc/securetty","/etc/securetty.bak"); -- temp fix to allow root login on telnet
+--~           os.rename("/etc/securetty","/etc/securetty.bak"); -- temp fix to allow root login on telnet
           os.execute("/etc/init.d/S91telnet restart") 
         end
         if name == "vlan" then restart = 1 end
         if name == "nodms" then restart = 1 end
         if name == "nodvbt" then restart = 1 end
         if name == "noswitch" then restart = 1 end
-        nextloc = "wait.html?5"
+        if name == "strict" then restart = 1 end
+        nextloc = "wait.html?10"
       end
     end
-    if restart == 1 then os.execute("/etc/init.d/S99octo restartoctonet&") end
+    if restart == 1 then os.execute("/etc/init.d/S99octo restartoctonet > /dev/null 2>&1 &") end
     print(proto.." 303")
     print("Location: http://"..host.."/"..nextloc)
     print("")
@@ -121,7 +122,14 @@ else
   else
     print("noswitchEnabled = false;")
   end
-    
+
+  if ReadSetting("strict") then
+    print("strictEnabled = true;")
+  else
+    print("strictEnabled = false;")
+  end
+
+  
 end
 
 

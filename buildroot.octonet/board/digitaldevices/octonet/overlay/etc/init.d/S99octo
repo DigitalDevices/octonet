@@ -20,7 +20,11 @@ case "$1" in
         "$0" startoctoserve
 	;;
     startoctoserve)
-	octoserve > /dev/null 2>&1 &
+        export OPTIONS=""
+        if  [ -e /config/strict.enabled ]; then
+            export OPTIONS=$OPTIONS" -c"
+        fi
+        octoserve $OPTIONS > /dev/null 2>&1 &
         ;;
     stopoctoserve)
         killall octoserve
