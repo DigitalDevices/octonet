@@ -8,20 +8,25 @@ function http_print(s)
   io.stdout:write(s.."\r\n")
 end
 
+function readattr(attr)
+   local value = "0"
+   local ddbridge = io.open("/sys/class/ddbridge/ddbridge0/"..attr,"r");
+   if ddbridge then
+     value = ddbridge:read("*l")
+     ddbridge:close()
+     value = value:gsub("0x","")
+   end
+   return value
+end
+
 http_print("HTTP/1.1 200")
 http_print("Pragma: no-cache")
 http_print("Content-Type: application/x-javascript")
 --http_print("Content-Type: text/plain")
 http_print("")
 
-local ddtest = io.popen("ddtest reg 0+4","r")
-local ddo = ddtest:read("*a")
-ddtest:close()
-
-local registers = {}
-for v in string.gmatch(ddo,"%((%-?%d+)%)") do
-  table.insert(registers,v)
-end
+dev0 = tonumber(readattr("devid0"),16)
+hwid = tonumber(readattr("hwid"),16)
 
 local tmp = io.popen("uname -r -m","r")
 local tmp1 = tmp:read()
@@ -50,16 +55,17 @@ if tmp then
    if updateserver == "download.digital-devices.de/download/linux/beta" then
       suffix = "BETA"
    else
+      if #updateserver > 17 then
+         updateserver = ".."..updateserver:sub(-15)
+      end
       suffix = "("..updateserver..")"
    end
    tmp:close()
 end
 
 http_print(string.format("var linuxver = \"%s\";",uname))
-http_print(string.format("var fpgaver = \"%d.%d\";",(registers[1] / 65536) % 65536,registers[1] % 65536))
-http_print(string.format("var fpgatype = \"%0X\";",registers[3] / 65536))
--- http_print(string.format("var fpgaver = \"%d.%d\";",registers[1] >> 16,registers[1] & 0xffff))
--- http_print(string.format("var fpgatype = \"%0X\";",registers[3] >> 16))
+http_print(string.format("var fpgaver = \"%d.%d\";",(hwid / 65536) % 256,hwid % 65536))
+http_print(string.format("var fpgatype = \"%0X\";",dev0 / 65536))
 http_print(string.format("var fwdate = \"%s\";",fwdate))
 http_print(string.format("var host = \"%s\";",host))
 http_print(string.format("var suffix = \"%s\";",suffix))
