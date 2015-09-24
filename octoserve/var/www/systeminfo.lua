@@ -5,7 +5,24 @@ local proto = os.getenv("SERVER_PROTOCOL")
 local query = os.getenv("QUERY_STRING")
 
 function http_print(s)
-  io.stdout:write(s.."\r\n")
+  if s then
+    io.stdout:write(tostring(s).."\r\n")
+  else
+    io.stdout:write("\r\n")
+  end
+end
+
+function SendError(err,desc)
+  http_print(proto.." "..err)
+  http_print("Content-Type: text/html")
+  http_print()
+  local file = io.open("e404.html")
+  if file then
+    local tmp = file:read("*a")
+    tmp = string.gsub(tmp,"404 Not Found",err .. " " .. desc)
+    http_print(tmp)
+    file:close()
+  end
 end
 
 function readattr(attr)
@@ -21,9 +38,10 @@ end
 
 http_print("HTTP/1.1 200")
 http_print("Pragma: no-cache")
+http_print("Cache-Control: no-cache")
 http_print("Content-Type: application/x-javascript")
 --http_print("Content-Type: text/plain")
-http_print("")
+http_print()
 
 dev0 = tonumber(readattr("devid0"),16)
 hwid = tonumber(readattr("hwid"),16)

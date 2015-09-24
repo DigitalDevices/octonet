@@ -4,6 +4,14 @@ local host = os.getenv("HTTP_HOST")
 local proto = os.getenv("SERVER_PROTOCOL")
 local query = os.getenv("QUERY_STRING")
 
+function http_print(s)
+  if s then
+    io.stdout:write(tostring(s).."\r\n")
+  else
+    io.stdout:write("\r\n")
+  end
+end
+
 if arg[1] then
   query = arg[1]
   if query == "get" then query = "" end
@@ -52,12 +60,13 @@ if p then
 end
 
 if gz then
-  io.stdout:write(proto.." 200" .."\r\n")
-  io.stdout:write("Pragma: no-cache".."\r\n")
-  io.stdout:write("Content-Type: application/gzip".."\r\n")
-  io.stdout:write('Content-Disposition: filename="channels.tar.gz"'.."\r\n")
-  io.stdout:write(string.format("Content-Length: %d",#gz).."\r\n")
-  io.stdout:write("\r\n")
+  http_print(proto.." 200")
+  http_print("Pragma: no-cache")
+  http_print("Cache-Control: no-cache")
+  http_print("Content-Type: application/gzip")
+  http_print('Content-Disposition: filename="channels.tar.gz"')
+  http_print(string.format("Content-Length: %d",#gz))
+  http_print()
   io.stdout:write(gz)
 else
   SendError("500","internal error")

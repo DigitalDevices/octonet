@@ -92,6 +92,7 @@ local mclist = ReadList()
 
 http_print("HTTP/1.1 200")
 http_print("Pragma: no-cache")
+http_print("Cache-Control: no-cache")
 http_print("Content-Type: application/x-javascript")
 http_print()
 

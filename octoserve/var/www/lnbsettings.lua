@@ -85,6 +85,28 @@ local host = os.getenv("HTTP_HOST")
 local proto = os.getenv("SERVER_PROTOCOL")
 local query = os.getenv("QUERY_STRING")
 
+function http_print(s)
+  if s then
+    io.stdout:write(tostring(s).."\r\n")
+  else
+    io.stdout:write("\r\n")
+  end
+end
+
+function SendError(err,desc)
+  http_print(proto.." "..err)
+  http_print("Content-Type: text/html")
+  http_print()
+  local file = io.open("e404.html")
+  if file then
+    local tmp = file:read("*a")
+    tmp = string.gsub(tmp,"404 Not Found",err .. " " .. desc)
+    http_print(tmp)
+    file:close()
+  end
+end
+
+
 if arg[1] then
   query = arg[1]
   if query == "get" then query = "" end
@@ -99,17 +121,12 @@ if query ~= "" then
   local auto = false
   local conf = ""
 
-  -- print(proto.." 200")
-  -- print("Pragma: no-cache")
-  -- print("Content-Type: text/plain")
-  -- print("")
-
-  print(proto.." 303")
-  print("Location: http://"..host.."/"..nextloc)
-  print("")
+  http_print(proto.." 303")
+  http_print("Location: http://"..host.."/"..nextloc)
+  http_print("")
   
   for p,v in string.gmatch(params,"(%a+)=([0123456789%.]+)") do
-    print(p,v)
+    http_print(p,v)
     if p == "auto" and p == "1" then
       auto = true
       break
@@ -133,12 +150,13 @@ if query ~= "" then
   os.execute("/etc/init.d/S99octo restartoctoserve&")      
 else
 
-  print(proto.." 200")
-  print("Pragma: no-cache")
-  print("Content-Type: application/x-javascript")
-  print("")
+  http_print(proto.." 200")
+  http_print("Pragma: no-cache")
+  http_print("Cache-Control: no-cache")
+  http_print("Content-Type: application/x-javascript")
+  http_print("")
 
-  print("LNBList = new Array();")
+  http_print("LNBList = new Array();")
   
   local i,lnb
   local Conf = LoadOctoserveConf("LNB")
@@ -158,26 +176,26 @@ else
       if n == "LOF1" then LOF1 = v end
       if n == "LOF2" then LOF2 = v end
       if n == "LOFS" then LOFS = v end
-      print("// " .. n .. " = " .. v);
+      http_print("// " .. n .. " = " .. v);
     end
   
-    print(string.format("LNBList[%d] = new Object();" ,i))   
-    print(string.format("LNBList[%d].Tuner = %d;"     ,i,Tuner ))   
-    print(string.format("LNBList[%d].Source = %d;"    ,i,Source))   
-    print(string.format("LNBList[%d].LOF1 = %d;"      ,i,LOF1  ))   
-    print(string.format("LNBList[%d].LOF2 = %d;"      ,i,LOF2  ))   
-    print(string.format("LNBList[%d].LOFS = %d;"      ,i,LOFS  ))   
+    http_print(string.format("LNBList[%d] = new Object();" ,i))
+    http_print(string.format("LNBList[%d].Tuner = %d;"     ,i,Tuner ))
+    http_print(string.format("LNBList[%d].Source = %d;"    ,i,Source))
+    http_print(string.format("LNBList[%d].LOF1 = %d;"      ,i,LOF1  ))
+    http_print(string.format("LNBList[%d].LOF2 = %d;"      ,i,LOF2  ))
+    http_print(string.format("LNBList[%d].LOFS = %d;"      ,i,LOFS  ))
   
   
     i = i + 1
   end
   
-  -- print("LNBList[0] = new Object();")
-  -- print("LNBList[0].Tuner = 0;")
-  -- print("LNBList[0].Source = 0;")
-  -- print("LNBList[0].LOF1 = 9750;")
-  -- print("LNBList[0].LOF2 = 10600;")
-  -- print("LNBList[0].LOFS = 11700;")
+  -- http_print("LNBList[0] = new Object();")
+  -- http_print("LNBList[0].Tuner = 0;")
+  -- http_print("LNBList[0].Source = 0;")
+  -- http_print("LNBList[0].LOF1 = 9750;")
+  -- http_print("LNBList[0].LOF2 = 10600;")
+  -- http_print("LNBList[0].LOFS = 11700;")
     
     
 end

@@ -5,6 +5,27 @@ local SCIFDataBase = io.open('SCIFDataBase.xml'):read("*a")
 -- SLAXML:parse(SCIFDataBase,{stripWhitespace=true})
 local dom = SLAXML:dom(SCIFDataBase,{ simple=false,stripWhitespace=true })
 
+function http_print(s)
+  if s then
+    io.stdout:write(tostring(s).."\r\n")
+  else
+    io.stdout:write("\r\n")
+  end
+end
+
+function SendError(err,desc)
+  http_print(proto.." "..err)
+  http_print("Content-Type: text/html")
+  http_print()
+  local file = io.open("e404.html")
+  if file then
+    local tmp = file:read("*a")
+    tmp = string.gsub(tmp,"404 Not Found",err .. " " .. desc)
+    http_print(tmp)
+    file:close()
+  end
+end
+
 local child
 local unit
 
@@ -19,7 +40,7 @@ local ManufacturerArray = {}
 local ManufacturerCount = 0
 
 for i,child in ipairs(dom.kids) do
-  print (i,child.name)
+  http_print (i,child.name)
   if child.name == "SCIFDataBase" then
     for j,unit in ipairs(child.kids) do
       if unit.name == "OutdoorUnit" then
@@ -30,7 +51,7 @@ for i,child in ipairs(dom.kids) do
         if not Protocol then Protocol = "EN50494" end
         if not Manufacturer then Manufacturer = "" end
         if not Type then Type = "LNB" end
-        -- print ( "    ",Name,Manufacturer,Type)
+        -- http_print ( "    ",Name,Manufacturer,Type)
         local CurManu = ManufacturerList[Manufacturer]
         if not CurManu then
           CurManu = { UnitList = {}, UnitCount = 0, Name = Manufacturer }
@@ -47,7 +68,7 @@ for i,child in ipairs(dom.kids) do
              fcount = fcount + 1
              CurUnit.Frequencies[fcount] = Frequency.attr["Frequency"]
              
-             -- print(" -------------------------", Frequency.type, Frequency.name, Frequency.attr["Frequency"])
+             -- http_print(" -------------------------", Frequency.type, Frequency.name, Frequency.attr["Frequency"])
           end
         end
       end
@@ -55,32 +76,33 @@ for i,child in ipairs(dom.kids) do
   end
 end
 
--- print(ManufacturerCount)
+-- http_print(ManufacturerCount)
 
-print("HTTP/1.1 200 ")
-print("Pragma: no-cache")
-print("Content-Type: application/x-javascript")
-print("")
+http_print("HTTP/1.1 200 ")
+http_print("Pragma: no-cache")
+http_print("Cache-Control: no-cache")
+http_print("Content-Type: application/x-javascript")
+http_print()
 
-print("ManufacturerList = new Array();")
+http_print("ManufacturerList = new Array();")
 
 for i,CurManu in ipairs(ManufacturerArray) do
-  print("")
-  print(string.format("ManufacturerList[%d] = new Object();",i-1))
-  print(string.format("ManufacturerList[%d].Name = \"%s\";",i-1,CurManu.Name))
-  print(string.format("ManufacturerList[%d].UnitList = new Array();",i-1))
+  http_print()
+  http_print(string.format("ManufacturerList[%d] = new Object();",i-1))
+  http_print(string.format("ManufacturerList[%d].Name = \"%s\";",i-1,CurManu.Name))
+  http_print(string.format("ManufacturerList[%d].UnitList = new Array();",i-1))
 
   for j,CurUnit in ipairs(CurManu.UnitList) do
-    print("")
-    print(string.format("ManufacturerList[%d].UnitList[%d] = new Object();",i-1,j-1))
-    print(string.format("ManufacturerList[%d].UnitList[%d].Name = \"%s\";",i-1,j-1,CurUnit.Name))
-    print(string.format("ManufacturerList[%d].UnitList[%d].Protocol = \"%s\";",i-1,j-1,CurUnit.Protocol))
-    print(string.format("ManufacturerList[%d].UnitList[%d].Frequencies = new Array();",i-1,j-1))
+    http_print()
+    http_print(string.format("ManufacturerList[%d].UnitList[%d] = new Object();",i-1,j-1))
+    http_print(string.format("ManufacturerList[%d].UnitList[%d].Name = \"%s\";",i-1,j-1,CurUnit.Name))
+    http_print(string.format("ManufacturerList[%d].UnitList[%d].Protocol = \"%s\";",i-1,j-1,CurUnit.Protocol))
+    http_print(string.format("ManufacturerList[%d].UnitList[%d].Frequencies = new Array();",i-1,j-1))
     for k,Frequency in ipairs(CurUnit.Frequencies) do
-      print(string.format("ManufacturerList[%d].UnitList[%d].Frequencies[%d] = %d;",i-1,j-1,k-1,Frequency))
+      http_print(string.format("ManufacturerList[%d].UnitList[%d].Frequencies[%d] = %d;",i-1,j-1,k-1,Frequency))
     end
   end
   
   i = i + 1
 end
-print("")
+http_print()

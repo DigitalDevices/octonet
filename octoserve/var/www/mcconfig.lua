@@ -15,14 +15,9 @@ function http_print(s)
   end
 end
 
-if #arg> 0 then
-  method="GET"
-  query="select=m3u"
-  proto = "HTTP/1.0"
-end
-
 function SendError(err,desc)
   http_print(proto.." "..err)
+  http_print("Content-Type: text/html")
   http_print()
   local file = io.open("e404.html")
   if file then
@@ -31,6 +26,12 @@ function SendError(err,desc)
     http_print(tmp)
     file:close()
   end
+end
+
+if #arg> 0 then
+  method="GET"
+  query="select=m3u"
+  proto = "HTTP/1.0"
 end
 
 function GetDevID()
@@ -90,6 +91,7 @@ if method == "GET" then
   if data then
     http_print(proto.." 200" )
     http_print("Pragma: no-cache")
+    http_print("Cache-Control: no-cache")
     http_print("Content-Type: text/"..subtype)
     http_print('Content-Disposition: filename="'..disposition..'"')
     http_print(string.format("Content-Length: %d",#data))

@@ -159,6 +159,7 @@ if method == "GET" then
   if data then
     http_print(proto.." 200" )
     http_print("Pragma: no-cache")
+    http_print("Cache-Control: no-cache")
     http_print("Content-Type: text/"..subtype)
     http_print('Content-Disposition: filename="'..disposition..'"')
     http_print(string.format("Content-Length: %d",#data))

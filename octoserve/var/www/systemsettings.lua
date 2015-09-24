@@ -51,6 +51,27 @@ local host = os.getenv("HTTP_HOST")
 local proto = os.getenv("SERVER_PROTOCOL")
 local query = os.getenv("QUERY_STRING")
 
+function http_print(s)
+  if s then
+    io.stdout:write(tostring(s).."\r\n")
+  else
+    io.stdout:write("\r\n")
+  end
+end
+
+function SendError(err,desc)
+  http_print(proto.." "..err)
+  http_print("Content-Type: text/html")
+  http_print()
+  local file = io.open("e404.html")
+  if file then
+    local tmp = file:read("*a")
+    tmp = string.gsub(tmp,"404 Not Found",err .. " " .. desc)
+    http_print(tmp)
+    file:close()
+  end
+end
+
 if arg[1] then
   query = arg[1]
   proto = "HTTP/1.0"
@@ -88,45 +109,46 @@ if query ~= "" then
     print("")
 else
 
-  print(proto.." 200")
-  print("Pragma: no-cache")
-  print("Content-Type: application/x-javascript")
-  print("")
+  http_print(proto.." 200")
+  http_print("Pragma: no-cache")
+  http_print("Cache-Control: no-cache")
+  http_print("Content-Type: application/x-javascript")
+  http_print()
 
   if ReadSetting("telnet") then
-    print("telnetEnabled = true;")
+    http_print("telnetEnabled = true;")
   else
-    print("telnetEnabled = false;")
+    http_print("telnetEnabled = false;")
   end
 
   if ReadSetting("vlan") then
-    print("vlanEnabled = true;")
+    http_print("vlanEnabled = true;")
   else
-    print("vlanEnabled = false;")
+    http_print("vlanEnabled = false;")
   end
     
   if ReadSetting("nodms") then
-    print("nodmsEnabled = true;")
+    http_print("nodmsEnabled = true;")
   else
-    print("nodmsEnabled = false;")
+    http_print("nodmsEnabled = false;")
   end
     
   if ReadSetting("nodvbt") then
-    print("nodvbtEnabled = true;")
+    http_print("nodvbtEnabled = true;")
   else
-    print("nodvbtEnabled = false;")
+    http_print("nodvbtEnabled = false;")
   end
     
   if ReadSetting("noswitch") then
-    print("noswitchEnabled = true;")
+    http_print("noswitchEnabled = true;")
   else
-    print("noswitchEnabled = false;")
+    http_print("noswitchEnabled = false;")
   end
 
   if ReadSetting("strict") then
-    print("strictEnabled = true;")
+    http_print("strictEnabled = true;")
   else
-    print("strictEnabled = false;")
+    http_print("strictEnabled = false;")
   end
 
   

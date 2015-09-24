@@ -17,6 +17,7 @@ end
 
 function SendError(err,desc)
   http_print(proto.." "..err)
+  http_print("Content-Type: text/html")
   http_print()
   local file = io.open("e404.html")
   if file then
@@ -56,6 +57,7 @@ JSONData = "{\"Rebooting\":"..Rebooting.."}"
 
 http_print(proto.." 200" )
 http_print("Pragma: no-cache")
+http_print("Cache-Control: no-cache")
 http_print("Content-Type: application/json; charset=UTF-8")
 http_print(string.format("Content-Length: %d",#JSONData))
 http_print()

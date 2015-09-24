@@ -64,6 +64,14 @@ function LoadOctoserveConf(Section)
   return(Values) 
 end
 
+function http_print(s)
+  if s then
+    io.stdout:write(tostring(s).."\r\n")
+  else
+    io.stdout:write("\r\n")
+  end
+end
+
 
 local host = os.getenv("HTTP_HOST")
 local proto = os.getenv("SERVER_PROTOCOL")
@@ -71,9 +79,9 @@ local query = os.getenv("QUERY_STRING")
 
 if query ~= "" then
 
-  print(proto.." 303")
-  print("Location: http://"..host.."/wait.html?5")
-  print("")
+  http_print(proto.." 303")
+  http_print("Location: http://"..host.."/wait.html?5")
+  http_print()
 
   -- print(string.format("Set Unicable %s", query ))
 
@@ -112,10 +120,11 @@ if query ~= "" then
   SaveOctoserveConf("scif",Values)
   os.execute("/etc/init.d/S99octo restartoctoserve&")
 else
-  print(proto.." 200")
-  print("Pragma: no-cache")
-  print("Content-Type: application/x-javascript")
-  print("")
+  http_print(proto.." 200")
+  http_print("Pragma: no-cache")
+  http_print("Cache-Control: no-cache")
+  http_print("Content-Type: application/x-javascript")
+  http_print()
 
   Values = LoadOctoserveConf("scif")
   
@@ -124,14 +133,14 @@ else
     name,i,v1,v2,v3 = string.match(v,"(%a+)(%d-)%=(%d+)%,?(%d*)%,?(%d*)")
     
     if name == "Tuner" then
-      print(string.format("Tuner[%d] = new Object();",i-1))
-      print(string.format("Tuner[%d].Slot = %d;",i-1,v1))
+      http_print(string.format("Tuner[%d] = new Object();",i-1))
+      http_print(string.format("Tuner[%d].Slot = %d;",i-1,v1))
       if v2 == "" then v2 = 0 end
-      print(string.format("Tuner[%d].Freq = %d;",i-1,v2))
+      http_print(string.format("Tuner[%d].Freq = %d;",i-1,v2))
       if v3 == "" then v3 = -1 end
-      print(string.format("Tuner[%d].Pin = %d;",i-1,v3))
+      http_print(string.format("Tuner[%d].Pin = %d;",i-1,v3))
     else
-      print( name .. " = " .. v1 .. ";" )
+      http_print( name .. " = " .. v1 .. ";" )
     end
   end
 end
