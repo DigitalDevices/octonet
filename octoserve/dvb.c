@@ -216,6 +216,8 @@ static int diseqc(int fd, int sat, int hor, int band)
 	diseqc_send_msg(fd, hor ? SEC_VOLTAGE_18 : SEC_VOLTAGE_13,
 			&cmd, band ? SEC_TONE_ON : SEC_TONE_OFF,
 			(sat & 1) ? SEC_MINI_B : SEC_MINI_A, 0);
+	dbgprintf(DEBUG_DVB, "MS %02x %02x %02x %02x\n", 
+		  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
 	return 0;
 }
 
@@ -249,7 +251,7 @@ static int set_en50494(int fd, uint32_t freq, uint32_t sr,
 		perror("FE_SET_VOLTAGE failed");
 
 	set_fe(fd, ubfreq * 1000, sr * 1000, ds);
-	dbgprintf(DEBUG_DVB, "%02x %02x %02x %02x %02x\n", 
+	dbgprintf(DEBUG_DVB, "EN50494 %02x %02x %02x %02x %02x\n", 
 		  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
 }
 
@@ -282,8 +284,8 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
 		perror("FE_SET_VOLTAGE failed");
 
 	set_fe(fd, ubfreq * 1000, sr * 1000, ds);
-	dbgprintf(DEBUG_DVB, "%02x %02x %02x %02x %02x\n", 
-		  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
+	dbgprintf(DEBUG_DVB, "EN50607 %02x %02x %02x %02x\n", 
+		  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
 }
 
 static int tune_sat(struct dvbfe *fe)
