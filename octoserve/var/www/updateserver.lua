@@ -12,6 +12,10 @@ function http_print(s)
   end
 end
 
+local hex_to_char = function(x)
+   return string.char(tonumber(x,16))
+end
+
 local userver = "download.digital-devices.de/download/linux"
 local data = nil
 local delimages = false
@@ -33,6 +37,8 @@ elseif query == "set=std" then
 elseif query:sub(1,4) == "set=" then
     userver = query:sub(5)
     if userver ~= "" then
+      userver = userver:gsub("%%(%x%x)",hex_to_char)
+      -- userver = userver:gsub("+"," ")
       local file = io.open("/config/updateserver","w")
       if file then
          file:write(userver.."\n")
@@ -64,6 +70,7 @@ end
 if data then
    http_print(proto.." 200" )
    http_print("Pragma: no-cache")
+   http_print("Cache-Control: no-cache")
    http_print("Content-Type: application/json; charset=UTF-8")
    http_print(string.format("Content-Length: %d",#data))
    http_print()
