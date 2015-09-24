@@ -71,6 +71,13 @@ for i = 0,4,1 do
       NumSensors = NumSensors + 1
    end
 end
+
+local fh = io.open(LogFile,"w")
+if fh then
+   fh:write(NumSensors..","..interval..","..fanstate.."\n")
+   fh:close()
+end
+
 if NumSensors == 0 then
    return
 end
@@ -116,7 +123,7 @@ while true do
       
       TmpLogFile = os.tmpname()
       
-      local fh = io.open(TmpLogFile,"w")
+      fh = io.open(TmpLogFile,"w")
       if fh then
          fh:write(NumSensors..","..interval..","..fanstate.."\n")
       
@@ -135,4 +142,3 @@ while true do
    end
    collectgarbage()
 end
-

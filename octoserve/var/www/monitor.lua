@@ -43,6 +43,7 @@ end
 
 if method == "GET" then
    data = ""
+   status = " 204"
       
    local file = io.open("/tmp/Temperatur.log")
    if file then
@@ -84,10 +85,11 @@ if method == "GET" then
       end
       data = data .. "]\n"
       data = data .. "}\n"
+      status = "200"
    end
 
 
-   http_print(proto.." 200" )
+   http_print(proto.." "..status )
    http_print("Pragma: no-cache")
    http_print("Content-Type: application/json; charset=UTF-8")
    http_print(string.format("Content-Length: %d",#data))

@@ -13,9 +13,14 @@
 var xmlhttp = new XMLHttpRequest();
 var url = "/monitor.lua";
 
-xmlhttp.onreadystatechange=function() {
-    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-        myFunction(xmlhttp.responseText);
+xmlhttp.onreadystatechange=function()
+{
+    if (xmlhttp.readyState == 4 )
+    {
+      if( xmlhttp.status == 200 )
+         myFunction(xmlhttp.responseText);
+      else if( xmlhttp.status == 204 )
+         window.setTimeout(Reload,1000);  
     }
 }
 
@@ -27,30 +32,41 @@ function Reload()
 
 function myFunction(response) {
     var Sensor = JSON.parse(response);
+    var j;
     
     if( Sensor.NumSensors > 0 )
     {
-       var pts = document.getElementById("pts").points;
-       var svgRoot = document.getElementById("svg");
-       
-       var i;
-       var v = Sensor.SensorData[0];
-       var n = v.length;
-       var i0 = 0;
-       if( n > 120 ) 
+       if( Sensor.NumSensors > 4 ) Sensor.NumSensors = 4;
+       for( j = 0; j < Sensor.NumSensors; j += 1 )
        {
-         i0 = n - 120;
-         n = 120;      
-       }
-       pts.clear();
-       for(i = 0; i < n; i += 1)
-       {    
-          var pt = svgRoot.createSVGPoint();
-          pt.x = (i+1) * 20;
-          pt.y = v[i+i0] * 10;
-          pts.appendItem(pt);
+          var id = "pts"+j
+          var pts = document.getElementById(id).points;
+          var svgRoot = document.getElementById("svg");
+          
+          var i;
+          var v = Sensor.SensorData[j];
+          var n = v.length;
+          var i0 = 0;
+          if( n > 120 ) 
+          {
+            i0 = n - 120;
+            n = 120;      
+          }
+          pts.clear();
+          for(i = 0; i < n; i += 1)
+          {    
+             var pt = svgRoot.createSVGPoint();
+             pt.x = (i+1) * 20;
+             pt.y = v[i+i0] * 10;
+             pts.appendItem(pt);
+          }
        }
        window.setTimeout(Reload,10000);  
+    }
+    else
+    {
+       document.getElementById("TGraph").style.display = "none";
+       document.getElementById("NoSensor").style.display = "block";
     }
 
 }
@@ -91,9 +107,13 @@ function OnLoad()
          </table>
          -->
         <h3 align="center">Frontend Temperature</h3>
+        <div id="NoSensor" align="center" style="display: none">
+            </p>
+            No temperature sensors available
+        </div>
+        
 
-
-        <div align="center">
+        <div id="TGraph" align="center" style="display: block">
             <svg Id="svg" width="720px" height="330px">
             <desc>Temperature</desc>
             <g transform="scale(0.277)">
@@ -147,9 +167,18 @@ function OnLoad()
                </g>
                <svg x="100" y="100" width="2400" height="1000">
                   <g transform="scale(1.0,-1.0) translate(0.0,-1000)">
-                     <polyline Id="pts" 
+                     <polyline Id="pts0" 
                         points="0 0,"
-                        style="stroke:red; stroke-width: 3; fill : none;"/>
+                        style="stroke:#C00000; stroke-width: 3; fill : none;"/>
+                     <polyline Id="pts1" 
+                        points="0 0,"
+                        style="stroke:#0000C0; stroke-width: 3; fill : none;"/>
+                     <polyline Id="pts2" 
+                        points="0 0,"
+                        style="stroke:#00C000; stroke-width: 3; fill : none;"/>
+                     <polyline Id="pts3" 
+                        points="0 0,"
+                        style="stroke:#C000C0; stroke-width: 3; fill : none;"/>
                   </g>
                </svg>
             </g>
