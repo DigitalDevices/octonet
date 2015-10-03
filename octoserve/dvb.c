@@ -356,7 +356,9 @@ static int tune_c(struct dvbfe *fe)
 		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param[PARAM_BW_HZ] ? : 8000000 },
 		{ .cmd = DTV_SYMBOL_RATE, .u.data = fe->param[PARAM_SR] * 1000 },
 		{ .cmd = DTV_INNER_FEC,
-		  .u.data = fe->param[PARAM_FEC] ? (fe->param[PARAM_FEC] - 1) : FEC_AUTO},
+		  .u.data = fe->param[PARAM_FEC] ? (fe->param[PARAM_FEC] - 1) : FEC_AUTO },
+		{ .cmd = DTV_MODULATION,
+		  .u.data = fe->param[PARAM_MTYPE]  ? (fe->param[PARAM_MTYPE] - 1) : QAM_AUTO },
 		{ .cmd = DTV_TUNE },
 	};		
 	struct dtv_properties c;
@@ -364,7 +366,7 @@ static int tune_c(struct dvbfe *fe)
 
 	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
 
-	c.num = 6;
+	c.num = 7;
 	c.props = p;
 	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
