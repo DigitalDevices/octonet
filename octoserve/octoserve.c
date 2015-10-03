@@ -1391,11 +1391,9 @@ static int setup_session(struct oscon *con, int newtrans)
 	
 	if (!str)
 		return -500;
-	if (conform) {
-		if (str->session != sess && merge_pids(sp, p) < 0)
+	if (conform && (str->session != sess) && merge_pids(sp, p))
 			return -455;
-	} else
-		merge_pids(sp, p);
+	merge_pids(sp, p);
 	if (str->session == sess) { /* stream owner */
 		merge_params(sp, p);
 		
