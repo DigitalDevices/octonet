@@ -98,7 +98,7 @@ CATEGORY,TITLE,SYSTEM,FREQ,SR,MOD,RADIO,ENC,PIDS,TRACKS
 "Unitymedia","Unitymedia Videothek","dvbc",610000,6900,"256qam",0,0,"P257:513:514","A514"
 "Unitymedia","Mehr Programm","dvbc",610000,6900,"256qam",0,0,"P259:515","A"
 "Unitymedia","Programm 25110","dvbc",746000,6900,"256qam",0,0,"P257:513","A"
-"ARD","arte HD","dvbc",762000,6900,"64qam",0,0,"P257:513:518:514:515:516","A514:515:516"
+"ARD","arte HD","dvbc",114000,6900,"256qam",0,0,"P257:513:518:514:515:516","A514:515:516"
 "Unitymedia","ServusTV HD","dvbc",762000,6900,"64qam",0,0,"P258:523:528:524:525:526","A524:525:526"
 "Unitymedia","QVC HD","dvbc",762000,6900,"64qam",0,0,"P259:533:538:534","A534"
 "Unitymedia","HSE24 HD","dvbc",762000,6900,"64qam",0,0,"P260:543:548:544","A544"
