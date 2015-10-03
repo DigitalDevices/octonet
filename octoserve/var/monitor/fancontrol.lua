@@ -62,7 +62,7 @@ if ddbridge then
   end 
 end
 
---~ sleep(30)
+sleep(30)
 
 for i = 0,4,1 do 
    temp = ReadTemp(i)
