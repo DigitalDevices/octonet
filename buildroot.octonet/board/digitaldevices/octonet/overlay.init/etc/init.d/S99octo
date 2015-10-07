@@ -19,9 +19,12 @@ case "$1" in
 	if [ "$img" = "" ]; then
 	    sleep 5
 	    if [ -e /dev/sda1 ]; then
-		mount /dev/sda1 /mnt
-		cp /mnt/octonet.*.img /config
-		umount /mnt
+         mount -r /dev/sda1 /mnt
+         ls -l --color=never /mnt
+         cp /mnt/octonet.*.img /config
+         ls -l --color=never /config
+         sha256sum /config/octonet.*.img
+         umount /mnt
 	    fi
 	fi
 
