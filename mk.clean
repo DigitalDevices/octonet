@@ -1,1 +1,1 @@
-rm -rf linux.octonet buildroot buildroot.octonet octoserve dddvb
+rm -rf linux.octonet/ buildroot/ u-boot/
