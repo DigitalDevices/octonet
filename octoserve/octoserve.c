@@ -1043,6 +1043,13 @@ static int parse_url(struct oscon *con, int streamonly)
 					break;
 				p->set |= (1UL << PARAM_T2ID);
 				dbgprintf(DEBUG_SYS, "t2id=%d, ", p->param[PARAM_T2ID]);
+			} else if (!strncasecmp(url, "isi=", 4)) {
+				url += 4;
+				p->param[PARAM_ISI] = strtoul(url, &end, 10);
+				if (end == url)
+					break;
+				p->set |= (1UL << PARAM_ISI);
+				dbgprintf(DEBUG_SYS, "isi=%d, ", p->param[PARAM_ISI]);
 			} else if (!strncasecmp(url, "freq=", 5)) {
 				float f;
 
@@ -2580,7 +2587,7 @@ static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt
 		return NULL;
 	}
 #if 0
-	if (init_http(os, debug) < 0) {
+	if (init_httpos, debug) < 0) {
 		release_dvb(os);
 		free(os);
 		return NULL;

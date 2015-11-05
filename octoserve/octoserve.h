@@ -145,6 +145,7 @@ struct rtsp_error {
 #define PARAM_TMODE     14
 #define PARAM_GI        15
 #define PARAM_PLP       16
+#define PARAM_ISI       16
 #define PARAM_T2ID      17
 #define PARAM_SM        18
 #define PARAM_C2TFT     19

@@ -26,6 +26,7 @@ extern uint32_t debug;
 #define MMI_STATE_ENQ 2
 #define MMI_STATE_MENU 3
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 static int set_fmode(uint32_t fmode)
 {
@@ -148,6 +149,7 @@ static int set_fe(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds)
 		{ .cmd = DTV_INVERSION, .u.data = INVERSION_AUTO },
 		{ .cmd = DTV_SYMBOL_RATE, .u.data = sr },
 		{ .cmd = DTV_INNER_FEC, .u.data = FEC_AUTO },
+//		{ .cmd = DTV_STREAM_ID, .u.data = fe->param[PARAM_ISI] },
 		{ .cmd = DTV_TUNE },
 	};		
 	struct dtv_properties c;
@@ -155,7 +157,7 @@ static int set_fe(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds)
 	
 	dbgprintf(DEBUG_DVB, "ds = %u\n", ds);
 	
-	c.num = 7;
+	c.num = ARRAY_SIZE(p);
 	c.props = p;
 	ret = ioctl(fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
@@ -366,7 +368,7 @@ static int tune_c(struct dvbfe *fe)
 
 	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
 
-	c.num = 7;
+	c.num = ARRAY_SIZE(p);
 	c.props = p;
 	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
@@ -406,7 +408,7 @@ static int tune_terr(struct dvbfe *fe)
 
 	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBT);
 
-	c.num = 4;
+	c.num = ARRAY_SIZE(p);
 	c.props = p;
 	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
@@ -455,7 +457,7 @@ static int tune_c2(struct dvbfe *fe)
 
 	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC2);
 
-	c.num = 5;
+	c.num = ARRAY_SIZE(p);
 	c.props = p;
 	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
@@ -479,7 +481,7 @@ static int tune_terr2(struct dvbfe *fe)
 
 	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBT2);
 
-	c.num = 5;
+	c.num = ARRAY_SIZE(p);
 	c.props = p;
 	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
