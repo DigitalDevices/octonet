@@ -1386,6 +1386,11 @@ static int merge_params(struct dvb_params *op, struct dvb_params *p)
 	}
 }
 
+static void copy_params(struct ossess *s, struct ossess *t)
+{
+	memcpy(&s->p, &t->p, sizeof(struct dvb_params));
+}
+
 static int setup_session(struct oscon *con, int newtrans)
 {
 	struct dvbfe *fe;
@@ -1395,13 +1400,17 @@ static int setup_session(struct oscon *con, int newtrans)
 	struct dvb_params *sp = &sess->p;
 	struct ostrans *trans = &con->trans;
 	struct osstrm *str = sess->stream;
-	
+	struct ossess *ownsess = str->session;
+	int pidchange;
+	int owner = 0;
+
+	if (sess == ownsess)
+		owner = 1;
 	if (!str)
 		return -500;
-	if (conform && (str->session != sess) && merge_pids(sp, p))
-			return -455;
-	merge_pids(sp, p);
-	if (str->session == sess) { /* stream owner */
+	pidchange = merge_pids(sp, p);
+	
+	if (owner) { /* stream owner */
 		merge_params(sp, p);
 		
 		if (str->fe && (sp->set & (1UL << PARAM_FE)) &&
@@ -1429,6 +1438,11 @@ static int setup_session(struct oscon *con, int newtrans)
 		} else if (p->set & 0xffff8) { 
 			dvb_tune(str->fe, sp);
 		}
+	} else {
+		if (pidchange && conform) {
+			copy_params(sess, ownsess);
+			return -455;
+		}
 	}
 	if (sess->nsfd < 0) {
 #ifndef IGNORE_NS
@@ -1440,13 +1454,15 @@ static int setup_session(struct oscon *con, int newtrans)
  	if (newtrans) {
 		if (str->session != sess &&
 		    sess->trans.mcast &&
-		    conform)
-			return -455;
+		    conform) {
+			memcpy(&sess->trans, &str->session->trans, sizeof(struct ostrans));
+			dbgprintf(DEBUG_RTSP, "non-owner tried to change transport parameters\n");
+		}
 		if (setup_nsp(&sess->trans, &nsp) < 0)
 			return -1;
 		if (set_ns(sess, &nsp) < 0)
 			return -1;
-	} else if (p->set & ((1UL << PARAM_PID) | (1UL << PARAM_APID) | (1UL << PARAM_DPID))) {
+	} else if (pidchange) {
 		uint8_t *pids = (sp->pid);
 		
 		if (sess->nsfd >= 0)
