@@ -209,8 +209,8 @@ static int ssdp_defend(struct os_ssdp *ss)
 		       ss->devid);
 	if (len < 0  || len >= sizeof(buf)) 
 		return -1;
-	return sendto(s, buf, len, 0, &ss->cadr, sizeof(ss->cadr));
-	//return sendto_port(ss->sock, buf, len, &ss->cadr, ss->csport);
+	//return sendto(s, buf, len, 0, &ss->cadr, sizeof(ss->cadr));
+	return sendto_port(ss->sock, buf, len, &ss->cadr, ss->csport);
 }
 
 static int send_reply_msearch(struct os_ssdp *ss, int mc, int send_id, int nr)
