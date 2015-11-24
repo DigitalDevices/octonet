@@ -1949,12 +1949,14 @@ static int proc_setup(struct oscon *con)
 			send_error(con, 400);
 			return -1;
 		}
+#if 0
 		if (con->session && con->session != str->session) {
 			/* if we already have a session ID we
 			   have to be stream owner  */
 			send_error(con, 400);
 			return -1;
 		}
+#endif
 	}
 	if (!con->session) {
 		/* alloc new session */
