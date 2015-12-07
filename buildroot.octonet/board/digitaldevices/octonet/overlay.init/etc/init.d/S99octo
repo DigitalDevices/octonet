@@ -1,12 +1,15 @@
 #!/bin/sh
 
+IMAGE="octonet"
+UPDSRV="download.digital-devices.de/download/linux"
+
 case "$1" in
   start)
 	sleep 3
 	if ! ubiattach -p /dev/mtd2; then 
 	    ubiformat /dev/mtd2 -e 0; ubiattach -p /dev/mtd2
-	else
-	    ubirmvol /dev/ubi0 -N rootfs    
+	#~ else
+	    #~ ubirmvol /dev/ubi0 -N rootfs
 	fi
 
 	if ! [ -e /dev/ubi0_0 ]; then ubimkvol /dev/ubi0 -s 64MiB -N config; fi
@@ -15,30 +18,31 @@ case "$1" in
 	mkdir /config
 	mount -t ubifs /dev/ubi0_0 /config
 
-	img=`ls /config/octonet.*.img`
+	img=`ls /config/${IMAGE}.*.img`
 	if [ "$img" = "" ]; then
 	    sleep 5
 	    if [ -e /dev/sda1 ]; then
-         mount -r /dev/sda1 /mnt
-         ls -l --color=never /mnt
-         cp /mnt/octonet.*.img /config
-         ls -l --color=never /config
-         sha256sum /config/octonet.*.img
-         umount /mnt
+	        mount -r /dev/sda1 /mnt
+	        ls -l --color=never /mnt
+	        cp /mnt/${IMAGE}.*.img /config
+	        ls -l --color=never /config
+	        sha256sum /config/${IMAGE}.*.img
+	        umount /mnt
 	    fi
 	fi
 
-	img=`ls /config/octonet.*.img`
+	img=`ls /config/${IMAGE}.*.img`
 	if [ "$img" = "" ]; then
-	    udhcpc
+	    udhcpc -f -q
 	    sleep 3
-	    nimage=`wget http://download.digital-devices.de/download/linux/octonet/ -q -O -|grep img|sort|tail -n 1| cut -d\" -f 2`
-	    wget -P /config http://download.digital-devices.de/download/linux/octonet/$nimage
+	    nimage=`wget http://${UPDSRV}/${IMAGE}/ -q -O -|grep -o "${IMAGE}\.[0-9]*\.img"|sort -u|tail -n 1`
+	    echo ${nimage}
+	    wget -P /config http://${UPDSRV}/${IMAGE}/$nimage
 	fi
 
 	mount -t ubifs /dev/ubi0_1 /mnt
 	rm -rf /mnt/*
-	tar -x -C /mnt -f /config/octonet.*.img
+	tar -x -C /mnt -f /config/${IMAGE}.*.img
 	umount /mnt
 	umount /config
 	reboot
