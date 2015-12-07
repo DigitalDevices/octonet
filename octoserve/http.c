@@ -46,26 +46,26 @@ char xmldesc[] =
 
 	"<icon>\r\n<mimetype>image/png</mimetype>\r\n"
 	"<width>120</width>\r\n<height>120</height>\r\n"
-	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-120.png</url>\r\n"
+	"<depth>24</depth>\r\n<url>/icons/dd-120.png</url>\r\n"
 	"</icon>\r\n"
 
-	"<icon>\r\n<mimetype>image/jpg</mimetype>\r\n"
+	"<icon>\r\n<mimetype>image/jpeg</mimetype>\r\n"
 	"<width>120</width>\r\n<height>120</height>\r\n"
-	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-120.jpg</url>\r\n"
+	"<depth>24</depth>\r\n<url>/icons/dd-120.jpg</url>\r\n"
 	"</icon>\r\n"
 
 	"<icon>\r\n<mimetype>image/png</mimetype>\r\n"
 	"<width>48</width>\r\n<height>48</height>\r\n"
-	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-48.png</url>\r\n"
+	"<depth>24</depth>\r\n<url>/icons/dd-48.png</url>\r\n"
 	"</icon>\r\n"
 
-	"<icon>\r\n<mimetype>image/jpg</mimetype>\r\n"
+	"<icon>\r\n<mimetype>image/jpeg</mimetype>\r\n"
 	"<width>48</width>\r\n<height>48</height>\r\n"
-	"<depth>24</depth>\r\n<url>/octoserve/www/icons/dd-48.jpg</url>\r\n"
+	"<depth>24</depth>\r\n<url>/icons/dd-48.jpg</url>\r\n"
 	"</icon>\r\n"
 
 	"</iconList>\r\n"
-	"<presentationURL>../index.html</presentationURL>\r\n"
+	"<presentationURL>/</presentationURL>\r\n"
 	"<satip:X_SATIPCAP xmlns:satip=\"urn:ses-com:satip\">%s</satip:X_SATIPCAP>\r\n"
 	"</device>\r\n"
 	"</root>\r\n"

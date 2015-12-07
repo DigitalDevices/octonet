@@ -22,28 +22,28 @@
         <width>120</width>
         <height>120</height>
         <depth>24</depth>
-        <url>icons/dd-120.png</url>
+        <url>/icons/dd-120.png</url>
       </icon>
       <icon>
-        <mimetype>image/jpg</mimetype>
+        <mimetype>image/jpeg</mimetype>
         <width>120</width>
         <height>120</height>
         <depth>24</depth>
-        <url>icons/dd-120.jpg</url>
+        <url>/icons/dd-120.jpg</url>
       </icon>
       <icon>
         <mimetype>image/png</mimetype>
         <width>48</width>
         <height>48</height>
         <depth>24</depth>
-        <url>icons/dd-48.png</url>
+        <url>/icons/dd-48.png</url>
       </icon>
       <icon>
-        <mimetype>image/jpg</mimetype>
+        <mimetype>image/jpeg</mimetype>
         <width>48</width>
         <height>48</height>
         <depth>24</depth>
-        <url>icons/dd-48.jpg</url>
+        <url>/icons/dd-48.jpg</url>
       </icon>
     </iconList>
     <serviceList>
