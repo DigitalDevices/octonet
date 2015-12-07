@@ -46,7 +46,6 @@ for _,c in ipairs(db.ChannelList) do
   local f = SourceList[c.refid]
   if f then
     table.insert(f.ChannelList,c)
-    -- http_print("// " .. c.refid .. " " .. c.title .. " " .. c.request .. " " .. c.tracks )
   end
 end
 
@@ -96,57 +95,3 @@ for _,f in pairs(SourceList) do
   end
 end
 
--- var ChannelListSat = new Array();
-
--- ChannelListSat[0] = new Object();
--- ChannelListSat[0].name = "Astra 19E: Das Erste HD";
--- ChannelListSat[0].request = "?src=1&freq=11494&pol=h&msys=dvbs&sr=22000&pids=0,5100,5101,5102,5103,5106,5104,5105";
--- ChannelListSat[0].tracks = new Array( 5102, 5103, 5106 );
-
--- ChannelListSat[1] = new Object();
--- ChannelListSat[1].name = "Astra 19E: ZDF HD";
--- ChannelListSat[1].request = "?src=1&freq=11362&pol=h&msys=dvbs&sr=22000&pids=0,6100,6110,6120,6121,6122,6123,6131,6130";
--- ChannelListSat[1].tracks = new Array( 6120, 6121, 6123, 6122 );
-
--- ChannelListSat[2] = new Object();
--- ChannelListSat[2].name = "Eutelsat 9E: TF1 HD Suisse";
--- ChannelListSat[2].request = "?src=1&freq=12034&pol=v&msys=dvbs&sr=27500&pids=0,800,810,820,821,822,850,814,815";
--- ChannelListSat[2].tracks = new Array( 820, 821, 822 );
-
--- ChannelListSat[3] = new Object();
--- ChannelListSat[3].name = "Eutelsat 9E: FTV HD Europe";
--- ChannelListSat[3].request = "?src=1&freq=11881&pol=v&msys=dvbs&sr=27500&pids=0,1001,2001,3001,4001";
--- ChannelListSat[3].tracks = new Array( 3001, 4001 );
-
-
--- var ChannelListCable = new Array();
-
--- ChannelListCable[0] = new Object();
--- ChannelListCable[0].name = "KabelBW: Das Erste HD";
--- ChannelListCable[0].request = "?freq=362&msys=dvbc&sr=6900&mtype=256qam&pids=0,6000,6010,6020,6021,6030,6022,6031";
--- ChannelListCable[0].tracks = new Array( 6020, 6021, 6022 );
-
--- ChannelListCable[1] = new Object();
--- ChannelListCable[1].name = "KabelBW: ZDF HD";
--- ChannelListCable[1].request = "?freq=370&msys=dvbc&sr=6900&mtype=256qam&pids=0,6100,6110,6120,6121,6123,6130,6122,6131";
--- ChannelListCable[1].tracks = new Array( 6120, 6121, 6123, 6122 );
-
--- ChannelListCable[2] = new Object();
--- ChannelListCable[2].name = "UnityMedia: Das Erste HD";
--- ChannelListCable[2].request = "?freq=418&msys=dvbc&sr=6900&mtype=256qam&pids=0,6000,6010,6020,6021,6030,6022,6031";
--- ChannelListCable[2].tracks = new Array( 6020, 6021, 6022 );
-
--- ChannelListCable[3] = new Object();
--- ChannelListCable[3].name = "UnityMedia: ZDF HD";
--- ChannelListCable[3].request = "?freq=394&msys=dvbc&sr=6900&mtype=256qam&pids=0,0,6100,6110,6120,6121,6123,6130,6122,6131";
--- ChannelListCable[3].tracks = new Array( 6120, 6121, 6123, 6122 );
-
--- ChannelListCable[4] = new Object();
--- ChannelListCable[4].name = "KDG: Das Erste HD";
--- ChannelListCable[4].request = "?freq=330&msys=dvbc&sr=6900&mtype=256qam&pids=0,5100,5101,5102,5103,5105,5104";
--- ChannelListCable[4].tracks = new Array( 5102, 5103 );
-
--- ChannelListCable[5] = new Object();
--- ChannelListCable[5].name = "KDG: ZDF HD";
--- ChannelListCable[5].request = "?freq=450&msys=dvbc&sr=6900&mtype=256qam&pids=0,6100,6110,6120,6121,6130,6123,6131";
--- ChannelListCable[5].tracks = new Array( 6120, 6121, 6123 );

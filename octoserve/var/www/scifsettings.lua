@@ -83,8 +83,6 @@ if query ~= "" then
   http_print("Location: http://"..host.."/wait.html?5")
   http_print()
 
-  -- print(string.format("Set Unicable %s", query ))
-
   local Values = ""
 
   Values = Values.."# SCIF Settings\n"

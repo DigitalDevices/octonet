@@ -190,12 +190,6 @@ else
     i = i + 1
   end
   
-  -- http_print("LNBList[0] = new Object();")
-  -- http_print("LNBList[0].Tuner = 0;")
-  -- http_print("LNBList[0].Source = 0;")
-  -- http_print("LNBList[0].LOF1 = 9750;")
-  -- http_print("LNBList[0].LOF2 = 10600;")
-  -- http_print("LNBList[0].LOFS = 11700;")
     
     
 end

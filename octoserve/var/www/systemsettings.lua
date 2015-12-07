@@ -92,7 +92,6 @@ if query ~= "" then
       name,value = string.match(v,"(%w+)%=(%d+)")
       if( WriteSetting(name,value == "1") ) then
         if name == "telnet" then 
---~           os.rename("/etc/securetty","/etc/securetty.bak"); -- temp fix to allow root login on telnet
           os.execute("/etc/init.d/S91telnet restart") 
         end
         if name == "vlan" then restart = 1 end

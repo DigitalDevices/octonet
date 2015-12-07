@@ -40,7 +40,6 @@ http_print("HTTP/1.1 200")
 http_print("Pragma: no-cache")
 http_print("Cache-Control: no-cache")
 http_print("Content-Type: application/x-javascript")
---http_print("Content-Type: text/plain")
 http_print()
 
 dev0 = tonumber(readattr("devid0"),16)
@@ -50,9 +49,6 @@ local tmp = io.popen("uname -r -m","r")
 local tmp1 = tmp:read()
 tmp:close()
 
--- local uname = string.match(tmp1,"Linux (%.+)")
--- http_print(tmp1)
--- http_print(uname)
 local uname = tmp1
 
 tmp = io.popen("ls /config/*.img","r")
