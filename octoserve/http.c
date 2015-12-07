@@ -67,6 +67,7 @@ char xmldesc[] =
 	"</iconList>\r\n"
 	"<presentationURL>/</presentationURL>\r\n"
 	"<satip:X_SATIPCAP xmlns:satip=\"urn:ses-com:satip\">%s</satip:X_SATIPCAP>\r\n"
+	"<satip:X_SATIPM3U xmlns:satip=\"urn:ses-com:satip\">/channellist.lua?select=m3u</satip:X_SATIPM3U>\r\n"
 	"</device>\r\n"
 	"</root>\r\n"
 	"\r\n";
