@@ -12,12 +12,12 @@ function http_print(s)
   end
 end
 
-local userver = "download.digital-devices.de/download/linux"
+local userver = "download.digital-devices.de/download/linux/beta"
 
 if query == "set=beta" then
   local file = io.open("/config/updateserver","w")
   if file then
-    file:write(userver.."/beta".."\n")
+    file:write(userver.."\n")
     file:close()
   end
 elseif query == "set=std" then

@@ -33,13 +33,14 @@ local hex_to_char = function(x)
 end
 
 local userver = "download.digital-devices.de/download/linux"
+local beta_userver = "download.digital-devices.de/download/linux/beta"
 local data = nil
 local delimages = false
 
 if query == "set=beta" then
   local file = io.open("/config/updateserver","w")
   if file then
-    file:write(userver.."/beta".."\n")
+    file:write(beta_userver"\n")
     file:close()
     delimages = true
   end
@@ -54,7 +55,6 @@ elseif query:sub(1,4) == "set=" then
     userver = query:sub(5)
     if userver ~= "" then
       userver = userver:gsub("%%(%x%x)",hex_to_char)
-      -- userver = userver:gsub("+"," ")
       local valid = false
       local path = url.parse("http://"..userver)
       if path.host then
@@ -87,7 +87,7 @@ else
    if file then
       local tmp = file:read("*l")
       file:close()
-      if tmp ~= userver.."/beta" then
+      if tmp ~= beta_userver then
          data = data .. tmp
       end      
    end
