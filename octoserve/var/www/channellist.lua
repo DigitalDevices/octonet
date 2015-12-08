@@ -55,6 +55,58 @@ function CreateM3U(host,SourceList)
    return m3u
 end
 
+function JSONSource(host,SourceList,Name,System)
+   local json = ""
+   local src = ""
+   local sep1 = "\n"
+   local sep2 = "\n"
+
+   json = json .. ' "'..Name..'": ['
+   sep1 = "\n"
+   for _,f in pairs(SourceList) do
+      if f.system == System or f.system == System.."2" then
+         json = json .. sep1
+         sep1 = ",\n"
+         json = json .. '  {\n'
+         json = json .. '   "name": "'..f.title..'",\n'
+         json = json .. '   "ChannelList": ['
+
+         if System == "dvbs" then
+            src = 'src='..f.src..'&'
+         end
+
+         sep2 = "\n"
+         for _,c in ipairs(f.ChannelList) do
+            json = json .. sep2
+            sep2 = ",\n"
+            json = json .. '     {\n'
+            json = json .. '      "name": "'..string.gsub(c.title,'"','\\"')..'",\n'
+            json = json .. '      "request": "?'..src..c.request..'",\n'
+            json = json .. '      "tracks": ['..c.tracks..']\n'
+            json = json .. '     }'
+         end
+
+         json = json .. '\n    ]\n'
+         json = json .. '  }'
+      end
+   end
+   json = json .. '\n ]'
+
+   return json
+end
+
+function CreateJSON(host,SourceList)
+   local json = "{\n"
+
+   json = json .. JSONSource(host,SourceList,"SourceListSat","dvbs") .. ",\n"
+   json = json .. JSONSource(host,SourceList,"SourceListCable","dvbc") .. ",\n"
+   json = json .. JSONSource(host,SourceList,"SourceListTer","dvbt") .. "\n"
+
+   json = json .. "}\n"
+   return json
+end
+
+
 local SourceList = {}
 
 for _,f in ipairs(db.SourceList) do
@@ -69,22 +121,28 @@ for _,c in ipairs(db.ChannelList) do
   end
 end
 
+--~     http_print(proto.." 200" )
+--~     http_print()
+
 if method == "GET" then
   local filename = nil
-  local subtype = nil
+  local contenttype = nil
   local data = nil
 
   if string.match(query,"select=m3u") then
     filename = "channellist.m3u"
-    subtype = "m3u"
-    data = CreateM3U("10.0.4.24",SourceList)
+    contenttype = "text/m3u; charset=utf-8"
+    data = CreateM3U(host,SourceList)
+  elseif string.match(query,"select=json") then
+    contenttype = "application/json; charset=utf-8"
+    data = CreateJSON(host,SourceList)
   end
 
   if data then
     http_print(proto.." 200" )
     http_print("Pragma: no-cache")
     http_print("Cache-Control: no-cache")
-    http_print("Content-Type: text/"..subtype)
+    http_print("Content-Type: "..contenttype)
     if filename then
       http_print('Content-Disposition: filename="'..filename..'"')
     end
