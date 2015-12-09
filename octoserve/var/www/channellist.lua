@@ -37,39 +37,40 @@ function SendError(err,desc)
 end
 
 function CreateM3U(host,SourceList)
-   local m3u = "#EXTM3U".."\n"
+   local m3u = {}
+   table.insert(m3u,"#EXTM3U".."\n")
 
    for _,f in pairs(SourceList) do
       if f.system == "dvbs" or f.system == "dvbs2" then
          for _,c in ipairs(f.ChannelList) do
-            m3u = m3u .. "#EXTINF:0,"..f.title.." - "..c.title.."\n"
-                      .. "rtsp://"..host..":554/?src="..f.src.."&"..c.request.."\n"
+            table.insert(m3u,"#EXTINF:0,"..f.title.." - "..c.title.."\n")
+            table.insert(m3u,"rtsp://"..host..":554/?src="..f.src.."&"..c.request.."\n")
          end
       else
          for _,c in ipairs(f.ChannelList) do
-            m3u = m3u .. "#EXTINF:0,"..f.title.." - "..c.title.."\n"
-                      .. "rtsp://"..host..":554/?src="..c.request.."\n"
+            table.insert(m3u,"#EXTINF:0,"..f.title.." - "..c.title.."\n")
+            table.insert(m3u,"rtsp://"..host..":554/?src="..c.request.."\n")
          end
       end
    end
-   return m3u
+   return table.concat(m3u)
 end
 
 function JSONSource(host,SourceList,Name,System)
-   local json = ""
+   local json = {}
    local src = ""
    local sep1 = "\n"
    local sep2 = "\n"
 
-   json = json .. ' "'..Name..'": ['
+   table.insert(json,' "'..Name..'": ['
    sep1 = "\n"
    for _,f in pairs(SourceList) do
       if f.system == System or f.system == System.."2" then
-         json = json .. sep1
+         table.insert(json,sep1)
          sep1 = ",\n"
-         json = json .. '  {\n'
-         json = json .. '   "name": "'..f.title..'",\n'
-         json = json .. '   "ChannelList": ['
+         table.insert(json,'  {\n')
+         table.insert(json,'   "name": "'..f.title..'",\n')
+         table.insert(json,'   "ChannelList": [')
 
          if System == "dvbs" then
             src = 'src='..f.src..'&'
@@ -77,33 +78,34 @@ function JSONSource(host,SourceList,Name,System)
 
          sep2 = "\n"
          for _,c in ipairs(f.ChannelList) do
-            json = json .. sep2
+            table.insert(json,sep2)
             sep2 = ",\n"
-            json = json .. '     {\n'
-            json = json .. '      "name": "'..string.gsub(c.title,'"','\\"')..'",\n'
-            json = json .. '      "request": "?'..src..c.request..'",\n'
-            json = json .. '      "tracks": ['..c.tracks..']\n'
-            json = json .. '     }'
+            table.insert(json,'     {\n')
+            table.insert(json,'      "name": "'..string.gsub(c.title,'"','\\"')..'",\n')
+            table.insert(json,'      "request": "?'..src..c.request..'",\n')
+            table.insert(json,'      "tracks": ['..c.tracks..']\n')
+            table.insert(json,'     }')
          end
 
-         json = json .. '\n    ]\n'
-         json = json .. '  }'
+         table.insert(json,'\n    ]\n')
+         table.insert(json,'  }')
       end
    end
-   json = json .. '\n ]'
+   table.insert(json,'\n ]')
 
-   return json
+   return table.concat(json)
 end
 
 function CreateJSON(host,SourceList)
-   local json = "{\n"
+   local json = {}
+   table.insert(json,"{\n")
 
-   json = json .. JSONSource(host,SourceList,"SourceListSat","dvbs") .. ",\n"
-   json = json .. JSONSource(host,SourceList,"SourceListCable","dvbc") .. ",\n"
-   json = json .. JSONSource(host,SourceList,"SourceListTer","dvbt") .. "\n"
+   table.insert(json,JSONSource(host,SourceList,"SourceListSat","dvbs") .. ",\n")
+   table.insert(json,JSONSource(host,SourceList,"SourceListCable","dvbc") .. ",\n")
+   table.insert(json,JSONSource(host,SourceList,"SourceListTer","dvbt") .. "\n")
 
-   json = json .. "}\n"
-   return json
+   table.insert(json,"}\n")
+   return table.concat(json)
 end
 
 
@@ -120,9 +122,6 @@ for _,c in ipairs(db.ChannelList) do
     table.insert(f.ChannelList,c)
   end
 end
-
---~     http_print(proto.." 200" )
---~     http_print()
 
 if method == "GET" then
   local filename = nil
