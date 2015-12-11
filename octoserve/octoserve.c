@@ -1445,9 +1445,14 @@ static int setup_session(struct oscon *con, int newtrans)
 		}
 	}
 	if (sess->nsfd < 0) {
+		if (conform && !owner && sess->trans.mcast) {
+			if (!ownsess->trans.mcast)
+				return -455;
+			sess->nsfd = ownsess->nsfd;
+		} else 
 #ifndef IGNORE_NS
-		if (get_ns(sess) < 0)
-			return -455;
+			if (get_ns(sess) < 0)
+				return -455;
 #endif
 		newtrans = 1;
 	} 
