@@ -132,12 +132,19 @@ static int ssdp_msg(struct os_ssdp *ss, char *buf, int n, int notify, int nr, in
 }
 
 static int sendto_port(int sock, const void *buf, size_t len,
-		       struct sockaddr_in *cadr, uint16_t port)
+		       struct sockaddr *cadr, uint16_t port)
 {
-	struct sockaddr_in adr = *cadr;
+	struct sockaddr_in adr;
+	struct sockaddr_in sadr = *cadr;
+	int r;
 
+	/*adr = *((struct sockaddr_in *) cadr); */
+	/* struct assignment seem to be broken in arm gcc 4.5.4?!? */5B
+	memcpy(&adr, cadr, sizeof(adr));
 	adr.sin_port = htons(port);
-	return sendto(sock, buf, len, 0, (struct sockaddr *) &adr, sizeof(adr));
+	r = sendto(sock, buf, len, 0, (struct sockaddr *) &adr, sizeof(adr));
+	//dbgprintf(DEBUG_SSDP, "sent to port %u, family %u, ret=%d errno=%d\n", port, adr.sin_family, r, errno);
+	return r;
 }
 
 static int send_ssdp_msg(struct os_ssdp *ss, int nr, int notify)
@@ -260,8 +267,8 @@ static int send_reply_msearch(struct os_ssdp *ss, int mc, int send_id, int nr)
 		insadr.sin_addr.s_addr = inet_addr("239.255.255.250");
 		res = sendto(s, buf, len, 0, (struct sockaddr *) &insadr, sizeof(insadr));
 	} else 
-	        res = sendto(s, buf, len, 0, &ss->cadr, sizeof(struct sockaddr));
-	//res = sendto_port(ss->sock, buf, len, &ss->cadr, ss->csport);
+	        //res = sendto(s, buf, len, 0, &ss->cadr, sizeof(struct sockaddr));
+		res = sendto_port(s, buf, len, &ss->cadr, ss->csport);
 	return res;
 }
 
@@ -396,7 +403,7 @@ static void handle_ssdp(struct octoserve *os, char *m, int ml)
 		  host, hport, type, htype, mx); 
 	/* M-SEARCH */
 	if (ss->setup) {
-		if (type == 1 && mx > 0) {
+		if (type == 1 && mx > 0 && st != NULL) {
 			//ssdp_msearch(ss, htype == 2 ? 0 : 1, st);
 			ssdp_msearch(ss, 0, st);
 		}
@@ -646,19 +653,22 @@ int init_ssdp(struct octoserve *os, struct os_ssdp *ss, uint32_t d, int nossdp, 
 		ss->bootid = id + 1;
 	write_id("boot", ss->bootid);
 
+	dbgprintf(DEBUG_SSDP, "DEVID = %u\n", ss->devid);
+
+	
 	ss->configid = 1;
 
-	get_ifa(os->ifname, AF_INET, &os->ssdp.sadr);
-	get_ifa(os->ifname, AF_INET6, &os->ssdp.sadr6);
-	sockname(&os->ssdp.sadr, os->ssdp.ip);
-	sockname(&os->ssdp.sadr6, os->ssdp.ip6);
+	get_ifa(os->ifname, AF_INET, (struct sockaddr *) &os->ssdp.sadr);
+	get_ifa(os->ifname, AF_INET6, (struct sockaddr *) &os->ssdp.sadr6);
+	sockname((struct sockaddr *) &os->ssdp.sadr, os->ssdp.ip);
+	sockname((struct sockaddr *) &os->ssdp.sadr6, os->ssdp.ip6);
 
 	if (!nossdp) {
-		ss->sock = ssdpsock(os->ifname, AF_INET, &os->ssdp.sadr);
+		ss->sock = ssdpsock(os->ifname, AF_INET, (struct sockaddr *) &os->ssdp.sadr);
 		if (ss->sock < 0)
 			return -1;
 		
-		ss->sock6 = ssdpsock(os->ifname, AF_INET6, &os->ssdp.sadr);
+		ss->sock6 = ssdpsock(os->ifname, AF_INET6, (struct sockaddr *) &os->ssdp.sadr);
 		if (ss->sock6 < 0)
 			return -1;
 		

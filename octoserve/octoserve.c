@@ -2447,7 +2447,7 @@ static void os_serve(struct octoserve *os)
 		die("Error in sigaction");
 
 	os->rtsp_sock = streamsock("554", AF_INET, &os->rtsp_sadr);
-	sockname(&os->rtsp_sadr, os->rtsp_ip);
+	sockname((struct sockaddr *) &os->rtsp_sadr, os->rtsp_ip);
 	dbgprintf(DEBUG_SYS, "rtsp_ip: %s, %d\n", os->rtsp_ip, os->rtsp_sock);
 	if (listen(os->rtsp_sock, 20) < 0) {
 		dbgprintf(DEBUG_SYS, "listen error");
@@ -2580,14 +2580,14 @@ static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt
 	os->ifname = ifname;
 	os->sessionid = random();
 
-	if (get_ifa(ifname, AF_INET, &os->ssdp.sadr) < 0) {
+	if (get_ifa(ifname, AF_INET, (struct sockaddr *) &os->ssdp.sadr) < 0) {
 		perror("no such interface:");
 		free(os);
 		return NULL;
 	}
-	get_ifa(ifname, AF_INET6, &os->ssdp.sadr6);
-	sockname(&os->ssdp.sadr, os->ssdp.ip);
-	sockname(&os->ssdp.sadr6, os->ssdp.ip6);
+	get_ifa(ifname, AF_INET6, (struct sockaddr *) &os->ssdp.sadr6);
+	sockname((struct sockaddr *) &os->ssdp.sadr, os->ssdp.ip);
+	sockname((struct sockaddr *) &os->ssdp.sadr6, os->ssdp.ip6);
 
 	strcpy(ifr.ifr_name, os->ifname);
 	s = socket(AF_INET, SOCK_DGRAM, 0);

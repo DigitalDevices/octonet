@@ -388,11 +388,11 @@ struct os_ssdp {
 	pthread_t pt;
 
 	int sock;
-	struct sockaddr sadr;
+	struct sockaddr_in sadr;
 	char ip[INET6_ADDRSTRLEN];
 
 	int sock6;
-	struct sockaddr sadr6;
+	struct sockaddr_in6 sadr6;
 	char ip6[INET6_ADDRSTRLEN];
 
 	uint8_t uuid[16];
