@@ -135,11 +135,10 @@ static int sendto_port(int sock, const void *buf, size_t len,
 		       struct sockaddr *cadr, uint16_t port)
 {
 	struct sockaddr_in adr;
-	struct sockaddr_in sadr = *cadr;
 	int r;
 
 	/*adr = *((struct sockaddr_in *) cadr); */
-	/* struct assignment seem to be broken in arm gcc 4.5.4?!? */5B
+	/* struct assignment seem to be broken in arm gcc 4.5.4?!? */
 	memcpy(&adr, cadr, sizeof(adr));
 	adr.sin_port = htons(port);
 	r = sendto(sock, buf, len, 0, (struct sockaddr *) &adr, sizeof(adr));
