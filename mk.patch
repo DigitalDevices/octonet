@@ -19,20 +19,11 @@ if [ ! -e buildroot ]; then
   fi
 fi
 
-if [ ! -e buildroot.octonet ]; then
-  tar xf buildroot.octonet.tar.xz
+if [ ! -e ../dddvb ]; then
+   git clone -b "0.9.20" "https://github.com/DigitalDevices/dddvb.git" ../dddvb
 fi
 
-if [ ! -e dddvb ]; then
-  tar xf dddvb.tar.xz
-fi
-
-if [ ! -e octoserve ]; then
-  tar xf octoserve.tar.xz
-fi
-
-
-DDDVB=dddvb
+DDDVB=../dddvb
 LINUX=linux.octonet
 
 cp $DDDVB/ddbridge/*.[ch] $LINUX/drivers/media/pci/ddbridge/

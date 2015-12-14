@@ -1,6 +1,6 @@
 OCTONET_VERSION = 0.1
 OCTONET_SOURCE = 
-OCTONET_SITE = ../dddvb/apps/octonet
+OCTONET_SITE = ../../dddvb/apps/octonet
 OCTONET_SITE_METHOD = local
 OCTONET_INSTALL_TARGET = YES
 

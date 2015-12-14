@@ -2,7 +2,7 @@ cd buildroot
 rm output-octonet/images/octonet*
 rm output-octonet/build/linux-custom/.stamp_*
 
-DDDVB=../dddvb
+DDDVB=../../dddvb
 LINUX=../linux.octonet
 
 #if [ -e /home/rjkm/projects ]; then
