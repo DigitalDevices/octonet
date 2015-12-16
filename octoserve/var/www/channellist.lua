@@ -62,7 +62,7 @@ function JSONSource(host,SourceList,Name,System)
    local sep1 = "\n"
    local sep2 = "\n"
 
-   table.insert(json,' "'..Name..'": ['
+   table.insert(json,' "'..Name..'": [')
    sep1 = "\n"
    for _,f in pairs(SourceList) do
       if f.system == System or f.system == System.."2" then
