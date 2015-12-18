@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- (c)2012 Digital Devices GmbH.  All rights reserved -->
-<!-- $Id: SCIFDataBase.xml 609 2015-04-13 22:59:53Z manfred $ -->
+<!-- $Id: SCIFDataBase.xml 639 2015-12-18 13:24:21Z manfred $ -->
 <SCIFDataBase xmlns="http://schemas.DigitalDevices.de/SCIFDataBase">
   <OutdoorUnit Name="IDLP-40UNIDQ+S" Manufacturer="Inverto" Type="LNB">
     <UBSlot Frequency="1680"/>
@@ -608,6 +608,40 @@
     <UBSlot Frequency="2025"/>
     <UBSlot Frequency="2075"/>
     <UBSlot Frequency="2125"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="MCR 221" Manufacturer="Fuba" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="MCR 212" Manufacturer="Fuba" Type="Switch">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="MCR 441" Manufacturer="Fuba" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="MCR 518" Manufacturer="Fuba" Type="Switch">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="MCR 918" Manufacturer="Fuba" Type="Switch">
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
   </OutdoorUnit>
   <OutdoorUnit Name="4 Slots (1680,1420,2040,1210)">
     <UBSlot Frequency="1680"/>
