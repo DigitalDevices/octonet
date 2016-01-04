@@ -1,0 +1,4 @@
+config BR2_PACKAGE_LUNAJSON
+	bool "lunajson"
+	help
+	  luna json
