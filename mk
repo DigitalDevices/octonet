@@ -37,6 +37,7 @@ cp $DDDVB/frontends/mxl5xx_defs.h $LINUX/drivers/media/dvb-frontends/
 #cp $DDDVB/include/linux/dvb/ns.h package/octonet/octonet/
 rm -rf output-octonet/build/octonet*
 rm -rf output-octonet/build/octoserve*
+rm -rf output-octonet/build/octoscan*
 
 #chmod 577 board/digitaldevices/octonet/overlay/var/dms/dms.lua
 #chmod 577 board/digitaldevices/octonet/overlay/var/mcsetup/mcsetup.lua
