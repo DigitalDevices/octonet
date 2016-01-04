@@ -266,8 +266,8 @@ static int send_reply_msearch(struct os_ssdp *ss, int mc, int send_id, int nr)
 		insadr.sin_addr.s_addr = inet_addr("239.255.255.250");
 		res = sendto(s, buf, len, 0, (struct sockaddr *) &insadr, sizeof(insadr));
 	} else 
-	        //res = sendto(s, buf, len, 0, &ss->cadr, sizeof(struct sockaddr));
-		res = sendto_port(s, buf, len, &ss->cadr, ss->csport);
+	        res = sendto(s, buf, len, 0, &ss->cadr, sizeof(struct sockaddr));
+	//res = sendto_port(s, buf, len, &ss->cadr, ss->csport);
 	return res;
 }
 
