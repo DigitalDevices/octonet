@@ -2,8 +2,6 @@
 
 local ContentDirectory = {}
 
-local db = require("DataBase")
-
 -- local dlnaprofile = 'DLNA.ORG_PN=MPEG_TS;DLNA.ORG_OP=00;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=0D100000000000000000000000000000'
 local dlnaprofile = 'DLNA.ORG_PN=MPEG_TS;DLNA.ORG_OP=00;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=8D100000000000000000000000000000'
 local dlnaschema = ' xmlns:dlna="urn:schemas-dlna-org:metadata-1-0"'
@@ -51,28 +49,63 @@ AllFolders["2"].ChildFolders = Folders
 AllFolders["64"].ChildFolders = Folders
 
 ----
+local file = io.open("/config/ChannelList.json")
+if file then
+   local json = file:read("*a")
+   file:close()
+   local newdecoder = require("lunajson.decoder")
+   local decode = newdecoder()
+   local channellist = decode(json)
+   
+   for _,group in ipairs(channellist.GroupList) do
+      local f = {}
+      f.id = "$"..tostring(#Folders)
+      f.VideoItems = {}
+      f.AudioItems = {}
+      f.ChildFolders = {}
+      f.title = string.gsub(group.Title,'&','&amp;amp;')
+      f.title = string.gsub(f.title,'<','&amp;lt;')
+      f.title = string.gsub(f.title,'>','&amp;gt;')
+      table.insert(Folders,f)
+      --  table.insert(RootFolders,f)
+      AllFolders[f.id] = f
+      for _,channel in ipairs(group.ChannelList) do
+         local vi = {}
+         vi.id = f.id.."$"..tostring(#f.VideoItems)
+         vi.src = f.src
+         vi.parentID = f.id
+         vi.request = string.gsub(channel.Request,'&','&amp;amp;')
+         vi.title = string.gsub(channel.Title,'&','&amp;amp;')
+         vi.title = string.gsub(vi.title,'<','&amp;lt;')
+         vi.title = string.gsub(vi.title,'>','&amp;gt;')
+         table.insert(f.VideoItems,vi)
+         AllItems[vi.id] = vi
+      end
+   end
+else
+   local db = require("DataBase")
+   for _,f in ipairs(db.SourceList) do
+     f.id = f.refid
+     f.VideoItems = {}
+     f.AudioItems = {}
+     f.ChildFolders = {}
+     table.insert(Folders,f)
+   --  table.insert(RootFolders,f)
+     AllFolders[f.id] = f
+   end
 
-for _,f in ipairs(db.SourceList) do
-  f.id = f.refid
-  f.VideoItems = {}
-  f.AudioItems = {}
-  f.ChildFolders = {}
-  table.insert(Folders,f)
---  table.insert(RootFolders,f)
-  AllFolders[f.id] = f
-end
-
-for _,vi in ipairs(db.ChannelList) do
-  f = AllFolders[vi.refid]
-  vi.id = f.id.."$"..tostring(#f.VideoItems)
-  vi.src = f.src
-  vi.parentID = f.id
-  vi.request = string.gsub(vi.request,'&','&amp;amp;')
-  vi.title = string.gsub(vi.title,'&','&amp;amp;')
-  vi.title = string.gsub(vi.title,'<','&amp;lt;')
-  vi.title = string.gsub(vi.title,'>','&amp;gt;')
-  table.insert(f.VideoItems,vi)
-  AllItems[vi.id] = vi
+   for _,vi in ipairs(db.ChannelList) do
+     f = AllFolders[vi.refid]
+     vi.id = f.id.."$"..tostring(#f.VideoItems)
+     vi.src = f.src
+     vi.parentID = f.id
+     vi.request = string.gsub(vi.request,'&','&amp;amp;')
+     vi.title = string.gsub(vi.title,'&','&amp;amp;')
+     vi.title = string.gsub(vi.title,'<','&amp;lt;')
+     vi.title = string.gsub(vi.title,'>','&amp;gt;')
+     table.insert(f.VideoItems,vi)
+     AllItems[vi.id] = vi
+   end
 end
 
 ----- Add Stream Folder
