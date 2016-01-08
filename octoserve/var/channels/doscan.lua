@@ -68,7 +68,7 @@ if tl.SourceList then
       print(Source.Title)
       if key == Source.Key then
          local req = ""
-         if Source.Type == "S" then
+         if Source.DVBType == "S" then
             req = 'src=1&'
          end
          for _,Transponder in ipairs(Source.TransponderList) do
