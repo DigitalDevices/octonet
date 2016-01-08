@@ -140,6 +140,44 @@ static int set_property(int fd, uint32_t cmd, uint32_t data)
 }
 
 
+static int get_property(int fd, uint32_t cmd, uint32_t *data)
+{
+	struct dtv_property p;
+	struct dtv_properties c;
+	int ret;
+
+	p.cmd = cmd;
+	c.num = 1;
+	c.props = &p;
+	ret = ioctl(fd, FE_GET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_GET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	*data = p.u.data;
+	return 0;
+}
+
+
+static int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)
+{
+	struct dtv_property p;
+	struct dtv_properties c;
+	int ret;
+
+	p.cmd = cmd;
+	c.num = 1;
+	c.props = &p;
+	ret = ioctl(fd, FE_GET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_GET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	memcpy(stats, &p.u.st, sizeof(struct dtv_fe_stats));
+	return 0;
+}
+
+
 static int set_fe(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds)
 {
 	struct dtv_property p[] = {
@@ -335,17 +373,17 @@ static int tune_sat(struct dvbfe *fe)
 	if (fe->scif_type == 1) { 
 		pthread_mutex_lock(&fe->os->uni_lock);
 		set_en50494(fe->fd, freq / 1000, fe->param[PARAM_SR],
-			    fe->param[PARAM_SRC] - 1, fe->param[PARAM_POL] - 1, hi,
+			    lnb, fe->param[PARAM_POL] - 1, hi,
 			    fe->scif_slot, fe->scif_freq, ds);
 		pthread_mutex_unlock(&fe->os->uni_lock);
 	} else if (fe->scif_type == 2) {
 		pthread_mutex_lock(&fe->os->uni_lock);
 		set_en50607(fe->fd, freq / 1000, fe->param[PARAM_SR],
-			    fe->param[PARAM_SRC] - 1, fe->param[PARAM_POL] - 1, hi,
+			    lnb, fe->param[PARAM_POL] - 1, hi,
 			    fe->scif_slot, fe->scif_freq, ds);
 		pthread_mutex_unlock(&fe->os->uni_lock);
 	} else {
-		diseqc(fe->fd, fe->param[PARAM_SRC] - 1, fe->param[PARAM_POL] - 1, hi);
+		diseqc(fe->fd, lnb, fe->param[PARAM_POL] - 1, hi);
 		set_fe(fe->fd, freq, fe->param[PARAM_SR] * 1000, ds);
 	}
 }
@@ -558,10 +596,13 @@ static void get_stats(struct dvbfe *fe)
 {
 	uint16_t sig = 0, snr = 0;
 	fe_status_t stat;
+	uint32_t str, cnr;
+	struct dtv_fe_stats st;
 	
 	ioctl(fe->fd, FE_READ_STATUS, &stat);
 	ioctl(fe->fd, FE_READ_SIGNAL_STRENGTH, &sig);
 	ioctl(fe->fd, FE_READ_SNR, &snr);
+
 	fe->stat = stat;
 	fe->lock = (stat == 0x1f) ? 1 : 0;
 
@@ -574,6 +615,12 @@ static void get_stats(struct dvbfe *fe)
 		fe->quality = snr >> 9;
 	}
 	dbgprintf(DEBUG_DVB, "fe%d: stat=%02x str=%04x snr=%04x\n", fe->nr, stat, sig, snr);
+
+
+	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
+	dbgprintf(DEBUG_DVB, "fe%d: str=%016llx\n", fe->nr, st.stat[0].uvalue);
+	get_stat(fe->fd, DTV_STAT_CNR, &st);
+	dbgprintf(DEBUG_DVB, "fe%d: cnr=%016llx\n", fe->nr, st.stat[0].uvalue);
 }
 
 void handle_fe(struct dvbfe *fe)
