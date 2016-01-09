@@ -1659,6 +1659,9 @@ void usage() {
    printf("    Depending on hardware configuration the scan will succeed even if\n");
    printf("    some required parameters are wrong. This will result in a channel list\n");
    printf("    which is usable only on the same hardware configuration.\n");
+   printf("\n");
+   printf("  Example: NIT based scan which should work on Unitymedia in Germany\n");
+   printf("    octoscan --use_nit --freq=138 --msys=dvbs --sr=6900 --mtype=256qam 10.0.4.24\n");
 }
 
 int main(int argc, char **argv)
