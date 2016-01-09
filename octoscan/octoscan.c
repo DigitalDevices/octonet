@@ -1473,7 +1473,7 @@ static int scan_tp(struct scantp *stp)
 	if (scon->nsport == 0) {
 		struct sockaddr_in sin;
 		socklen_t len = sizeof(sin);
-		getsockname(scon->usock, &sin, &len);
+		getsockname(scon->usock, (struct sockaddr*) &sin, &len);
 		scon->nsport = ntohs(sin.sin_port);
 	}
 	//printf("Socket port = %u\n", scon->nsport);
@@ -1636,17 +1636,17 @@ void usage() {
    printf("       if not specified only a single transponder is scanned\n");
    printf("    --freq=<frequency>, -f <frequency>\n");
    printf("       frequency in MHz  (required)\n");
-   printf("    --sr=<symbolrate>, -f <symbolrate>\n");
+   printf("    --sr=<symbolrate>, -s <symbolrate>\n");
    printf("       symbolrate in kSymbols (required for DVB-S/S2 and DVB-C)\n");
    printf("           DVB-S/S2 example: --sr=27500\n");
    printf("           DVB-C example:    --sr=6900\n");
-   printf("    --pol=<polarisation>, -f <polarisation>\n");
+   printf("    --pol=<polarisation>, -p <polarisation>\n");
    printf("       polarisation = v,h,r,l (required for DVB-S/S2)\n");
    printf("           example: --pol=v\n");
-   printf("    --msys=<modulation system>, -f <modulation system>\n");
+   printf("    --msys=<modulation system>, -m <modulation system>\n");
    printf("       system = dvbs,dvbs2,dvbc (required)\n");
    printf("           example: --msys=dvbs\n");
-   printf("    --mtype=<modulation type>, -f <modulation type>\n");
+   printf("    --mtype=<modulation type>, -t <modulation type>\n");
    printf("       modulation type = 16qam,32qam,64qam,128qam,256qam (required for DVB-C)\n");
    printf("    --help, -?\n");
    printf("\n");
