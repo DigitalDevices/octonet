@@ -29,6 +29,8 @@
 #include <ctype.h>
 #include "list.h"
 
+#include <getopt.h>
+
 time_t mtime(time_t *t)
 {
 	struct timespec ts;
@@ -41,6 +43,7 @@ time_t mtime(time_t *t)
 }
 
 static int done = 0;
+static int use_nit = 0;
 
 char *pol2str[] = {"v", "h", "r", "l"};
 char *msys2str [] = {"undef", "dvbc", "dvbcb", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
@@ -65,7 +68,7 @@ struct sfilter {
 
 	uint8_t  tid;
 	uint16_t  ext;
-	
+
 	//int (*cb) (struct sfilter *sf);
 
 	uint8_t vnr;
@@ -87,7 +90,7 @@ struct pid_info {
 	uint16_t pid;
 	int      add_ext;
 	int      done;
-	
+
         uint8_t  used;
         uint8_t  cc;
 	uint16_t bufp;
@@ -110,12 +113,12 @@ struct satipcon {
 struct ts_info {
 	struct list_head pids;
 	struct list_head sfilters;
-	
+
 	struct scantp *stp;
 	uint16_t tsid;
 	time_t timeout;
 	int done;
-	
+
         struct pid_info pidi[0x2000];
 };
 
@@ -124,17 +127,17 @@ struct ts_info {
 struct service {
 	struct list_head link;
 	struct tp_info *tpi;
-	
+
 	char name[80];
 	char pname[80];
 
 	unsigned int got_pmt : 1;
 	unsigned int got_sdt : 1;
 	unsigned int is_enc  : 1;
-	
+
 	uint16_t sid;
 	uint16_t tsid;
-	
+
 	uint16_t pmt;
 	uint16_t pcr;
 	uint16_t vpid;
@@ -160,6 +163,7 @@ struct tp_info {
 	uint16_t id;
 	uint32_t msys;
 	uint32_t freq;
+	uint32_t freq_frac;
 	uint32_t pol;
 	uint32_t sr;
 	uint32_t ro;
@@ -167,8 +171,6 @@ struct tp_info {
 	uint32_t bw;
 	uint32_t fec;
 	uint32_t isi;
-
-   char*    request;
 };
 
 struct scantp {
@@ -194,14 +196,14 @@ struct scanip {
 static struct service *get_service(struct tp_info *tpi, uint16_t sid)
 {
 	struct service *s;
-	
+
 	list_for_each_entry(s, &tpi->services, link) {
 		if (s->sid == sid)
 			return s;
 	}
 	s = calloc(1, sizeof(struct service));
 	s->sid = sid;
-	snprintf(s->name, sizeof(s->name), "SID 0x%04x", sid);
+	snprintf(s->name, sizeof(s->name), "Service %d", sid);
 	snprintf(s->pname, sizeof(s->name), "none");
 	list_add(&s->link, &tpi->services);
 	return s;
@@ -214,7 +216,7 @@ static struct service *get_service(struct tp_info *tpi, uint16_t sid)
 void dump(const uint8_t *b, int l)
 {
 	int i, j;
-	
+
 	for (j = 0; j < l; j += 16, b += 16) {
 		for (i = 0; i < 16; i++)
 			if (i + j < l)
@@ -252,7 +254,7 @@ static int udpsock(struct sockaddr *sadr, char *port)
 		.ai_canonname = NULL,
 		.ai_next = NULL,
 	};
-	
+
 	if (getaddrinfo(NULL, port, &hints, &ais) < 0)
 		return -1;
 	for (ai = ais; ai; ai = ai->ai_next)  {
@@ -279,7 +281,7 @@ static int streamsock(const char *name, const char *port, struct sockaddr *sadr)
 		.ai_protocol = 0, .ai_addrlen = 0,
 		.ai_addr = NULL, .ai_canonname = NULL, .ai_next = NULL,
 	};
-	
+
 	if (getaddrinfo(name, port, &hints, &ais) < 0)
 		return -1;
 	for (ai = ais; ai; ai = ai->ai_next)  {
@@ -300,7 +302,7 @@ static int streamsock(const char *name, const char *port, struct sockaddr *sadr)
 static const char *sockname(struct sockaddr *sadr, char *name)
 {
 	void *adr;
-	
+
 	if (sadr->sa_family == AF_INET)
 		adr = &((struct sockaddr_in *) sadr)->sin_addr;
 	else
@@ -384,7 +386,7 @@ static int get_url(char *url, char **a)
 	struct sockaddr sadr;
 	char host[1024], port[1024], dport[] = "554";
 	char *u, *e;
-	
+
 	if (strncasecmp(url, "rtsp://", 7))
 		return  -1;
 	e = url + 7;
@@ -472,13 +474,13 @@ static int check_ok(int s, char *sid, uint32_t *strid)
 					a++;
 					sport2 = strtoul(a, &a, 10);
 					//printf("sports = %d-%d\n", sport, sport2);
-				}					
+				}
 			}
 		} else if (!strncasecmp(l, "com.ses.streamID:", 17)) {
 			*strid = strtoul(l + 17, NULL, 10);
 			//printf("stream id = %d\n", *strid);
 		}
-		
+
 	}
 	return 0;
 }
@@ -579,7 +581,7 @@ uint32_t dvb_crc32(uint8_t *data, int len)
 {
 	int i;
 	uint32_t crc=0xffffffff;
-	
+
 	for (i = 0; i < len; i++)
                 crc = (crc << 8) ^ dvb_crc_table[((crc >> 24) ^ *data++) & 0xff];
 	return crc;
@@ -629,8 +631,8 @@ int cmp_tp(struct tp_info *a, struct tp_info *b)
 		if (a->freq != b->freq + 1 && a->freq != b->freq - 1)
 			return 0;
 	}
-	if (a->mod != b->mod )
-		return 0;
+	//~ if (a->mod != b->mod )
+		//~ return 0;
 	if (a->pol != b->pol )
 		return 0;
 	return 1;
@@ -661,7 +663,7 @@ int add_tp(struct scanip *sip, struct tp_info *tpi_new)
 static int add_pid(struct ts_info *tsi, uint16_t pid, int add_ext)
 {
 	struct pid_info *pidi = &tsi->pidi[pid];
-	
+
 	if (!tsi->pidi[pid].used) {
 		pid_info_init(pidi, pid, tsi);
 		pidi->used = 1;
@@ -680,7 +682,7 @@ static int add_sfilter(struct ts_info *tsi, uint16_t pid, uint8_t tid, uint16_t 
 
 	add_pid(tsi, pid, use_ext ? 1 : 0);
 	pidi = &tsi->pidi[pid];
-	
+
 	list_for_each_entry(sf, &pidi->sfilters, link) {
 			if (sf->tid == tid && sf->ext == ext)
 				return -1;
@@ -722,7 +724,7 @@ static uint32_t getbcd(uint8_t *p, int l)
 {
 	int i;
 	uint32_t val = 0, t;
-	
+
 	for (i = 0; i < l / 2; i++) {
 		t = (p[i] >> 4) * 10 + (p[i] & 0x0f);
 		val = val * 100 + t;
@@ -760,7 +762,7 @@ static int get_desc(struct pid_info *p, uint8_t *buf, int length)
 
  	while (c < length) {
  		dlength = buf[c+1];
-		
+
  		switch(buf[c]){
  		case 0x02:
  			break;
@@ -787,7 +789,7 @@ static int update_pids(struct ts_info *tsi)
 	char pids[512];
 	int len, len2, plen;
 	uint32_t pid;
-	
+
 	//printf("tune=%s\n", &scon->tune[0]);
 	for (pid = 0, plen = 0; pid < 8192; pid++) {
 		if (tsi->pidi[pid].used) {
@@ -803,7 +805,7 @@ static int update_pids(struct ts_info *tsi)
 	pids[0] = '=';
 	if (!plen)
 		snprintf(pids, sizeof(pids), "=none");
-	
+
 	//printf("pids%s\n",pids);
 
 	len = snprintf(buf, sizeof(buf),
@@ -927,20 +929,21 @@ static int nit_cb(struct sfilter *sf)
 	uint16_t ndl, tsll, tdl;
 	uint16_t tsid, onid;
 	struct tp_info t;
-	
+
 	slen = get12(buf + 1) + 3;
 	nid = get16(buf + 3);
 	ndl = get12(buf + 8);
 	tsp = 10 + ndl;
 	for (c = 10; c < tsp; c++) {
-		
+
 	}
 	tsll = get12(buf + tsp);
 	//fprintf(stderr, "NIT(%02x): len %u nid %u snr %02x lsnr %02x", buf[0], slen, nid, buf[6], buf[7]);
 	//fprintf(stderr, " ndl %02x  tsll %02x\n", ndl, tsll);
-	
+
 	for (c = tsp + 2; c < slen; c += tdl) {
 		//dump(buf + c + 6, tdl);
+      memset(&t, 0, sizeof(struct tp_info));
 		t.tsid = get16(buf + c);
 		t.onid = get16(buf + c + 2);
 		t.nid = nid;
@@ -949,8 +952,8 @@ static int nit_cb(struct sfilter *sf)
 		c += 6;
 		switch (buf[c]) {
 		case 0x43:
-         t.request = NULL;
 			t.freq = getbcd(buf + c + 2, 8) / 100;
+         t.freq_frac = 0;
 			t.pos = getbcd(buf + c + 6, 4);
 			t.sr = getbcd(buf + c + 9, 7) / 10;
 			t.east = (buf[c + 8] & 0x80) >> 7;
@@ -965,8 +968,12 @@ static int nit_cb(struct sfilter *sf)
 			add_tp(sip, &t);
 			break;
 		case 0x44:
-         t.request = NULL;
-			t.freq = getbcd(buf + c + 2, 8) / 10000;
+         {
+            uint32_t freq = getbcd(buf + c + 2, 8);
+            t.freq =  freq / 10000;
+            t.freq_frac =  freq % 10000;
+         }
+			t.sr = getbcd(buf + c + 9, 7) / 10;
 			t.mod = buf[c + 8]; // undef 16 32 64 128 256
 			t.msys = 1;
 			t.type = 1;
@@ -977,7 +984,7 @@ static int nit_cb(struct sfilter *sf)
 
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -989,11 +996,11 @@ static int pat_cb(struct sfilter *sf)
 	int slen, ilen, eslen, c;
 	uint16_t pid, pnr;
 	uint8_t snr, lsnr;
-	
+
 	slen = (((buf[1]&0x03)<<8)|buf[2])+3;
 	sf->ext = ((buf[3]<<8)|buf[4]);
 	p->tsi->tsid = sf->ext;
-	
+
 	//fprintf(stderr, "PAT:  TSID %04x sn %u lsn %u todo %08x vnr %u", p->tsi->tsid, snr, lsnr, sf->todo, sf->vnr);
 	c = 8;
 	for (c = 8; c < slen - 4; c +=4) {
@@ -1106,7 +1113,7 @@ static int sdt_cb(struct sfilter *sf)
 	onid = get16(buf + 8);
 	for (c = 11; c < p->len - 4; c += dll + 5) {
 		int spnl, snl;
-		
+
 		sid = get16(buf + c);
 		dll = get12(buf + c + 3);
 
@@ -1168,7 +1175,7 @@ static int proc_sec(struct pid_info *p)
 		if (sf->vnr != vnr) {
 			printf("TID %u ext %u\n", tid, ext);
 			printf("VNR change %u->%u\n", sf->vnr, vnr);
-			
+
 			sf->todo_set = 0;
 			sf->vnr = vnr;
 			//sf->done = 0;
@@ -1189,7 +1196,8 @@ static int proc_sec(struct pid_info *p)
 			break;
 		case 0x40:
 		case 0x41:
-			// res = nit_cb(sf);
+			if( use_nit )
+            res = nit_cb(sf);
 			break;
 		case 0x42:
 		case 0x46:
@@ -1222,7 +1230,7 @@ static int pid_info_proc_section(struct pid_info *p)
 	uint8_t tid;
 	uint16_t ext;
 	int res;
-	
+
         if (p->bufp != p->len) {
 		if (p->len && p->bufp > p->len)
 			goto exit;
@@ -1234,19 +1242,19 @@ static int pid_info_proc_section(struct pid_info *p)
 			goto exit;
 		}
 	}
-	
+
 	//fprintf(stderr, "PID %04x SEC[%d]: %02x\n", (int) p->pid, p->len, (int)p->buf[0]);
 	if (p->len < 8)
 		return 0;
 	if (!(buf[5] & 1))
 		return 0;
 
-	
+
 	tid = buf[0];
 	ext = ((buf[3] << 8) | buf[4]);
 
 	res = proc_sec(p);
-	
+
 	if (res && p->add_ext) {
 		if (tid == 0x42 || tid == 0x02) {
 			printf("section not matched");
@@ -1289,7 +1297,7 @@ static inline int validcc(struct pid_info *p, uint8_t *tsp)
 static inline int pid_info_build_section(struct pid_info *p, uint8_t *tsp)
 {
         int pusoff, todo = tspayload(tsp), i = 188 - todo;
-	
+
         if (!todo)
                 return -1;
 	pusoff = (tsp[1] & 0x40) ? tsp[i++] : todo;
@@ -1326,7 +1334,7 @@ static inline int pid_info_build_section(struct pid_info *p, uint8_t *tsp)
 		}
 	}
 	return 0;
-	
+
 error:
 	fprintf(stderr, "error\n");
 	pid_info_reset(p);
@@ -1339,10 +1347,10 @@ void proc_tsp(struct ts_info *tsi, uint8_t *tsp)
 {
         uint16_t pid = 0x1fff & ((tsp[1] << 8) | tsp[2]);
 	struct pid_info *pidi = &tsi->pidi[pid];
-	
+
 	if (!pidi->used)
 		return;
-	
+
 	if (!pidi->buf) {
 		pidi->buf = malloc(4096);
 		if (!pidi->buf)
@@ -1371,7 +1379,7 @@ void proc_tsps(struct ts_info *tsi, uint8_t *tsp, uint32_t len)
 			tsi->done = 1;
 	} else
 		tsi->timeout = mt + 1;
-#endif	
+#endif
 	while (len >= 188) {
 		proc_tsp(tsi, tsp);
 		tsp += 188;
@@ -1386,7 +1394,7 @@ static void dump_tp(struct tp_info *tpi)
 {
 	struct service *s;
    int i;
-	
+
 	list_for_each_entry(s, &tpi->services, link) {
       if (s->got_pmt && (s->vpid != 0 || s->anum>0)) {
          printf("BEGIN\n");
@@ -1427,9 +1435,9 @@ static void dump_tp(struct tp_info *tpi)
             }
          }
          printf("\n");
-         if ( s->vpid == 0 ) 
+         if ( s->vpid == 0 )
             printf(" RADIO:1\n");
-         if ( s->is_enc ) 
+         if ( s->is_enc )
             printf(" ENC:1\n");
          printf("END\n");
       }
@@ -1448,7 +1456,7 @@ static int scan_tp(struct scantp *stp)
 	fd_set fds;
 	struct timeval timeout;
 	int mfd, num, n;
-	time_t t, u;	
+	time_t t, u;
 	char buf[2048];
 	struct sockaddr sadr;
 	char *a;
@@ -1470,11 +1478,11 @@ static int scan_tp(struct scantp *stp)
 	}
 	//printf("Socket port = %u\n", scon->nsport);
 	//printf("host = %s, port = %s\n", scon->host, scon->port);
-	
+
 	scon->sock = streamsock(scon->host, scon->port, &sadr);
 	if (scon->sock < 0)
 		return scon->sock;
-	
+
 	send_setup(scon->sock, scon->host, scon->port, scon->tune, &scon->seq, scon->nsport, 0);
 	if (check_ok(scon->sock, scon->sid, &scon->strid) < 0)
 		return 0;
@@ -1485,7 +1493,7 @@ static int scan_tp(struct scantp *stp)
 	add_sfilter(&stp->tsi, 0x00, 0x00, 0, 0, 5);
 	add_sfilter(&stp->tsi, 0x11, 0x42, 0, 1, 5);
 	//add_sfilter(p->tsi, 0x11, 0x46, 0, 1, 15);
-	
+
 	stp->timeout = mtime(NULL) + 10;
 	while (!done && !stp->tsi.done && mtime(NULL) < stp->timeout) {
 		mfd = 0;
@@ -1505,7 +1513,8 @@ static int scan_tp(struct scantp *stp)
 			n = recvfrom(scon->usock, buf, sizeof(buf), 0, 0, 0);
 			if (n > 12) {
 				proc_tsps(&sip->stp.tsi, buf + 12, n - 12);
-				stp->timeout = mtime(NULL) + 10;
+				// stp->timeout = mtime(NULL) + 10;
+				stp->timeout += 60;
 			}
 		}
 	}
@@ -1520,24 +1529,24 @@ void tpstring(struct tp_info *tpi, char *s, int slen)
 {
 	int len;
 
-   if( tpi->request ) {
-      strncpy(s,tpi->request,slen);
-   }
-   else {
-      switch (tpi->msys) {
-      case 1:
+   switch (tpi->msys) {
+   case 1:
+      if( tpi->freq_frac )
          len = snprintf(s, slen,
-                   "freq=%u&msys=dvbc&sr=6900&mtype=%s",
-                   tpi->freq, mtype2str[tpi->mod]);
-         break;
-      case 5:
-      case 6:
+                   "freq=%u.%04u&msys=dvbc&sr=%u&mtype=%s",
+                   tpi->freq, tpi->freq_frac, tpi->sr, mtype2str[tpi->mod]);
+      else
          len = snprintf(s, slen,
-                   "freq=%u&pol=%s&msys=%s&sr=%u",
-                   tpi->freq, pol2str[tpi->pol&3],
-                   msys2str[tpi->msys], tpi->sr);
-         break;
-      }
+                   "freq=%u&msys=dvbc&sr=%u&mtype=%s",
+                   tpi->freq, tpi->sr, mtype2str[tpi->mod]);
+      break;
+   case 5:
+   case 6:
+      len = snprintf(s, slen,
+                "src=%u&freq=%u&pol=%s&msys=%s&sr=%u",
+                tpi->src,tpi->freq, pol2str[tpi->pol&3],
+                msys2str[tpi->msys], tpi->sr);
+      break;
    }
 }
 
@@ -1558,10 +1567,10 @@ static int scanip(struct scanip *sip)
 		stp->scon.port = "554";
 		stp->scon.host = sip->host;
 		tsi->stp = stp;
-		
+
 		tpi = list_first_entry(&sip->tps, struct tp_info, link);
 		tpstring(tpi, &stp->scon.tune[0], sizeof(stp->scon.tune));
-		printf("\nTuning to: %s\n", stp->scon.tune);
+		printf("\nTUNE:%s\n", stp->scon.tune);
 		stp->tpi = tpi;
    		scan_tp(stp);
 		ts_info_release(tsi);
@@ -1569,7 +1578,7 @@ static int scanip(struct scanip *sip)
 		list_add(&tpi->link, &sip->tps_done);
 	}
 }
-	
+
 void term_action(int sig, siginfo_t *si, void *d)
 {
 	done = 1;
@@ -1615,12 +1624,52 @@ void scan_cable(struct scanip *sip)
 		}
 }
 
+void usage() {
+   printf("Octoscan"
+          ", Copyright (C) 2016 Digital Devices GmbH\n\n");
+   printf("octoscan [options] <server ip>\n");
+   printf("    <server ip> address of SAT>IP server\n");
+   printf("\n");
+   printf("  options:\n");
+   printf("    --use_nit, -n\n");
+   printf("       Use network information table\n");
+   printf("       if not specified only a single transponder is scanned\n");
+   printf("    --freq=<frequency>, -f <frequency>\n");
+   printf("       frequency in MHz  (required)\n");
+   printf("    --sr=<symbolrate>, -f <symbolrate>\n");
+   printf("       symbolrate in kSymbols (required for DVB-S/S2 and DVB-C)\n");
+   printf("           DVB-S/S2 example: --sr=27500\n");
+   printf("           DVB-C example:    --sr=6900\n");
+   printf("    --pol=<polarisation>, -f <polarisation>\n");
+   printf("       polarisation = v,h,r,l (required for DVB-S/S2)\n");
+   printf("           example: --pol=v\n");
+   printf("    --msys=<modulation system>, -f <modulation system>\n");
+   printf("       system = dvbs,dvbs2,dvbc (required)\n");
+   printf("           example: --msys=dvbs\n");
+   printf("    --mtype=<modulation type>, -f <modulation type>\n");
+   printf("       modulation type = 16qam,32qam,64qam,128qam,256qam (required for DVB-C)\n");
+   printf("    --help, -?\n");
+   printf("\n");
+   printf("  Notes on NIT scanning:\n");
+   printf("    NIT scanning is currently not reliable for DVB-S/S2 (to be fixed).\n");
+   printf("    With some cable providers or inhouse retransmission systems\n");
+   printf("    it may be not usable, i.e. due to wrong frequencies in the NIT.\n");
+   printf("\n");
+   printf("  Notes on hardware depencies:\n");
+   printf("    Depending on hardware configuration the scan will succeed even if\n");
+   printf("    some required parameters are wrong. This will result in a channel list\n");
+   printf("    which is usable only on the same hardware configuration.\n");
+}
 
 int main(int argc, char **argv)
 {
 	struct sigaction term;
 	struct scanip sip;
-	struct tp_info tpi = {
+	struct tp_info tpi;
+   int i;
+
+#if 0
+	struct tp_info tpi1 = {
 		.freq = 11836,
 		.pol = 1,
 		.msys = 5,
@@ -1632,7 +1681,7 @@ int main(int argc, char **argv)
 		.msys = 6,
 		.sr = 27500,
 	};
-	
+
 	struct tp_info tpi3 = {
 		.freq = 138,
 		.msys = 1,
@@ -1645,7 +1694,99 @@ int main(int argc, char **argv)
 		.mod = 5,
 		.sr = 6900,
 	};
-	
+#endif
+
+   if(argc < 2) {
+      usage();
+      exit(0);
+   };
+
+   memset(&tpi, 0, sizeof(struct tp_info));
+
+	while (1) {
+      int option_index = 0;
+		int c;
+      static struct option long_options[] = {
+			{"use_nit", no_argument, 0, 'n'},
+			{"freq", required_argument, 0, 'f'},
+			{"sr", required_argument, 0, 's'},
+			{"pol", required_argument, 0, 'p'},
+			{"msys", required_argument, 0, 'm'},
+			{"mtype", required_argument, 0, 't'},
+			{"help", no_argument , 0, '?'},
+			{0, 0, 0, 0}
+		};
+      c = getopt_long(argc, argv,
+                        "nf:s:p:m:t:?",
+                        long_options, &option_index);
+		if (c==-1)
+ 			break;
+
+		switch (c) {
+		case 'n':
+			use_nit = 1;
+			break;
+
+		case 'f':
+			tpi.freq = strtoul(optarg, NULL, 10);
+			break;
+
+		case 's':
+			tpi.sr = strtoul(optarg, NULL, 10);
+			break;
+
+		case 'S':
+			tpi.src = strtoul(optarg, NULL, 10);
+			break;
+
+		case 'p':
+         i = 0;
+         while( i < 4 ) {
+            if( strcmp(optarg,pol2str[i]) == 0 ) {
+               tpi.msys = i;
+               break;
+            }
+            i += 1;
+         }
+			break;
+
+		case 'm':
+         i = 0;
+         while( msys2str[i] ) {
+            if( strcmp(optarg,msys2str[i]) == 0 ) {
+               tpi.msys = i;
+               break;
+            }
+            i += 1;
+         }
+			break;
+
+ 		case 't':
+         i = 0;
+         while( mtype2str[i] ) {
+            if( strcmp(optarg,mtype2str[i]) == 0 ) {
+               tpi.mod = i;
+               break;
+            }
+            i += 1;
+         }
+			break;
+
+		case '?':
+         usage();
+         exit(0);
+		default:
+			break;
+
+		}
+	}
+
+   if( optind > argc - 1 ) {
+      printf("To many arguments\n\n");
+      usage();
+      exit(-1);
+   }
+
 	memset(&term, 0, sizeof(term));
 	term.sa_sigaction = term_action;
 	sigemptyset(&term.sa_mask);
@@ -1653,14 +1794,10 @@ int main(int argc, char **argv)
 
 	sigaction(SIGINT, &term, NULL);
 
-	scanip_init(&sip, argv[1]);
-   if( argc > 1 ) {
-      tpi.request = argv[2];
-      add_tp(&sip, &tpi);
-   }
-   else
-      add_tp(&sip, &tpi3);
+	scanip_init(&sip, argv[optind]);
+   add_tp(&sip, &tpi);
 	//scan_cable(&sip);
 	scanip(&sip);
 	scanip_release(&sip);
 }
+
