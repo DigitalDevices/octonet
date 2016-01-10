@@ -220,14 +220,14 @@ void dump(const uint8_t *b, int l)
 	for (j = 0; j < l; j += 16, b += 16) {
 		for (i = 0; i < 16; i++)
 			if (i + j < l)
-				printf("%02x ", b[i]);
+				fprintf(stderr, "%02x ", b[i]);
 			else
-				printf("   ");
-		printf(" | ");
+				fprintf(stderr, "   ");
+		fprintf(stderr, " | ");
 		for (i = 0; i < 16; i++)
 			if (i + j < l)
-				putchar((b[i] > 31 && b[i] < 127) ? b[i] : '.');
-		printf("\n");
+				fputc((b[i] > 31 && b[i] < 127) ? b[i] : '.', stderr);
+		fprintf(stderr, "\n");
 	}
 }
 
@@ -953,7 +953,7 @@ static int nit_cb(struct sfilter *sf)
 		switch (buf[c]) {
 		case 0x43:
 			t.freq = getbcd(buf + c + 2, 8) / 100;
-         t.freq_frac = 0;
+			t.freq_frac = 0;
 			t.pos = getbcd(buf + c + 6, 4);
 			t.sr = getbcd(buf + c + 9, 7) / 10;
 			t.east = (buf[c + 8] & 0x80) >> 7;
@@ -968,18 +968,27 @@ static int nit_cb(struct sfilter *sf)
 			add_tp(sip, &t);
 			break;
 		case 0x44:
-         {
-            uint32_t freq = getbcd(buf + c + 2, 8);
-            t.freq =  freq / 10000;
-            t.freq_frac =  freq % 10000;
-         }
+			{
+				uint32_t freq = getbcd(buf + c + 2, 8);
+				t.freq =  freq / 10000;
+				t.freq_frac =  freq % 10000;
+			}
 			t.sr = getbcd(buf + c + 9, 7) / 10;
 			t.mod = buf[c + 8]; // undef 16 32 64 128 256
 			t.msys = 1;
 			t.type = 1;
 			//fprintf(stderr, " freq = %u  pos = %u  sr = %u  fec = %u  \n", freq, pos, sr, fec);
 			//fprintf(stderr, "freq=%u&msys=dvbc&mtype=%s\n", t.freq, mtype2str[t.mod]);
-			add_tp(sip, &t);
+
+			if( t.freq >= 50 && t.freq <= 1000 && t.sr >= 1000 && t.sr <= 7100 && t.mod >= 1 && t.mod <= 5 )
+				add_tp(sip, &t);
+			else {
+				fprintf(stderr, " *************************  freq = %u  sr = %u  mod = %u  \n", t.freq, t.sr, t.mod);
+				fprintf(stderr, " *************************  buffer start:\n" );
+				dump(buf, 16);
+				fprintf(stderr, " *************************  buffer position c = %d\n", c);
+				dump(buf + c, 16);
+			}
 			break;
 
 		}
@@ -1039,6 +1048,7 @@ void en300468_parse_string_to_utf8(char *dest, uint8_t *src,
 {
 	int utf8 = (src[0] == 0x15) ? 1 : 0;
 	int skip = (src[0] < 0x20) ? 1 : 0;
+	if( src[0] == 0x10 ) skip += 2;
 	uint16_t utf8_cc;
 	int dest_pos = 0;
 	int emphasis = 0;
@@ -1127,8 +1137,14 @@ static int sdt_cb(struct sfilter *sf)
 			if (tag == 0x48) {
 				spnl = buf[doff + 3];
 				snl = buf[doff + 4 + spnl];
+            s->pname[79] = 0x00;
+            s->name[79] = 0x00;
 				en300468_parse_string_to_utf8(s->pname, buf + doff + 4, spnl);
+            if( s->pname[79] != 0 )
+               printf("********************************************* PNAME OVERFLOW %d spnl = %d",spnl);
 				en300468_parse_string_to_utf8(s->name, buf + doff + 5 + spnl, snl);
+            if( s->name[79] != 0 )
+               printf("********************************************* SNAME OVERFLOW %d snl = %d",snl);
 				s->got_sdt = 1;
 			}
 		}
@@ -1393,54 +1409,55 @@ void proc_tsps(struct ts_info *tsi, uint8_t *tsp, uint32_t len)
 static void dump_tp(struct tp_info *tpi)
 {
 	struct service *s;
-   int i;
+	int i;
 
 	list_for_each_entry(s, &tpi->services, link) {
-      if (s->got_pmt && (s->vpid != 0 || s->anum>0)) {
-         printf("BEGIN\n");
-         printf(" PNAME:%s\n",s->pname);
-         printf(" SNAME:%s\n",s->name);
-         printf(" SID:%d\n",s->sid);
-         printf(" PIDS:%d",s->pmt);
-         uint16_t pcr = s->pcr;
-         if (s->pmt == pcr) pcr = 0;
-         if (s->vpid != 0 ) {
-            printf(",%d",s->vpid);
-            if (s->vpid == pcr) pcr = 0;
-         }
-         for (i= 0; i < s->anum; i+=1) {
-            if (s->apid[i] != 0 ) {
-               printf(",%d",s->apid[i]);
-               if (s->apid[i] == pcr) pcr = 0;
-            }
-         }
-         if (s->sub != 0 ) {
-            printf(",%d",s->sub);
-            if (s->sub == pcr) pcr = 0;
-         }
-         if (s->ttx != 0 ) {
-            printf(",%d",s->ttx);
-            if (s->ttx == pcr) pcr = 0;
-         }
-         if (pcr != 0) {
-            printf(",%d",pcr);
-         }
-         printf("\n");
-         if (s->anum > 0 && s->apid[0] != 0) {
-            printf(" APIDS:%d",s->apid[0]);
-            for (i= 1; i < s->anum; i+=1) {
-               if (s->apid[i] != 0 ) {
-                  printf(",%d",s->apid[i]);
-               }
-            }
-         }
-         printf("\n");
-         if ( s->vpid == 0 )
-            printf(" RADIO:1\n");
-         if ( s->is_enc )
-            printf(" ENC:1\n");
-         printf("END\n");
-      }
+		if (s->got_pmt && (s->vpid != 0 || s->anum>0)) {
+			printf("BEGIN\n");
+			printf(" PNAME:%s\n",s->pname);
+			printf(" SNAME:%s\n",s->name);
+			printf(" SID:%d\n",s->sid);
+			printf(" PIDS:%d",s->pmt);
+			uint16_t pcr = s->pcr;
+			if (s->pmt == pcr) pcr = 0;
+			if (s->vpid != 0 ) {
+				printf(",%d",s->vpid);
+				if (s->vpid == pcr) pcr = 0;
+			}
+			for (i= 0; i < s->anum; i+=1) {
+				if (s->apid[i] != 0 ) {
+					printf(",%d",s->apid[i]);
+					if (s->apid[i] == pcr) pcr = 0;
+				}
+			}
+			if (s->sub != 0 ) {
+				printf(",%d",s->sub);
+				if (s->sub == pcr) pcr = 0;
+			}
+			if (s->ttx != 0 ) {
+				printf(",%d",s->ttx);
+				if (s->ttx == pcr) pcr = 0;
+			}
+			if (pcr != 0) {
+				printf(",%d",pcr);
+			}
+			printf("\n");
+			if (s->anum > 0 && s->apid[0] != 0) {
+				printf(" APIDS:%d",s->apid[0]);
+				for (i= 1; i < s->anum; i+=1) {
+					if (s->apid[i] != 0 ) {
+						printf(",%d",s->apid[i]);
+					}
+				}
+			}
+			printf("\n");
+			if ( s->vpid == 0 )
+				printf(" RADIO:1\n");
+			if ( s->is_enc )
+				printf(" ENC:1\n");
+			printf("END\n");
+			fflush(stdout);
+		}
 		//~ if (!s->got_pmt)
 			//~ printf("NO PMT: ");
 		//~ printf("%s:%s sid=%04x pmt=%04x pcr=%04x vpid=%04x apid=%04x\n",
@@ -1571,6 +1588,7 @@ static int scanip(struct scanip *sip)
 		tpi = list_first_entry(&sip->tps, struct tp_info, link);
 		tpstring(tpi, &stp->scon.tune[0], sizeof(stp->scon.tune));
 		printf("\nTUNE:%s\n", stp->scon.tune);
+      fflush(stdout);
 		stp->tpi = tpi;
    		scan_tp(stp);
 		ts_info_release(tsi);
@@ -1625,43 +1643,43 @@ void scan_cable(struct scanip *sip)
 }
 
 void usage() {
-   printf("Octoscan"
-          ", Copyright (C) 2016 Digital Devices GmbH\n\n");
-   printf("octoscan [options] <server ip>\n");
-   printf("    <server ip> address of SAT>IP server\n");
-   printf("\n");
-   printf("  options:\n");
-   printf("    --use_nit, -n\n");
-   printf("       Use network information table\n");
-   printf("       if not specified only a single transponder is scanned\n");
-   printf("    --freq=<frequency>, -f <frequency>\n");
-   printf("       frequency in MHz  (required)\n");
-   printf("    --sr=<symbolrate>, -s <symbolrate>\n");
-   printf("       symbolrate in kSymbols (required for DVB-S/S2 and DVB-C)\n");
-   printf("           DVB-S/S2 example: --sr=27500\n");
-   printf("           DVB-C example:    --sr=6900\n");
-   printf("    --pol=<polarisation>, -p <polarisation>\n");
-   printf("       polarisation = v,h,r,l (required for DVB-S/S2)\n");
-   printf("           example: --pol=v\n");
-   printf("    --msys=<modulation system>, -m <modulation system>\n");
-   printf("       system = dvbs,dvbs2,dvbc (required)\n");
-   printf("           example: --msys=dvbs\n");
-   printf("    --mtype=<modulation type>, -t <modulation type>\n");
-   printf("       modulation type = 16qam,32qam,64qam,128qam,256qam (required for DVB-C)\n");
-   printf("    --help, -?\n");
-   printf("\n");
-   printf("  Notes on NIT scanning:\n");
-   printf("    NIT scanning is currently not reliable for DVB-S/S2 (to be fixed).\n");
-   printf("    With some cable providers or inhouse retransmission systems\n");
-   printf("    it may be not usable, i.e. due to wrong frequencies in the NIT.\n");
-   printf("\n");
-   printf("  Notes on hardware depencies:\n");
-   printf("    Depending on hardware configuration the scan will succeed even if\n");
-   printf("    some required parameters are wrong. This will result in a channel list\n");
-   printf("    which is usable only on the same hardware configuration.\n");
-   printf("\n");
-   printf("  Example: NIT based scan which should work on Unitymedia in Germany\n");
-   printf("    octoscan --use_nit --freq=138 --msys=dvbs --sr=6900 --mtype=256qam 10.0.4.24\n");
+	printf("Octoscan"
+	       ", Copyright (C) 2016 Digital Devices GmbH\n\n");
+	printf("octoscan [options] <server ip>\n");
+	printf("    <server ip> address of SAT>IP server\n");
+	printf("\n");
+	printf("  options:\n");
+	printf("    --use_nit, -n\n");
+	printf("       Use network information table\n");
+	printf("       if not specified only a single transponder is scanned\n");
+	printf("    --freq=<frequency>, -f <frequency>\n");
+	printf("       frequency in MHz  (required)\n");
+	printf("    --sr=<symbolrate>, -s <symbolrate>\n");
+	printf("       symbolrate in kSymbols (required for DVB-S/S2 and DVB-C)\n");
+	printf("           DVB-S/S2 example: --sr=27500\n");
+	printf("           DVB-C example:    --sr=6900\n");
+	printf("    --pol=<polarisation>, -p <polarisation>\n");
+	printf("       polarisation = v,h,r,l (required for DVB-S/S2)\n");
+	printf("           example: --pol=v\n");
+	printf("    --msys=<modulation system>, -m <modulation system>\n");
+	printf("       system = dvbs,dvbs2,dvbc (required)\n");
+	printf("           example: --msys=dvbs\n");
+	printf("    --mtype=<modulation type>, -t <modulation type>\n");
+	printf("       modulation type = 16qam,32qam,64qam,128qam,256qam (required for DVB-C)\n");
+	printf("    --help, -?\n");
+	printf("\n");
+	printf("  Notes on NIT scanning:\n");
+	printf("    NIT scanning is currently not reliable for DVB-S/S2 (to be fixed).\n");
+	printf("    With some cable providers or inhouse retransmission systems\n");
+	printf("    it may be not usable, i.e. due to wrong frequencies in the NIT.\n");
+	printf("\n");
+	printf("  Notes on hardware depencies:\n");
+	printf("    Depending on hardware configuration the scan will succeed even if\n");
+	printf("    some required parameters are wrong. This will result in a channel list\n");
+	printf("    which is usable only on the same hardware configuration.\n");
+	printf("\n");
+	printf("  Example: NIT based scan which should work on Unitymedia in Germany\n");
+	printf("    octoscan --use_nit --freq=138 --msys=dvbc --sr=6900 --mtype=256qam 10.0.4.24\n");
 }
 
 int main(int argc, char **argv)
@@ -1669,7 +1687,7 @@ int main(int argc, char **argv)
 	struct sigaction term;
 	struct scanip sip;
 	struct tp_info tpi;
-   int i;
+	int i;
 
 #if 0
 	struct tp_info tpi1 = {
@@ -1699,17 +1717,17 @@ int main(int argc, char **argv)
 	};
 #endif
 
-   if(argc < 2) {
-      usage();
-      exit(0);
-   };
+	if(argc < 2) {
+		usage();
+		exit(0);
+	};
 
-   memset(&tpi, 0, sizeof(struct tp_info));
+	memset(&tpi, 0, sizeof(struct tp_info));
 
 	while (1) {
-      int option_index = 0;
+		int option_index = 0;
 		int c;
-      static struct option long_options[] = {
+		static struct option long_options[] = {
 			{"use_nit", no_argument, 0, 'n'},
 			{"freq", required_argument, 0, 'f'},
 			{"sr", required_argument, 0, 's'},
@@ -1719,11 +1737,11 @@ int main(int argc, char **argv)
 			{"help", no_argument , 0, '?'},
 			{0, 0, 0, 0}
 		};
-      c = getopt_long(argc, argv,
-                        "nf:s:p:m:t:?",
-                        long_options, &option_index);
+		c = getopt_long(argc, argv,
+				"nf:s:p:m:t:?",
+				long_options, &option_index);
 		if (c==-1)
- 			break;
+			break;
 
 		switch (c) {
 		case 'n':
@@ -1743,52 +1761,52 @@ int main(int argc, char **argv)
 			break;
 
 		case 'p':
-         i = 0;
-         while( i < 4 ) {
-            if( strcmp(optarg,pol2str[i]) == 0 ) {
-               tpi.msys = i;
-               break;
-            }
-            i += 1;
-         }
+			i = 0;
+			while( i < 4 ) {
+				if( strcmp(optarg,pol2str[i]) == 0 ) {
+					tpi.msys = i;
+					break;
+				}
+				i += 1;
+			}
 			break;
 
 		case 'm':
-         i = 0;
-         while( msys2str[i] ) {
-            if( strcmp(optarg,msys2str[i]) == 0 ) {
-               tpi.msys = i;
-               break;
-            }
-            i += 1;
-         }
+			i = 0;
+			while( msys2str[i] ) {
+				if( strcmp(optarg,msys2str[i]) == 0 ) {
+					tpi.msys = i;
+					break;
+				}
+				i += 1;
+			}
 			break;
 
  		case 't':
-         i = 0;
-         while( mtype2str[i] ) {
-            if( strcmp(optarg,mtype2str[i]) == 0 ) {
-               tpi.mod = i;
-               break;
-            }
-            i += 1;
-         }
+			i = 0;
+			while( mtype2str[i] ) {
+				if( strcmp(optarg,mtype2str[i]) == 0 ) {
+					tpi.mod = i;
+					break;
+				}
+				i += 1;
+			}
 			break;
 
 		case '?':
-         usage();
-         exit(0);
+			usage();
+			exit(0);
 		default:
 			break;
 
 		}
 	}
 
-   if( optind > argc - 1 ) {
-      printf("To many arguments\n\n");
-      usage();
-      exit(-1);
-   }
+	if( optind != argc - 1 ) {
+		printf("wrong number of arguments\n\n");
+		usage();
+		exit(-1);
+	}
 
 	memset(&term, 0, sizeof(term));
 	term.sa_sigaction = term_action;
@@ -1798,7 +1816,7 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &term, NULL);
 
 	scanip_init(&sip, argv[optind]);
-   add_tp(&sip, &tpi);
+	add_tp(&sip, &tpi);
 	//scan_cable(&sip);
 	scanip(&sip);
 	scanip_release(&sip);
