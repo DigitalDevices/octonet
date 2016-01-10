@@ -931,6 +931,8 @@ static int nit_cb(struct sfilter *sf)
 	struct tp_info t;
 
 	slen = get12(buf + 1) + 3;
+	if (buf[1] & 0x80)
+		slen -= 4;
 	nid = get16(buf + 3);
 	ndl = get12(buf + 8);
 	tsp = 10 + ndl;
@@ -985,9 +987,9 @@ static int nit_cb(struct sfilter *sf)
 			else {
 				fprintf(stderr, " *************************  freq = %u  sr = %u  mod = %u  \n", t.freq, t.sr, t.mod);
 				fprintf(stderr, " *************************  buffer start:\n" );
-				dump(buf, 16);
-				fprintf(stderr, " *************************  buffer position c = %d\n", c);
-				dump(buf + c, 16);
+				dump(buf, 32);
+				fprintf(stderr, " *************************  buffer position (c-32,c+16)  c = %d, slen = %d\n", c, slen);
+				dump(buf + c - 32, 48);
 			}
 			break;
 
