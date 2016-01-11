@@ -121,7 +121,7 @@ if tl.SourceList then
                         end
                         print(line)
                         if line == "END" then
-                           local channel = { Title=sname, Service=sid, Request = Request.."&pids=0,"..pids, Tracks=tracks }
+                           local channel = { Title=sname, Service=sid, Request = '?'..Request.."&pids=0,"..pids, Tracks=tracks }
                            local cname = pname
                            if isradio then
                               cname = "Radio - "..pname

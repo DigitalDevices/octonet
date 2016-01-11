@@ -37,7 +37,7 @@ end
 function CreateM3U(host)
    local m3u = {}
    table.insert(m3u,"#EXTM3U".."\n")
-   
+
    local file = io.open("/config/ChannelList.json")
    if file then
       local json = file:read("*a")
@@ -48,7 +48,7 @@ function CreateM3U(host)
       for _,group in ipairs(channellist.GroupList) do
          for _,channel in ipairs(group.ChannelList) do
             table.insert(m3u,"#EXTINF:0,"..group.Title.." - "..channel.Title.."\n")
-            table.insert(m3u,"rtsp://"..host..":554/?"..channel.Request.."\n")
+            table.insert(m3u,"rtsp://"..host..":554/"..channel.Request.."\n")
          end
       end
    else
@@ -121,7 +121,7 @@ function CreateJSON(host)
       local json = {}
       table.insert(json,"{\n")
 
-      table.insert(json,JSONSource(host,SourceList,"GroupList",nil) .. ",\n")
+      table.insert(json,JSONSource(host,SourceList,"GroupList",nil) .. "\n")
 --~       table.insert(json,JSONSource(host,SourceList,"SourceListSat","dvbs") .. ",\n")
 --~       table.insert(json,JSONSource(host,SourceList,"SourceListCable","dvbc") .. ",\n")
 --~       table.insert(json,JSONSource(host,SourceList,"SourceListTer","dvbt") .. "\n")

@@ -56,7 +56,7 @@ if file then
    local newdecoder = require("lunajson.decoder")
    local decode = newdecoder()
    local channellist = decode(json)
-   
+
    for _,group in ipairs(channellist.GroupList) do
       local f = {}
       f.id = "$"..tostring(#Folders)
@@ -74,7 +74,7 @@ if file then
          vi.id = f.id.."$"..tostring(#f.VideoItems)
          vi.src = f.src
          vi.parentID = f.id
-         vi.request = string.gsub(channel.Request,'&','&amp;amp;')
+         vi.request = string.gsub(channel.Request:sub(2),'&','&amp;amp;')
          vi.title = string.gsub(channel.Title,'&','&amp;amp;')
          vi.title = string.gsub(vi.title,'<','&amp;lt;')
          vi.title = string.gsub(vi.title,'>','&amp;gt;')
@@ -121,7 +121,7 @@ AllFolders[f.id] = f
 for i = 1,4,1 do
   vi = { id = f.id.."$"..tostring(i-1), parentID = f.id, title = "Stream "..tostring(i), stream = tostring(i) }
   table.insert(f.VideoItems,vi)
-  AllItems[vi.id] = vi  
+  AllItems[vi.id] = vi
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------
@@ -145,10 +145,10 @@ local function VideoItem(Host,Item,nCompat)
   else
     -- Some clients don't like a long request url, or an url with '&' in it
     -- Fail them for now
-    -- if nCompat then 
+    -- if nCompat then
       -- rtspreq = "stream_99"
-    -- elseif Item.src then 
-    if Item.src then 
+    -- elseif Item.src then
+    if Item.src then
       rtspreq = '?src='..Item.src..'&amp;amp;'..Item.request
     else
       rtspreq = '?'..Item.request
@@ -158,17 +158,17 @@ local function VideoItem(Host,Item,nCompat)
   local didl = '&lt;item id="'..Item.id..'" parentID="'..Item.parentID
   didl = didl .. '" restricted="1"&gt;'
               ..'&lt;dc:title&gt;'..Item.title..'&lt;/dc:title&gt;'
-              ..'&lt;upnp:class&gt;object.item.videoItem.videoBroadcast&lt;/upnp:class&gt;'    
+              ..'&lt;upnp:class&gt;object.item.videoItem.videoBroadcast&lt;/upnp:class&gt;'
   if Item.channelNr then
     didl = didl ..'&lt;upnp:channelNr&gt;'..Item.channelNr..'&lt;/upnp:channelNr&gt;'
   end
-  didl = didl ..'&lt;res' 
+  didl = didl ..'&lt;res'
               ..' protocolInfo="rtsp-rtp-udp:*:video/mpeg:'..dlnaprofile..'"&gt;'
               ..'rtsp://'..Host..':554/'..rtspreq
               ..'&lt;/res&gt;'
   didl = didl ..'&lt;/item&gt;'
   return didl
-  
+
 end
 
 
@@ -186,9 +186,9 @@ local function BrowseChildren(client,Host,Request,nCompat)
   local TotalMatches = 0
   local UpdateID = SystemUpdateID
   local f,vi,ai
-  
+
   if ObjectID == "0" then
-    if nCompat then       
+    if nCompat then
       for _,f in ipairs(RootFolders) do
         didl = didl..Folder(f.title,f.id,ObjectID,tostring(#f.VideoItems + #f.AudioItems + #f.ChildFolders))
         NumberReturned = NumberReturned + 1
@@ -201,11 +201,11 @@ local function BrowseChildren(client,Host,Request,nCompat)
         TotalMatches = TotalMatches +1
       end
     end
-    
+
   else
     local f = AllFolders[ObjectID]
     if f then
-        
+
       local Index = 0
       for i,cf in ipairs(f.ChildFolders) do
         if Index >= StartingIndex and (RequestedCount == 0 or NumberReturned < RequestedCount) then
@@ -215,7 +215,7 @@ local function BrowseChildren(client,Host,Request,nCompat)
         Index = Index + 1
         TotalMatches = TotalMatches +1
       end
-              
+
       for i,vi in ipairs(f.VideoItems) do
         if Index >= StartingIndex and (RequestedCount == 0 or NumberReturned < RequestedCount) then
           didl = didl..VideoItem(Host,vi,nCompat)
@@ -224,7 +224,7 @@ local function BrowseChildren(client,Host,Request,nCompat)
         Index = Index + 1
         TotalMatches = TotalMatches +1
       end
-    
+
     else
       Error = 710
     end
@@ -232,15 +232,15 @@ local function BrowseChildren(client,Host,Request,nCompat)
 
   didl = didl..DIDLEnd
   print("Returned",StartingIndex,NumberReturned,TotalMatches,Error)
-  
-  if Error == 0 then 
+
+  if Error == 0 then
     local Args = { { n = "Result", v = didl }, { n = "NumberReturned", v = tostring(NumberReturned)},
                    { n = "TotalMatches", v = tostring(TotalMatches)}, { n = "UpdateID", v = tostring(UpdateID) } }
     UPnP:SendResponse(client,UPnP:CreateResponse(Schema,"Browse",Args))
   else
     UPnP:SendSoapError(client,Error)
   end
-  
+
   return
 end
 
@@ -259,21 +259,21 @@ local function BrowseMetaData(client,Host,Request,nCompat)
                 ..'&lt;/container&gt;'
   else
     local f = AllFolders[ObjectID]
-    if f then    
+    if f then
       didl = didl..Folder(f.title,f.id,ObjectID,tostring(#f.VideoItems + #f.AudioItems + #f.ChildFolders))
     else
       local item = AllItems[ObjectID]
       if item then
-        didl = didl..VideoItem(Host,item,nCompat)      
+        didl = didl..VideoItem(Host,item,nCompat)
       else
         Error = 710
-      end 
+      end
     end
   end
 
   didl = didl..DIDLEnd
-  
-  if Error == 0 then 
+
+  if Error == 0 then
     local Args = { { n = "Result", v = didl }, { n = "NumberReturned", v = "1"},
                    { n = "TotalMatches", v = "1"}, { n = "UpdateID", v = tostring(UpdateID) } }
     UPnP:SendResponse(client,UPnP:CreateResponse(Schema,"Browse",Args))
@@ -281,7 +281,7 @@ local function BrowseMetaData(client,Host,Request,nCompat)
     UPnP:SendSoapError(client,Error)
   end
 
-  didl = DIDLEnd;  
+  didl = DIDLEnd;
 end
 
 local function Search(client,Host,Request,nCompat)
@@ -298,9 +298,9 @@ local function Search(client,Host,Request,nCompat)
   local NumberReturned = 0
   local TotalMatches = 0
   local UpdateID = SystemUpdateID
-  
+
   if string.match(SearchCriteria,"videoItem") then
-  
+
     if ContainerID == "0" then
       if not nCompat or nCompat ~= "WMP" then
         local Index = 0
@@ -314,13 +314,13 @@ local function Search(client,Host,Request,nCompat)
           -- if nCompat and TotalMatches > 19 then break end
         end
       end
-      
+
     else
       local f = AllFolders[ContainerID]
       if f then
         local src = f.src
         if src then src = "src="..src.."&"  else src = "" end
-        
+
         local Index = 0
         for _,vi in ipairs(f.VideoItems) do
           if Index >= StartingIndex and (RequestedCount == 0 or NumberReturned < RequestedCount) then
@@ -337,20 +337,20 @@ local function Search(client,Host,Request,nCompat)
   end
 
   didl = didl..DIDLEnd
-  -- didl = TestDidl  
+  -- didl = TestDidl
     -- NumberReturned = 1
     -- TotalMatches = 1
   print("Returned",StartingIndex,NumberReturned,TotalMatches,Error)
 
-    
-  if Error == 0 then 
+
+  if Error == 0 then
     local Args = { { n = "Result", v = didl }, { n = "NumberReturned", v = tostring(NumberReturned)},
                    { n = "TotalMatches", v = tostring(TotalMatches)}, { n = "UpdateID", v = tostring(UpdateID) } }
     UPnP:SendResponse(client,UPnP:CreateResponse(Schema,"Search",Args))
   else
     UPnP:SendSoapError(client,Error)
   end
-  
+
   return
 end
 
@@ -362,35 +362,35 @@ end
 function ContentDirectory:Invoke(client,Attributes,Request)
   local Action = string.match(Attributes["SOAPACTION"],".+%#([%a%d%-_]+)")
   local Host = tostring(Attributes["host"])
-  
+
   local Compability = nil
   if Attributes["USER-AGENT"] then
     if string.match(Attributes["USER-AGENT"],"Windows%-Media%-Player") then Compability = "WMP"
-    elseif string.match(Attributes["USER-AGENT"],"IPI%/1%.0") then Compability = "IPI" 
+    elseif string.match(Attributes["USER-AGENT"],"IPI%/1%.0") then Compability = "IPI"
     end
   end
   print("Compability=",Compability)
-  
+
   print(Host,"ContentDirectory",Action)
-  if Action == "Browse" then 
+  if Action == "Browse" then
     local BrowseFlag = tostring(UPnP:GetRequestParam(Request,"BrowseFlag"))
     if BrowseFlag == "BrowseDirectChildren" then
-      BrowseChildren(client,Host,Request,Compability) 
+      BrowseChildren(client,Host,Request,Compability)
     elseif BrowseFlag == "BrowseMetadata" then
-      BrowseMetaData(client,Host,Request,Compability) 
+      BrowseMetaData(client,Host,Request,Compability)
     else
       UPnP:SendSoapError(client,710)
     end
-  elseif Action == "Search" then 
-    Search(client,Host,Request,Compability) 
+  elseif Action == "Search" then
+    Search(client,Host,Request,Compability)
   -- elseif Action == "X_GetRemoteSharingStatus" then
-    -- SendResult(client,Action,"0")    
+    -- SendResult(client,Action,"0")
   elseif Action == "GetSortCapabilities" then
-    SendResult(client,Action,"SortCaps","dc:title,upnp:class,upnp:originalTrackNumber")    
+    SendResult(client,Action,"SortCaps","dc:title,upnp:class,upnp:originalTrackNumber")
   elseif Action == "GetSearchCapabilities" then
-    SendResult(client,Action,"SearchCaps","dc:title")    
+    SendResult(client,Action,"SearchCaps","dc:title")
   elseif Action == "GetSystemUpdateID" then
-    SendResult(client,Action,"Id","1")    
+    SendResult(client,Action,"Id","1")
   else
     UPnP:SendSoapError(client,401)
   end
@@ -406,12 +406,12 @@ function ContentDirectory:Subscribe(client,callback,timeout)
           .. "Connection: close\r\n"
           .. "EXT:\r\n"
           .. "\r\n"
-  client:send(r)  
-  
-  local ipaddr,port = client:getpeername()  
+  client:send(r)
+
+  local ipaddr,port = client:getpeername()
   local Args = { { n = "TransferIDs", v = "" }, { n = "SystemUpdateID", v = tostring(SystemUpdateID) } }
   UPnP:SendEvent(callback,"50c95800-e839-4b96-b7ae-779d989e1399",0,Args)
-  
+
 end
 
 function ContentDirectory:Renew(client,sid,timeout)
@@ -424,7 +424,7 @@ function ContentDirectory:Renew(client,sid,timeout)
           .. "Connection: close\r\n"
           .. "EXT:\r\n"
           .. "\r\n"
-  client:send(r)  
+  client:send(r)
 end
 
 function ContentDirectory:Unsubscribe(client,sid)
@@ -435,7 +435,7 @@ function ContentDirectory:Unsubscribe(client,sid)
           .. "Connection: close\r\n"
           .. "EXT:\r\n"
           .. "\r\n"
-  client:send(r)  
+  client:send(r)
 end
 
 
@@ -446,7 +446,7 @@ function ContentDirectory:Description()
   while true do
     local line = f:read()
     if not line then break end
-    t = t .. line .. "\r\n"  
+    t = t .. line .. "\r\n"
   end
   f:close()
   return t

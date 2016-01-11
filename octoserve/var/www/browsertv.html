@@ -9,7 +9,6 @@
 <script type="text/javascript" src="/systeminfo.lua"></script>
 <script type="text/javascript">Octoserve = false;</script>
 <script type="text/javascript" src="/octoserve/serverinfo.js"></script>
-<script type="text/javascript" src="/btvchannels.lua"></script>
 
 <!-- Add page scripts here -->
 <script type="text/javascript">
@@ -29,7 +28,7 @@ if( browserType == "Netscape" )
     for(var i = 0; i < navigator.plugins.length; i++ )
     {
       var t = navigator.plugins[i].name + " " + navigator.plugins[i].version;
-      
+
       if( navigator.plugins[i].name == "VLC Web Plugin" )
       {
         VLCPlugin = navigator.plugins[i];
@@ -41,7 +40,7 @@ if( browserType == "Netscape" )
         {
           VLCPluginValid = true;
         }
-        
+
         break;
       }
     }
@@ -66,7 +65,7 @@ function PlayEvent()
   var id = vlc.playlist.add(t, this.PlayName, options);
   vlc.playlist.playItem(id);
   CurTracks = this.PlayTracks;
-  
+
   document.getElementById("nowplaying").firstChild.nodeValue  = this.PlayName;
   document.getElementById("ac0").disabled  = CurTracks.length < 1;
   document.getElementById("ac1").disabled  = CurTracks.length < 2;
@@ -90,19 +89,19 @@ function MuteAudio()
 function AddRow(table,name,request,tracks)
 {
   var row = document.createElement("tr");
-  
+
     var col = document.createElement("td");
     var txt = document.createTextNode(name);
     col.appendChild(txt);
     row.appendChild(col);
-    
+
     col = document.createElement("td");
     if( RTSPLink )
     {
       var t = "rtsp://"+host+"/"+request;
       var a = document.createElement("a");
       a.setAttribute("href",t);
-      a.appendChild(document.createTextNode("Play"));      
+      a.appendChild(document.createTextNode("Play"));
       col.appendChild(a);
     }
     else
@@ -119,34 +118,105 @@ function AddRow(table,name,request,tracks)
       field.PlayRequest = request;
       field.PlayTracks = tracks;
       field.addEventListener("click",PlayEvent);
-      form.appendChild(field);    
-      
+      form.appendChild(field);
+
       col.appendChild(form);
     }
     row.appendChild(col);
-    
+
   table.appendChild(row);
 }
 
-function NameCompare(a,b)
+function TitleCompare(a,b)
 {
-  if( a.name.toUpperCase() < b.name.toUpperCase() ) return -1;
-  if( a.name.toUpperCase() > b.name.toUpperCase() ) return 1;
+  if( a.Title.toUpperCase() < b.Title.toUpperCase() ) return -1;
+  if( a.Title.toUpperCase() > b.Title.toUpperCase() ) return 1;
   return 0;
 }
 
+var xmlhttp = new XMLHttpRequest();
+var url = "/channellist.lua?select=json";
+
+xmlhttp.onreadystatechange=function()
+{
+    if (xmlhttp.readyState == 4 )
+    {
+      if( xmlhttp.status == 200 )
+         myFunction(xmlhttp.responseText);
+    }
+}
+
+var hasCable = false;
+var hasSat = false;
+var hasTer = false;
+var LastSourceName = "";
+var LastChannelName = "";
+
+function myFunction(response) {
+   var ChannelList = JSON.parse(response);
+
+   var LastSource = 0;
+   var Index = 0;
+
+   if(typeof(Storage) !== "undefined")
+   {
+      try
+      {
+         LastSourceName = localStorage.getItem("LastSourceName");
+         LastChannelName = localStorage.getItem("LastChannelName");
+         if( !LastSourceName ) LastSourceName = "";
+         if( !LastChannelName ) LastChannelName = "";
+      }
+      catch(e)
+      {
+      }
+   }
+
+   document.Source.Select.length = 0;
+   for(var i = 0; i < ChannelList.GroupList.length; i++)
+   {
+      var newChannelList = new Array();
+      for(var j = 0; j < ChannelList.GroupList[i].ChannelList.length; j++ )
+      {
+         if( ( hasSat   && ChannelList.GroupList[i].ChannelList[j].Request.indexOf("dvbs") > 0 ) ||
+             ( hasCable && ChannelList.GroupList[i].ChannelList[j].Request.indexOf("dvbc") > 0 ) ||
+             ( hasTer   && ChannelList.GroupList[i].ChannelList[j].Request.indexOf("dvbt") > 0 ) )
+         {
+            newChannelList.push(ChannelList.GroupList[i].ChannelList[j]);
+         }
+
+      }
+      if( newChannelList.length > 0 )
+      {
+         SourceList[Index] = new Object();
+         SourceList[Index].ChannelList = newChannelList;
+         SourceList[Index].Title = ChannelList.GroupList[i].Title;
+         document.Source.Select.options[Index] = new Option(SourceList[Index].Title,Index, false, true);
+
+         if( LastSourceName.length > 0 )
+         {
+            if( LastSourceName == SourceList[Index].Title ) LastSource = Index;
+         }
+         Index = Index + 1;
+      }
+   }
+   for(var i = 0; i < SourceList.length; i++ )
+   {
+      SourceList[i].ChannelList.sort(TitleCompare);
+   }
+   document.Source.Select.selectedIndex = LastSource;
+   SetSource(LastSource);
+}
 
 function OnLoad()
 {
+
   if( !RTSPLink )
   {
     document.getElementById("Play").style.display = "none";
   }
   if( VLCPluginValid || RTSPLink )
   {
-    var hasCable = false;
-    var hasSat = false;
-    
     for(var i = 0; i < Octoserve.TunerList.length; i++ )
     {
       if( Octoserve.TunerList[i] )
@@ -156,40 +226,12 @@ function OnLoad()
         if( Octoserve.TunerList[i].Desc.indexOf("S/S2") >= 0 ) hasSat = true;
       }
     }
-    
-    document.Source.Select.length = 0;
-    var index = 0
-    if( hasSat )
-    {
-      SourceListSat.sort(NameCompare);
-      for(var i = 0; i < SourceListSat.length; i++ )
-      {
-        SourceList[index] = SourceListSat[i];
-        document.Source.Select.options[index] = new Option(SourceListSat[i].name,index, false, true);
-        index = index + 1;
-      }
-    }
-    
-    if( hasCable )
-    {
-      SourceListCable.sort(NameCompare);
-      for(var i = 0; i < SourceListCable.length; i++ )
-      {
-        SourceList[index] = SourceListCable[i];
-        document.Source.Select.options[index] = new Option(SourceListCable[i].name,index, false, true);
-        index = index + 1;
-      }
-    }
-    
-    for(var i = 0; i < SourceList.length; i++ )
-    {
-      SourceList[i].ChannelList.sort(NameCompare);
-    }
-    
-    
-    document.Source.Select.selectedIndex = 0;
-    SetSource(0);
-    
+    // TODO: differentiate between dvbc and dvbt
+    hasTer = hasCable;
+
+    xmlhttp.open("GET", url, true);
+    xmlhttp.send();
+
   }
   else
   {
@@ -213,7 +255,7 @@ function CreatePlugin()
       document.write('Check for new Version on <a href="http://www.videolan.org">VLC Mediaplayer</a>');
       return;
     }
-    
+
     if( VLCPluginValid )
     {
       document.getElementById("ControlPlugin").style.display = "block";
@@ -238,13 +280,41 @@ function CreatePlugin()
 function SetSource(SourceIndex)
 {
   SelectedSource = SourceIndex;
+  if( SourceList[SourceIndex].Title != LastSourceName )
+  {
+     LastSourceName = SourceList[SourceIndex].Title;
+     LastChannelName = "";
+     if(typeof(Storage) !== "undefined")
+     {
+        try
+        {
+            localStorage.setItem("LastSourceName",LastSourceName);
+        }
+        catch(e)
+        {
+        }
+     }
+  }
+
   document.Channel.Select.length = 0;
   var i = -1;
   for( j = 0; j < SourceList[SourceIndex].ChannelList.length; j++ )
   {
-    document.Channel.Select.options[j] = new Option(SourceList[SourceIndex].ChannelList[j].name,j, false, true);
-    if( i < 0 && SourceList[SourceIndex].ChannelList[j].name.toUpperCase() >= "DAS ERSTE" ) i = j; 
-  }  
+    document.Channel.Select.options[j] = new Option(SourceList[SourceIndex].ChannelList[j].Title,j, false, true);
+    if( i < 0 )
+    {
+      if( LastChannelName.length > 0 )
+      {
+         if( SourceList[SourceIndex].ChannelList[j].Title == LastChannelName ) i = j;
+      }
+      else
+      {
+         if( SourceList[SourceIndex].ChannelList[j].Title.toUpperCase() >= "DAS ERSTE" ) i = j;
+      }
+    }
+
+
+  }
   if( i < 0 ) i = 0;
   document.Channel.Select.selectedIndex = i;
   SetChannel(i);
@@ -253,23 +323,38 @@ function SetSource(SourceIndex)
 function SetChannel(ChannelIndex)
 {
   SelectedChannel = ChannelIndex;
+  if( SourceList[SelectedSource].ChannelList[ChannelIndex].Title != LastChannelName )
+  {
+     LastChannelName = SourceList[SelectedSource].ChannelList[ChannelIndex].Title;
+     if(typeof(Storage) !== "undefined")
+     {
+        try
+        {
+            localStorage.setItem("LastChannelName",LastChannelName);
+        }
+        catch(e)
+        {
+        }
+     }
+  }
+
   var a = document.getElementById("Play");
   if( RTSPLink )
   {
-    var t = "rtsp://"+host+"/"+SourceList[SelectedSource].ChannelList[ChannelIndex].request;
-    a.href = t;    
+    var t = "rtsp://"+host+"/"+SourceList[SelectedSource].ChannelList[ChannelIndex].Request;
+    a.href = t;
   }
   else
   {
-    var t = "rtsp://"+host+"/"+SourceList[SelectedSource].ChannelList[ChannelIndex].request;
+    var t = "rtsp://"+host+"/"+SourceList[SelectedSource].ChannelList[ChannelIndex].Request;
     var vlc = vlcplayer;
     var options = new Array();
     vlc.playlist.clear();
-    var id = vlc.playlist.add(t, SourceList[SelectedSource].ChannelList[ChannelIndex].name, options);
+    var id = vlc.playlist.add(t, SourceList[SelectedSource].ChannelList[ChannelIndex].Title, options);
     vlc.playlist.playItem(id);
-    CurTracks = SourceList[SelectedSource].ChannelList[ChannelIndex].tracks;
-    
-    document.getElementById("nowplaying").firstChild.nodeValue  = SourceList[SelectedSource].ChannelList[ChannelIndex].name;
+    CurTracks = SourceList[SelectedSource].ChannelList[ChannelIndex].Tracks;
+
+    document.getElementById("nowplaying").firstChild.nodeValue  = SourceList[SelectedSource].ChannelList[ChannelIndex].Title;
     document.getElementById("ac0").disabled  = CurTracks.length < 1;
     document.getElementById("ac1").disabled  = CurTracks.length < 2;
     document.getElementById("ac2").disabled  = CurTracks.length < 3;
@@ -301,7 +386,7 @@ function SetChannel(ChannelIndex)
         <!-- Begin Content -->
         <table cellpadding="2px" align="center">
           <tr><td>
-            <div id="ControlPlugin"> 
+            <div id="ControlPlugin">
               <table width="100%">
                 <tr>
                   <td><div align="left" id="nowplaying">&nbsp;</div></td>
@@ -322,10 +407,10 @@ function SetChannel(ChannelIndex)
 
 
           <tr><td>
-            <script type="text/javascript">CreatePlugin();</script></td>        
+            <script type="text/javascript">CreatePlugin();</script></td>
           </td></tr>
           <tr><td>
-            <div id="channeltable"> 
+            <div id="channeltable">
               <table cellpadding="2px" align="center">
                 <tr>
                   <td>Source</td>
@@ -350,12 +435,12 @@ function SetChannel(ChannelIndex)
             </div>
           </td></tr>
           <tr><td>
-            <div id="playlink" align="center" > 
+            <div id="playlink" align="center" >
               <a id="Play" href="">Play</a>
             </div>
           </td></tr>
         </table>
-        
+
         <!-- End Content -->
       </div>
     </td>
