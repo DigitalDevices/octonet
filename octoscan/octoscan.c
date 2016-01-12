@@ -1656,6 +1656,8 @@ void usage() {
 	printf("       if not specified only a single transponder is scanned\n");
 	printf("    --freq=<frequency>, -f <frequency>\n");
 	printf("       frequency in MHz  (required)\n");
+	printf("    --src=<source>, -S <source>\n");
+	printf("       satellite source 1,2,3,4 (required for DVB-S/S2)\n");
 	printf("    --sr=<symbolrate>, -s <symbolrate>\n");
 	printf("       symbolrate in kSymbols (required for DVB-S/S2 and DVB-C)\n");
 	printf("           DVB-S/S2 example: --sr=27500\n");
@@ -1733,6 +1735,7 @@ int main(int argc, char **argv)
 			{"use_nit", no_argument, 0, 'n'},
 			{"freq", required_argument, 0, 'f'},
 			{"sr", required_argument, 0, 's'},
+			{"src", required_argument, 0, 'S'},
 			{"pol", required_argument, 0, 'p'},
 			{"msys", required_argument, 0, 'm'},
 			{"mtype", required_argument, 0, 't'},
@@ -1740,7 +1743,7 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
 		c = getopt_long(argc, argv,
-				"nf:s:p:m:t:?",
+				"nf:s:S:p:m:t:?",
 				long_options, &option_index);
 		if (c==-1)
 			break;
