@@ -186,6 +186,31 @@
     <UBSlot Frequency="1400"/>
     <UBSlot Frequency="1516"/>
   </OutdoorUnit>
+  <OutdoorUnit Name="EXE 159" Manufacturer="Kathrein" Type="Switch" Protocol="EN50607" PinProtected="true">
+    <UBSlot Frequency="974"/>
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXE 1512/2512" Manufacturer="Kathrein" Type="Switch" Protocol="EN50607" PinProtected="true">
+    <UBSlot Frequency="974"/>
+    <UBSlot Frequency="1076"/>
+    <UBSlot Frequency="1178"/>
+    <UBSlot Frequency="1280"/>
+    <UBSlot Frequency="1382"/>
+    <UBSlot Frequency="1484"/>
+    <UBSlot Frequency="1586"/>
+    <UBSlot Frequency="1688"/>
+    <UBSlot Frequency="1790"/>
+    <UBSlot Frequency="1892"/>
+    <UBSlot Frequency="1994"/>
+    <UBSlot Frequency="2096"/>
+  </OutdoorUnit>
   <OutdoorUnit Name="DY 64 1810/2410" Manufacturer="Wisi" Type="Switch">
     <UBSlot Frequency="1178"/>
     <UBSlot Frequency="1280"/>
