@@ -6,13 +6,192 @@
 <link rel="stylesheet" type="text/css" href="/style.css">
 <script type="text/javascript" src="/menu.js"></script>
 <!--  Add included scripts here -->
+<script type="text/javascript" src="/systeminfo.lua"></script>
+<script type="text/javascript">Octoserve = false;</script>
+<script type="text/javascript" src="/octoserve/serverinfo.js"></script>
 
 <!-- Add page scripts here -->
 <script type="text/javascript">
+var hasCable = false;
+var hasSat = false;
+var hasTer = false;
+
+var xmlhttp = new XMLHttpRequest();
+var url = "/channelscan.lua?select=keys";
+
+xmlhttp.onreadystatechange=function()
+{
+    if (xmlhttp.readyState == 4 )
+    {
+      if( xmlhttp.status == 200 )
+         myFunction(xmlhttp.responseText);
+    }
+}
+
+function myFunction(response)
+{
+   var kl = JSON.parse(response);
+
+   document.Cable.Select.length = 0;
+   document.Satellite1.Select.length = 0;
+   document.Satellite2.Select.length = 0;
+   document.Satellite3.Select.length = 0;
+   document.Satellite4.Select.length = 0;
+
+   document.Cable.Select.options[0] = (new Option("-", null, false, true) );
+   document.Satellite1.Select.options[0] = (new Option("-", null, false, true) );
+   document.Satellite2.Select.options[0] = (new Option("-", null, false, true) );
+   document.Satellite3.Select.options[0] = (new Option("-", null, false, true) );
+   document.Satellite4.Select.options[0] = (new Option("-", null, false, true) );
+
+   var iCable = 1;
+   var iSat = 1;
+
+   for(var i = 0; i < kl.KeyList.length; i++)
+   {
+      if( (hasCable && kl.KeyList[i].DVBType.indexOf("C") >= 0) ||
+          (hasTer   && kl.KeyList[i].DVBType.indexOf("T") >= 0) )
+      {
+         var Select = (kl.KeyList[i].Key == "UM");
+         document.Cable.Select.options[iCable] = (new Option(kl.KeyList[i].Title, kl.KeyList[i].Key, false, Select) );
+         iCable += 1;
+      }
+      if( (hasSat && kl.KeyList[i].DVBType.indexOf("S") >= 0) )
+      {
+         var Select = (kl.KeyList[i].Key == "0192");
+         document.Satellite1.Select.options[iSat] = (new Option(kl.KeyList[i].Title, kl.KeyList[i].Key, false, Select) );
+         document.Satellite2.Select.options[iSat] = (new Option(kl.KeyList[i].Title, kl.KeyList[i].Key, false, false) );
+         document.Satellite3.Select.options[iSat] = (new Option(kl.KeyList[i].Title, kl.KeyList[i].Key, false, false) );
+         document.Satellite4.Select.options[iSat] = (new Option(kl.KeyList[i].Title, kl.KeyList[i].Key, false, false) );
+         iSat += 1;
+      }
+   }
+
+   if( iCable > 1 )
+      document.getElementById("trCable").style.display = "table-row";
+   if( iSat > 1 )
+   {
+      document.getElementById("trSat1").style.display = "table-row";
+      document.getElementById("trSat2").style.display = "table-row";
+      document.getElementById("trSat3").style.display = "table-row";
+      document.getElementById("trSat4").style.display = "table-row";
+   }
+
+}
+
+function SetSource(Src,SourceIndex)
+{
+}
+
+function OnLoad()
+{
+   for(var i = 0; i < Octoserve.TunerList.length; i++ )
+   {
+      if( Octoserve.TunerList[i] )
+      {
+         if( Octoserve.TunerList[i].Desc.indexOf("C/T") >= 0 ) hasCable = true;
+         if( Octoserve.TunerList[i].Desc.indexOf("C/C2") >= 0 ) hasCable = true;
+         if( Octoserve.TunerList[i].Desc.indexOf("S/S2") >= 0 ) hasSat = true;
+      }
+   }
+   // TODO: differentiate between dvbc and dvbt
+   hasTer = hasCable;
+
+   xmlhttp.open("GET", url, true);
+   xmlhttp.send();
+
+}
+
+var ScanReq = new XMLHttpRequest();
+
+ScanReq.onreadystatechange=function()
+{
+    if (ScanReq.readyState == 4 )
+    {
+      if( ScanReq.status == 200 )
+         ScanStatus(ScanReq.responseText);
+    }
+}
+
+function GetStatus()
+{
+   ScanReq.open("GET", "/channelscan.lua?select=status", true);
+   ScanReq.send();
+}
+
+function ScanStatus(response)
+{
+   var s = JSON.parse(response);
+   if( s.status == "active" )
+   {
+      document.getElementById("scancount").firstChild.nodeValue = s.count;
+      document.getElementById("scantext").firstChild.nodeValue = s.msg;
+      window.setTimeout(GetStatus,500);
+   }
+   else if( s.status == "busy" )
+   {
+      document.getElementById("scancount").firstChild.nodeValue = "";
+      document.getElementById("scantext").firstChild.nodeValue = "BUSY";
+   }
+   else if( s.status == "done" )
+   {
+      document.getElementById("scancount").firstChild.nodeValue = s.count;
+      document.getElementById("scantext").firstChild.nodeValue = "Channels found";
+   }
+   else
+   {
+      window.setTimeout(GetStatus,500);
+   }
+}
+
+
+function InitiateScan()
+{
+   var param = "";
+   for(var i = 1; i < document.Cable.Select.options.length; i += 1)
+   {
+      if( document.Cable.Select.options[i].selected )
+         param = param + "&key=" + document.Cable.Select.options[i].value;
+   }
+   for(var i = 1; i < document.Satellite1.Select.options.length; i += 1)
+   {
+      if( document.Satellite1.Select.options[i].selected )
+         param = param + "&key=" + document.Satellite1.Select.options[i].value + ".1";
+   }
+   for(var i = 1; i < document.Satellite2.Select.options.length; i += 1)
+   {
+      if( document.Satellite2.Select.options[i].selected )
+         param = param + "&key=" + document.Satellite2.Select.options[i].value + ".2";
+   }
+   for(var i = 1; i < document.Satellite3.Select.options.length; i += 1)
+   {
+      if( document.Satellite3.Select.options[i].selected )
+         param = param + "&key=" + document.Satellite3.Select.options[i].value + ".3";
+   }
+   for(var i = 1; i < document.Satellite4.Select.options.length; i += 1)
+   {
+      if( document.Satellite4.Select.options[i].selected )
+         param = param + "&key=" + document.Satellite4.Select.options[i].value + ".4";
+   }
+
+   if( param != "" )
+   {
+      ScanReq.open("GET", "/channelscan.lua?select=scan" + param + "&sitables=1&sort=1&restartdms=1", true);
+      ScanReq.send();
+      document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+      document.getElementById("scantext").firstChild.nodeValue = "Scanning...";
+   }
+   else
+   {
+      document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+      document.getElementById("scantext").firstChild.nodeValue = "\u00A0";
+   }
+}
+
 </script>
 
 </head>
-<body>
+<body onload="OnLoad()">
 
 <table class="maintable" align="center">
   <colgroup>
@@ -28,6 +207,71 @@
     <td class="content">
       <div>
         <!-- Begin Content -->
+        <table cellpadding="2px" align="center">
+          <tr id="trCable" style="display:none">
+            <td>Cable</td>
+            <td style="text-align:right">
+              <form name="Cable" action="">
+                <select name="Select" size="1" style="width: 300px" onchange="SetSource(0,document.Cable.Select.selectedIndex)" >
+                </select>
+              </form>
+            </td>
+          </tr>
+          <tr id="trSat1" style="display:none">
+            <td>Satellite 1</td>
+            <td style="text-align:right">
+              <form name="Satellite1" action="">
+                <select name="Select" size="1" style="width: 300px" onchange="SetSource(1,document.Satellite1.Select.selectedIndex)" >
+                </select>
+              </form>
+            </td>
+          </tr>
+          <tr id="trSat2" style="display:none">
+            <td>Satellite 2</td>
+            <td style="text-align:right">
+              <form name="Satellite2" action="">
+                <select name="Select" size="1" style="width: 300px" onchange="SetSource(2,document.Satellite2.Select.selectedIndex)" >
+                </select>
+              </form>
+            </td>
+          </tr>
+          <tr id="trSat3" style="display:none">
+            <td>Satellite 3</td>
+            <td style="text-align:right">
+              <form name="Satellite3" action="">
+                <select name="Select" size="1" style="width: 300px" onchange="SetSource(3,document.Satellite3.Select.selectedIndex)" >
+                </select>
+              </form>
+            </td>
+          </tr>
+          <tr id="trSat4" style="display:none">
+            <td>Satellite 4</td>
+            <td style="text-align:right">
+              <form name="Satellite4" action="">
+                <select name="Select" size="1" style="width: 300px" onchange="SetSource(4,document.Satellite4.Select.selectedIndex)" >
+                </select>
+              </form>
+            </td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+            <td style="text-align:right">
+               <form action="">
+                 <input type="Button" value="Start Scan" onclick="InitiateScan()" >
+               </form>
+            </td>
+          </tr>
+          <tr>
+            <td>
+               <div id="scancount" style="text-align:right">&nbsp;</div>
+            </td>
+            <td>
+               <div id="scantext" style="text-align:left">&nbsp;</div>
+            </td>
+          </tr>
+        </table>
+
+        <hr/>
         <table cellpadding="2px" align="center">
           <tr>
             <td>System Channel Database</td>

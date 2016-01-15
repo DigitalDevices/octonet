@@ -55,6 +55,15 @@ local function cmp_title(a,b)
    return a.Title < b.Title
 end
 
+local function Report(count,Title)
+   local f = io.open("/tmp/doscan.lock/doscan.tmp","w+")
+   if f then
+      f:write(count..":"..Title)
+      f:close()
+      os.execute("mv /tmp/doscan.lock/doscan.tmp /tmp/doscan.lock/doscan.msg")
+   end
+end
+
 local keys = {}
 local include_radio     = 1
 local include_encrypted = 0
@@ -63,13 +72,13 @@ local outfile = "/config/ChannelList.json"
 local ipAddr = nil
 local sort = nil
 local include_sitables = nil
+local restart_dms = nil
 
 local a
-
 for _,a in ipairs(arg) do
    local par,val = a:match("(%a+)=(.+)")
    if par == "key" then
-      local key,src = val:match("(%a+),(d+)")
+      local key,src = val:match("(%w+)%.(%d+)")
       if key then
          keys[key] = tonumber(src)
       else
@@ -83,6 +92,8 @@ for _,a in ipairs(arg) do
       sort = val
    elseif par == "sitables" then
       include_sitables = val
+   elseif par == "restartdms" then
+      restart_dms = val
    elseif par == "in" then
       infile = val
    elseif par == "out" then
@@ -102,10 +113,14 @@ ChannelList.GroupList = {}
 
 local Max = 999999
 local Count = 0
+local ChannelCount = 0
+
+Report(ChannelCount,"*")
 
 if tl.SourceList then
    for _,Source in ipairs(tl.SourceList) do
       if keys[Source.Key] then
+         Report(ChannelCount,Source.Title)
          print("Scanning: "..Source.Title)
          local SourceOptions = ""
          if Source.UseNIT then
@@ -162,7 +177,7 @@ if tl.SourceList then
                         end
                         print(line)
                         if line == "END" then
-                           local all_pids = ",0"
+                           local all_pids = "0"
                            if include_sitables then
                               if isencrypted then
                                  all_pids = all_pids..",1"
@@ -170,17 +185,19 @@ if tl.SourceList then
                               all_pids = all_pids..",16,17,18,20"
                            end
                            if #pids > 0 then
-                              all_pids = all_pids .. ",pids"
+                              all_pids = all_pids..","..pids
                            end
-                           local channel = { Title=sname, Service=sid, Request = '?'..Request.."&pids="..pids, Tracks=tracks }
+                           local channel = { Title=sname, Service=sid, Request = '?'..Request.."&pids="..all_pids, Tracks=tracks }
                            local gname = pname
                            if isradio then
                               gname = "Radio - "..gname
                            end
-                           if not isradio or (include_radio > 0) then
+                           if (not isradio or (include_radio > 0)) and (not isencrypted or (include_encrypted > 0)) then
                               local group = GetGroup(ChannelList,gname)
                               if group then
                                  table.insert(group.ChannelList,channel)
+                                 ChannelCount = ChannelCount + 1
+                                 Report(ChannelCount,sname)
                               end
                            end
                            break
@@ -238,3 +255,9 @@ if tl.SourceList then
 
 end
 
+os.execute("mv /tmp/doscan.lock/doscan.msg /tmp/doscan.msg")
+
+if restart_dms then
+   os.execute("/etc/init.d/S92dms restart")
+end
+os.execute("rm -rf /tmp/doscan.lock");
