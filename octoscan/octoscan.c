@@ -131,12 +131,15 @@ struct service {
 	char name[80];
 	char pname[80];
 
-	unsigned int got_pmt : 1;
-	unsigned int got_sdt : 1;
-	unsigned int is_enc  : 1;
+	unsigned int got_pmt 	: 1;
+	unsigned int got_sdt 	: 1;
+	unsigned int ca_mode 	: 1;
+	unsigned int eit_pf 		: 1;
+	unsigned int eit_sched  : 1;
 
 	uint16_t sid;
 	uint16_t tsid;
+	uint16_t onid;
 
 	uint16_t pmt;
 	uint16_t pcr;
@@ -204,7 +207,7 @@ static struct service *get_service(struct tp_info *tpi, uint16_t sid)
 	s = calloc(1, sizeof(struct service));
 	s->sid = sid;
 	snprintf(s->name, sizeof(s->name), "Service %d", sid);
-	snprintf(s->pname, sizeof(s->name), "none");
+	snprintf(s->pname, sizeof(s->name), "~");
 	list_add(&s->link, &tpi->services);
 	return s;
 }
@@ -858,7 +861,6 @@ static int pmt_cb(struct sfilter *sf)
 	s->pcr = get_pid(buf + 8);
 	s->anum = 0;
 	s->pmt = p->pid;
-   s->is_enc = 0;
 	while (c < slen - 4) {
 		eslen = get12(buf + c + 3);
 		epid = get_pid(buf + c + 1);
@@ -874,8 +876,6 @@ static int pmt_cb(struct sfilter *sf)
 		case 0xea: // VC1
 		case 0xd1: // DIRAC
 			s->vpid = epid;
-			if (hasdesc(0x09, buf + c + 5, eslen))
-				s->is_enc = 1;
 			break;
 		case 0x03: // MPEG1
 		case 0x04: // MPEG2
@@ -887,8 +887,6 @@ static int pmt_cb(struct sfilter *sf)
 			if (s->anum < MAX_ANUM)
 				s->apid[s->anum++] = epid;
 			//fprintf(stderr, "  APID %04x", epid);
-			if (hasdesc(0x09, buf + c + 5, eslen))
-				s->is_enc = 1;
 			break;
 		case 0x06:
 			if (hasdesc(0x56, buf + c + 5, eslen))
@@ -899,8 +897,6 @@ static int pmt_cb(struct sfilter *sf)
 				if (s->anum < MAX_ANUM)
 					s->apid[s->anum++] = epid;
 			}
-			if (hasdesc(0x09, buf + c + 5, eslen))
-				s->is_enc = 1;
 			break;
 		case 0x05: // PRIVATE
 			break;
@@ -1023,7 +1019,7 @@ static int pat_cb(struct sfilter *sf)
 			add_sfilter(p->tsi, 0x11, 0x42, pnr, 2, 5);
 		} else {
 			add_sfilter(p->tsi, pid, 0x40, 0, 1, 15);
-			add_sfilter(p->tsi, pid, 0x41, 0, 1, 15);
+			//add_sfilter(p->tsi, pid, 0x41, 0, 1, 15);
 		}
 	}
 	//fprintf(stderr, "\n");
@@ -1130,6 +1126,12 @@ static int sdt_cb(struct sfilter *sf)
 		dll = get12(buf + c + 3);
 
 		s = get_service(p->tsi->stp->tpi, sid);
+		s->onid = onid;
+		s->tsid = tsid;
+		s->eit_sched = ( buf[c + 2] & 0x02 ) >> 1;
+		s->eit_pf    = ( buf[c + 2] & 0x01 );
+		s->ca_mode   = ( buf[c + 3] & 0x10 ) >> 4;
+
 		//printf("sid = %04x, dll = %u\n", sid, dll);
 		for (d = 0; d < dll; d += dl + 2) {
 			doff = c + d + 5;
@@ -1418,6 +1420,8 @@ static void dump_tp(struct tp_info *tpi)
 			printf("BEGIN\n");
 			printf(" PNAME:%s\n",s->pname);
 			printf(" SNAME:%s\n",s->name);
+			printf(" ONID:%d\n",s->onid);
+			printf(" TSID:%d\n",s->tsid);
 			printf(" SID:%d\n",s->sid);
 			printf(" PIDS:%d",s->pmt);
 			uint16_t pcr = s->pcr;
@@ -1455,8 +1459,9 @@ static void dump_tp(struct tp_info *tpi)
 			printf("\n");
 			if ( s->vpid == 0 )
 				printf(" RADIO:1\n");
-			if ( s->is_enc )
+			if ( s->ca_mode )
 				printf(" ENC:1\n");
+			printf(" EIT:%d%d\n",s->eit_pf,s->eit_sched);
 			printf("END\n");
 			fflush(stdout);
 		}
@@ -1769,7 +1774,7 @@ int main(int argc, char **argv)
 			i = 0;
 			while( i < 4 ) {
 				if( strcmp(optarg,pol2str[i]) == 0 ) {
-					tpi.msys = i;
+					tpi.pol = i;
 					break;
 				}
 				i += 1;
