@@ -102,6 +102,15 @@ function OnLoad()
 
 }
 
+function DisableButtons(disabled)
+{
+   document.getElementById("ScanButton").disabled = disabled;
+   document.getElementById("StatusButton").disabled = disabled;
+   document.getElementById("DeleteButton").disabled = disabled;
+   document.getElementById("RestoreButton").disabled = disabled;
+}
+
+
 var ScanReq = new XMLHttpRequest();
 
 ScanReq.onreadystatechange=function()
@@ -110,6 +119,12 @@ ScanReq.onreadystatechange=function()
     {
       if( ScanReq.status == 200 )
          ScanStatus(ScanReq.responseText);
+      else
+      {
+         document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+         document.getElementById("scantext").firstChild.nodeValue = "Error " + ScanReq.status;
+         DisableButtons(false);
+      }
     }
 }
 
@@ -122,31 +137,56 @@ function GetStatus()
 function ScanStatus(response)
 {
    var s = JSON.parse(response);
-   if( s.status == "active" )
+   var done = false;
+   if( s.status )
    {
-      document.getElementById("scancount").firstChild.nodeValue = s.count;
-      document.getElementById("scantext").firstChild.nodeValue = s.msg;
-      window.setTimeout(GetStatus,500);
+      if( s.status == "active" )
+      {
+         document.getElementById("scancount").firstChild.nodeValue = s.count;
+         document.getElementById("scantext").firstChild.nodeValue = s.msg;
+      }
+      else if( s.status == "busy" )
+      {
+         document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+         document.getElementById("scantext").firstChild.nodeValue = "BUSY";
+         done = true;
+      }
+      else if( s.status == "done" )
+      {
+         document.getElementById("scancount").firstChild.nodeValue = s.count;
+         document.getElementById("scantext").firstChild.nodeValue = "Channels found";
+         done = true;
+      }
+      else if( s.status == "deleted" )
+      {
+         document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+         document.getElementById("scantext").firstChild.nodeValue = "Channel list deleted";
+         done = true;
+      }
+      else if( s.status == "restored" )
+      {
+         document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+         if( s.count == 0 )
+            document.getElementById("scantext").firstChild.nodeValue = "Nothing restored";
+         else
+            document.getElementById("scantext").firstChild.nodeValue = "Previous channel list restored";
+         done = true;
+      }
    }
-   else if( s.status == "busy" )
+
+   if( done )
    {
-      document.getElementById("scancount").firstChild.nodeValue = "";
-      document.getElementById("scantext").firstChild.nodeValue = "BUSY";
-   }
-   else if( s.status == "done" )
-   {
-      document.getElementById("scancount").firstChild.nodeValue = s.count;
-      document.getElementById("scantext").firstChild.nodeValue = "Channels found";
+      DisableButtons(false);
    }
    else
-   {
       window.setTimeout(GetStatus,500);
-   }
 }
 
 
 function InitiateScan()
 {
+   DisableButtons(true);
+
    var param = "";
    for(var i = 1; i < document.Cable.Select.options.length; i += 1)
    {
@@ -186,6 +226,26 @@ function InitiateScan()
       document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
       document.getElementById("scantext").firstChild.nodeValue = "\u00A0";
    }
+}
+
+function PollStatus()
+{
+   DisableButtons(true);
+   GetStatus();
+}
+
+function DeleteScan()
+{
+   DisableButtons(true);
+   ScanReq.open("GET", "/channelscan.lua?select=delete", true);
+   ScanReq.send();
+}
+
+function RestoreScan()
+{
+   DisableButtons(true);
+   ScanReq.open("GET", "/channelscan.lua?select=restore", true);
+   ScanReq.send();
 }
 
 </script>
@@ -257,7 +317,8 @@ function InitiateScan()
             <td>&nbsp;</td>
             <td style="text-align:right">
                <form action="">
-                 <input type="Button" value="Start Scan" onclick="InitiateScan()" >
+                 <input id="ScanButton" type="Button" value="Start Scan" onclick="InitiateScan()" >
+                 <input id="StatusButton" type="Button" value="Get Status" onclick="PollStatus()" >
                </form>
             </td>
           </tr>
@@ -267,6 +328,15 @@ function InitiateScan()
             </td>
             <td>
                <div id="scantext" style="text-align:left">&nbsp;</div>
+            </td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+            <td style="text-align:right">
+               <form action="">
+                 <input id="DeleteButton" type="Button" value="Delete Scan" onclick="DeleteScan()" >
+                 <input id="RestoreButton" type="Button" value="Restore Previous Scan" onclick="RestoreScan()" >
+               </form>
             </td>
           </tr>
         </table>

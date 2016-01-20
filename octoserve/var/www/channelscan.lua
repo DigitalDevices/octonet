@@ -56,22 +56,22 @@ local function LoadTransponderList()
 end
 
 if method == "GET" then
-  local filename = nil
-  local contenttype = "application/json; charset=utf-8"
-  local data = nil
+   local filename = nil
+   local contenttype = "application/json; charset=utf-8"
+   local data = nil
 
-  local q,v
-  local params = ""
-  local cmd = ""
-  for q,v in query:gmatch("(%a+)=([%w%.]+)") do
+   local q,v
+   local params = ""
+   local cmd = ""
+   for q,v in query:gmatch("(%a+)=([%w%.]+)") do
       if q == "select" then
          cmd = v
       else
          params = params.." "..q.."="..v
       end
-  end
+   end
 
-  if cmd == "keys" then
+   if cmd == "keys" then
       local tl = LoadTransponderList()
       if tl then
          local kl = { KeyList = { } }
@@ -83,12 +83,17 @@ if method == "GET" then
          local encode = newencoder()
          data = encode(kl)
       end
-  elseif cmd == "scan" then
+   elseif cmd == "scan" then
       local rc = os.execute("mkdir /tmp/doscan.lock")
       if rc ~= 0 then
          data = '{"status":"busy"}'
       else
          data = '{"status":"retry"}'
+         local f = io.open("/tmp/doscan.msg","w+")
+         if f then
+            f:write("Scanning")
+            f:close()
+         end
          os.execute("/var/channels/doscan.lua "..params.." >/tmp/doscan.log 2>&1 &")
       end
    elseif cmd == "status" then
@@ -96,40 +101,75 @@ if method == "GET" then
       local f = io.open("/tmp/doscan.lock/doscan.msg")
       if f then
          js.status = "active"
-      else
-         f = io.open("/tmp/doscan.msg")
-         if f then
-            js.status = "done"
-         else
-            js.status = "retry"
-         end
-      end
-      if f then
          local m = f:read("*l")
          local count,msg = m:match("(%d+):(.*)")
          js.count = count
          js.msg = msg
          f:close()
+      else
+         f = io.open("/tmp/doscan.msg")
+         if f then
+            local m = f:read("*l")
+            local count,msg = m:match("(%d+):(.*)")
+            if count and msg then
+               js.count = count
+               js.msg = msg
+               js.status = "done"
+            else
+               if m == "Scanning" then
+                  js.status = "retry"
+               else
+                  js.status = nil
+               end
+            end
+            f:close()
+         else
+            js.status = ""
+         end
       end
       local encode = newencoder()
       data = encode(js)
-  end
+   elseif cmd == "delete" then
+      local rc = os.execute("mkdir /tmp/doscan.lock")
+      if rc ~= 0 then
+         data = '{"status":"busy"}'
+      else
+         data = '{"status":"deleted"}'
+         os.execute("rm /config/ChannelList.json");
+         os.execute("rm /tmp/doscan.msg");
+         os.execute("rm -rf /tmp/doscan.lock");
+      end
+   elseif cmd == "restore" then
+      local rc = os.execute("mkdir /tmp/doscan.lock")
+      if rc ~= 0 then
+         data = '{"status":"busy"}'
+      else
+         local rc = os.execute("mv /config/ChannelList.bak /config/ChannelList.json");
+         if rc == 0 then
+            data = '{"status":"restored", "count":1}'
+         else
+            data = '{"status":"restored", "count":0}'
+         end
+         os.execute("rm /tmp/doscan.msg");
+         os.execute("rm -rf /tmp/doscan.lock");
+      end
+   end
 
-  if data then
-    http_print(proto.." 200" )
-    http_print("Pragma: no-cache")
-    http_print("Cache-Control: no-cache")
-    http_print("Content-Type: "..contenttype)
-    if filename then
-      http_print('Content-Disposition: filename="'..filename..'"')
-    end
-    http_print(string.format("Content-Length: %d",#data))
-    http_print()
-    http_print(data)
-  else
-    SendError("404","not found")
-  end
+   if data then
+      http_print(proto.." 200" )
+      http_print("Pragma: no-cache")
+      http_print("Cache-Control: no-cache")
+      http_print("Content-Type: "..contenttype)
+      if filename then
+         http_print('Content-Disposition: filename="'..filename..'"')
+      end
+      http_print(string.format("Content-Length: %d",#data))
+      http_print()
+      http_print(data)
+   else
+      SendError("404","not found")
+   end
 
 else
-  SendError("500","What")
+   SendError("500","What")
 end

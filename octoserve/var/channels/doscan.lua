@@ -164,6 +164,8 @@ if tl.SourceList then
                   print(line)
                   local pname = "?"
                   local sname = "?"
+                  local onid = 0
+                  local tsid = 0
                   local sid = 0
                   local pids = ""
                   local tracks= { }
@@ -187,12 +189,18 @@ if tl.SourceList then
                            if #pids > 0 then
                               all_pids = all_pids..","..pids
                            end
-                           local channel = { Title=sname, Service=sid, Request = '?'..Request.."&pids="..all_pids, Tracks=tracks }
+                           local channel = { Title=sname,
+                                             Request = '?'..Request.."&pids="..all_pids,
+                                             Tracks=tracks,
+                                             ID = string.format("%s:%d:%d:%d",Source.Key,onid,tsid,sid) }
+                           if pname == "" then
+                              pname = Source.Title
+                           end
                            local gname = pname
                            if isradio then
                               gname = "Radio - "..gname
                            end
-                           if (not isradio or (include_radio > 0)) and (not isencrypted or (include_encrypted > 0)) then
+                           if ((not isradio) or (include_radio > 0)) and ((not isencrypted) or (include_encrypted > 0)) then
                               local group = GetGroup(ChannelList,gname)
                               if group then
                                  table.insert(group.ChannelList,channel)
@@ -209,8 +217,12 @@ if tl.SourceList then
                            pname = val
                         elseif par == "SNAME" then
                            sname = val
+                        elseif par == "ONID" then
+                           onid = tonumber(val)
+                        elseif par == "TSID" then
+                           tsid = tonumber(val)
                         elseif par == "SID" then
-                           sid = tonumber(value)
+                           sid = tonumber(val)
                         elseif par == "PIDS" then
                            pids = val
                         elseif par == "APIDS" then
@@ -219,6 +231,8 @@ if tl.SourceList then
                               table.insert(tracks,tonumber(track))
                            end
                            tracks[0] = #tracks
+                        elseif par == "ENC" then
+                           isencrypted = true
                         end
                      end
                   elseif line:sub(1,5) == "TUNE:" then
@@ -245,6 +259,9 @@ if tl.SourceList then
    local encode = newencoder()
    cl = encode(ChannelList)
 
+   if outfile == "/config/ChannelList.json" then
+      os.execute("mv /config/ChannelList.json /config/ChannelList.bak")
+   end
    if cl then
       local f = io.open(outfile,"w+")
       if f then
@@ -255,6 +272,7 @@ if tl.SourceList then
 
 end
 
+Report(ChannelCount,"Done")
 os.execute("mv /tmp/doscan.lock/doscan.msg /tmp/doscan.msg")
 
 if restart_dms then
