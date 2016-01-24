@@ -130,38 +130,36 @@ ScanReq.onreadystatechange=function()
 
 function GetStatus()
 {
-   ScanReq.open("GET", "/channelscan.lua?select=status", true);
+   ScanReq.open("GET", "/channelscan.lua?select=status&t=" + Math.random(), true);
    ScanReq.send();
 }
 
 function ScanStatus(response)
 {
    var s = JSON.parse(response);
-   var done = false;
+   var done = true;
    if( s.status )
    {
       if( s.status == "active" )
       {
          document.getElementById("scancount").firstChild.nodeValue = s.count;
          document.getElementById("scantext").firstChild.nodeValue = s.msg;
+         done = false;
       }
       else if( s.status == "busy" )
       {
          document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
          document.getElementById("scantext").firstChild.nodeValue = "BUSY";
-         done = true;
       }
       else if( s.status == "done" )
       {
          document.getElementById("scancount").firstChild.nodeValue = s.count;
          document.getElementById("scantext").firstChild.nodeValue = "Channels found";
-         done = true;
       }
       else if( s.status == "deleted" )
       {
          document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
          document.getElementById("scantext").firstChild.nodeValue = "Channel list deleted";
-         done = true;
       }
       else if( s.status == "restored" )
       {
@@ -170,7 +168,10 @@ function ScanStatus(response)
             document.getElementById("scantext").firstChild.nodeValue = "Nothing restored";
          else
             document.getElementById("scantext").firstChild.nodeValue = "Previous channel list restored";
-         done = true;
+      }
+      else if( s.status == "retry" )
+      {
+         done = false;
       }
    }
 
@@ -216,8 +217,9 @@ function InitiateScan()
 
    if( param != "" )
    {
-      ScanReq.open("GET", "/channelscan.lua?select=scan" + param + "&sitables=1&sort=1&restartdms=1", true);
-      ScanReq.send();
+      ScanReq.open("POST", "/channelscan.lua", true);
+      ScanReq.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      ScanReq.send("select=scan" + param + "&sitables=1&sort=1&restartdms=1");
       document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
       document.getElementById("scantext").firstChild.nodeValue = "Scanning...";
    }
@@ -237,15 +239,16 @@ function PollStatus()
 function DeleteScan()
 {
    DisableButtons(true);
-   ScanReq.open("GET", "/channelscan.lua?select=delete", true);
-   ScanReq.send();
+   ScanReq.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+   ScanReq.send("select=delete");
 }
 
 function RestoreScan()
 {
    DisableButtons(true);
-   ScanReq.open("GET", "/channelscan.lua?select=restore", true);
-   ScanReq.send();
+   ScanReq.open("POST", "/channelscan.lua", true);
+   ScanReq.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+   ScanReq.send("select=restore");
 }
 
 </script>

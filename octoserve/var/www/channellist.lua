@@ -70,44 +70,52 @@ function CreateM3U(host)
    return table.concat(m3u)
 end
 
-function JSONSource(host,SourceList,Title,System)
-   local json = {}
-   local src = ""
-   local sep1 = "\n"
-   local sep2 = "\n"
+local function CompareTitle(a,b)
+   return a.Title < b.Title
+end
 
-   table.insert(json,' "'..Title..'": [')
-   sep1 = "\n"
+function Legacy2JSON()
+   local newencoder = require("lunajson.encoder")
+   local SourceList = LoadSourceList()
+   local ChannelList = {}
+   ChannelList.GroupList = {}
+   local Group
+   local Channel
+   local f,c
+
    for _,f in pairs(SourceList) do
-      if not System or f.system == System or f.system == System.."2" then
-         table.insert(json,sep1)
-         sep1 = ",\n"
-         table.insert(json,'  {\n')
-         table.insert(json,'   "Title": "'..f.title..'",\n')
-         table.insert(json,'   "ChannelList": [')
+      Group = { Title=f.title, ChannelList = { } }
+      table.insert(ChannelList.GroupList,Group)
 
-         if System == "dvbs" then
-            src = 'src='..f.src..'&'
+      if f.system == "dvbs" or f.system == "dvbs2" then
+         src = 'src='..f.src..'&'
+      end
+      for _,c in ipairs(f.ChannelList) do
+         local tracks = {}
+         local track
+         for track in c.tracks:gmatch("%d+") do
+            table.insert(tracks,tonumber(track))
          end
+         tracks[0] = #tracks
 
-         sep2 = "\n"
-         for _,c in ipairs(f.ChannelList) do
-            table.insert(json,sep2)
-            sep2 = ",\n"
-            table.insert(json,'     {\n')
-            table.insert(json,'      "Title": "'..string.gsub(c.title,'"','\\"')..'",\n')
-            table.insert(json,'      "Request": "?'..src..c.request..'",\n')
-            table.insert(json,'      "Tracks": ['..c.tracks..']\n')
-            table.insert(json,'     }')
-         end
+         Channel = { Title=c.title,
+                     Request = '?'..src..c.request,
+                     Tracks=tracks }
 
-         table.insert(json,'\n    ]\n')
-         table.insert(json,'  }')
+         table.insert(Group.ChannelList,Channel)
       end
    end
-   table.insert(json,'\n ]')
 
-   return table.concat(json)
+   for _,Group in ipairs(ChannelList.GroupList) do
+      table.sort(Group.ChannelList,CompareTitle)
+      Group.ChannelList[0] = #Group.ChannelList
+   end
+   table.sort(ChannelList.GroupList,CompareTitle)
+   ChannelList.GroupList[0] = #ChannelList.GroupList
+
+   local encode = newencoder()
+   local data = encode(ChannelList)
+   return data
 end
 
 function CreateJSON(host)
@@ -117,17 +125,7 @@ function CreateJSON(host)
       data = file:read("*a")
       file:close()
    else
-      local SourceList = LoadSourceList()
-      local json = {}
-      table.insert(json,"{\n")
-
-      table.insert(json,JSONSource(host,SourceList,"GroupList",nil) .. "\n")
---~       table.insert(json,JSONSource(host,SourceList,"SourceListSat","dvbs") .. ",\n")
---~       table.insert(json,JSONSource(host,SourceList,"SourceListCable","dvbc") .. ",\n")
---~       table.insert(json,JSONSource(host,SourceList,"SourceListTer","dvbt") .. "\n")
-
-      table.insert(json,"}\n")
-      data = table.concat(json)
+      data = Legacy2JSON()
    end
    return data
 end
@@ -160,6 +158,7 @@ if method == "GET" then
     contenttype = "text/m3u; charset=utf-8"
     data = CreateM3U(host)
   elseif string.match(query,"select=json") then
+    filename = "ChannelList.json"
     contenttype = "application/json; charset=utf-8"
     data = CreateJSON(host)
   end

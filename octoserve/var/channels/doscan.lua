@@ -51,7 +51,20 @@ local function GetGroup(ChannelList,Title)
    return Group
 end
 
-local function cmp_title(a,b)
+local function CompareTitle(a,b)
+   if a.Order then
+      if b.Order then
+         if a.Order == b.Order then
+            return a.Title < b.Title
+         else
+            return a.Order < b.Order
+         end
+      else
+         return true
+      end
+   elseif b.Order then
+      return false
+   end
    return a.Title < b.Title
 end
 
@@ -108,8 +121,39 @@ if not ipAddr then
 end
 local tl = LoadTransponderList(infile)
 
+local CIMappings = {}
+
+if tl.CIMapList then
+   local CIMap
+   local ID
+   for _,CIMap in ipairs(tl.CIMapList) do
+      for _,ID in ipairs(CIMap.CIMappings) do
+         CIMappings[ID] = CIMap
+      end
+   end
+end
+
+local ChannelOverwrites = {}
+if tl.ChannelOverwriteList then
+   local ChannelOverwrite
+   for _,ChannelOverwrite in ipairs(tl.ChannelOverwriteList) do
+      ChannelOverwrites[ChannelOverwrite.ID] = ChannelOverwrite
+   end
+end
+
 local ChannelList = {}
 ChannelList.GroupList = {}
+
+if tl.GroupList then
+   local Group
+   local Order
+   for _,Group in ipairs(tl.GroupList) do
+      local g = GetGroup(ChannelList,Group.Title)
+      if Group.Order then
+         g.Order = Group.Order
+      end
+   end
+end
 
 local Max = 999999
 local Count = 0
@@ -118,16 +162,14 @@ local ChannelCount = 0
 Report(ChannelCount,"*")
 
 if tl.SourceList then
+   local Source
    for _,Source in ipairs(tl.SourceList) do
       if keys[Source.Key] then
          Report(ChannelCount,Source.Title)
          print("Scanning: "..Source.Title)
          local SourceOptions = ""
-         if Source.UseNIT then
-            SourceOptions = SourceOptions.."--use_nit "
-         end
          if Source.DVBType == "S" then
-            SourceOptions = '--src='..keys[Source.Key]
+            SourceOptions = '--src='..keys[Source.Key].." "
          end
 
          for _,Transponder in ipairs(Source.TransponderList) do
@@ -152,9 +194,14 @@ if tl.SourceList then
                end
             end
 
+            local Options = SourceOptions
+            if Transponder.UseNIT then
+               Options = SourceOptions.."--use_nit "
+            end
+
             print("--------------------------------------------------------------")
-            print('octoscan '..SourceOptions..Params..' '..ipAddr)
-            local octoscan = io.popen('octoscan '..SourceOptions..' '..Params..' '..ipAddr,"r")
+            print('octoscan '..Options..Params..' '..ipAddr)
+            local octoscan = io.popen('octoscan '..Options..Params..' '..ipAddr,"r")
             if octoscan then
                while true do
                   local line = octoscan:read("*l")
@@ -181,18 +228,24 @@ if tl.SourceList then
                         if line == "END" then
                            local all_pids = "0"
                            if include_sitables then
-                              if isencrypted then
-                                 all_pids = all_pids..",1"
-                              end
+--~                               if isencrypted then
+--~                                  all_pids = all_pids..",1"
+--~                               end
                               all_pids = all_pids..",16,17,18,20"
                            end
-                           if #pids > 0 then
-                              all_pids = all_pids..","..pids
+                           local cireq = ""
+                           local ID = string.format("%s:%d:%d:%d",Source.Key,onid,tsid,sid)
+                           if isencrypted then
+                              local CIMap = CIMappings[ID]
+                              if CIMap then
+                                 local pmt = pids:match("(%d+),?")
+                                 if pmt then
+                                    cireq = "&x_ci="..CIMap.Slot.."&x_pmt="..pmt.."."..sid
+                                    isencrypted = false
+                                 end
+                              end
                            end
-                           local channel = { Title=sname,
-                                             Request = '?'..Request.."&pids="..all_pids,
-                                             Tracks=tracks,
-                                             ID = string.format("%s:%d:%d:%d",Source.Key,onid,tsid,sid) }
+
                            if pname == "" then
                               pname = Source.Title
                            end
@@ -200,6 +253,29 @@ if tl.SourceList then
                            if isradio then
                               gname = "Radio - "..gname
                            end
+
+                           local Order = none
+                           local ChannelOverwrite = ChannelOverwrites[ID]
+                           if ChannelOverwrite then
+                              Order = ChannelOverwrite.Order
+                              if ChannelOverwrite.Group then
+                                 gname = ChannelOverwrite.Group
+                              end
+                              if ChannelOverwrite.pids then
+                                 gname = ChannelOverwrite.pids
+                              end
+                              if ChannelOverwrite.Title then
+                                 sname = ChannelOverwrite.Title
+                              end
+                           end
+
+                           if #pids > 0 then
+                              all_pids = all_pids..","..pids
+                           end
+                           local channel = { Title=sname,
+                                             Request = '?'..Request..cireq.."&pids="..all_pids,
+                                             Tracks=tracks,
+                                             ID=ID, Order=Order  }
                            if ((not isradio) or (include_radio > 0)) and ((not isencrypted) or (include_encrypted > 0)) then
                               local group = GetGroup(ChannelList,gname)
                               if group then
@@ -247,13 +323,20 @@ if tl.SourceList then
 
    for _,group in ipairs(ChannelList.GroupList) do
       if sort then
-         table.sort(group.ChannelList,cmp_title)
+         table.sort(group.ChannelList,CompareTitle)
+      end
+      for _,channel in ipairs(group.ChannelList) do
+         channel.Order = nil
       end
       group.ChannelList[0] = #group.ChannelList
    end
    if sort then
-      table.sort(ChannelList.GroupList,cmp_title)
+      table.sort(ChannelList.GroupList,CompareTitle)
    end
+   for _,group in ipairs(ChannelList.GroupList) do
+      group.Order = nil
+   end
+
    ChannelList.GroupList[0] = #ChannelList.GroupList
 
    local encode = newencoder()

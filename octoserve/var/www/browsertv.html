@@ -127,12 +127,12 @@ function AddRow(table,name,request,tracks)
   table.appendChild(row);
 }
 
-function TitleCompare(a,b)
-{
-  if( a.Title.toUpperCase() < b.Title.toUpperCase() ) return -1;
-  if( a.Title.toUpperCase() > b.Title.toUpperCase() ) return 1;
-  return 0;
-}
+// function TitleCompare(a,b)
+// {
+//   if( a.Title.toUpperCase() < b.Title.toUpperCase() ) return -1;
+//   if( a.Title.toUpperCase() > b.Title.toUpperCase() ) return 1;
+//   return 0;
+// }
 
 var xmlhttp = new XMLHttpRequest();
 var url = "/channellist.lua?select=json";
@@ -200,10 +200,10 @@ function myFunction(response) {
          Index = Index + 1;
       }
    }
-   for(var i = 0; i < SourceList.length; i++ )
-   {
-      SourceList[i].ChannelList.sort(TitleCompare);
-   }
+   // for(var i = 0; i < SourceList.length; i++ )
+   // {
+   //    SourceList[i].ChannelList.sort(TitleCompare);
+   // }
    document.Source.Select.selectedIndex = LastSource;
    SetSource(LastSource);
 }
