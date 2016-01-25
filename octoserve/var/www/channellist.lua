@@ -118,7 +118,7 @@ function Legacy2JSON()
    return data
 end
 
-function CreateJSON(host)
+function CreateJSON()
    local data = nil
    local file = io.open("/config/ChannelList.json")
    if file then
@@ -130,9 +130,26 @@ function CreateJSON(host)
    return data
 end
 
+function TransponderList(user)
+   local data = nil
+   local file
+   if user then
+      file = io.open("/config/TransponderList.json","r")
+   end
+   if not file then
+      file = io.open("/var/channels/TransponderList.json","r")
+   end
+   if file then
+      data = file:read("*a")
+      file:close()
+   end
+   return data
+end
+
 function LoadSourceList()
    local db = require("DataBase")
    local SourceList = {}
+   local f,c
 
    for _,f in ipairs(db.SourceList) do
      f.ChannelList = {}
@@ -160,7 +177,15 @@ if method == "GET" then
   elseif string.match(query,"select=json") then
     filename = "ChannelList.json"
     contenttype = "application/json; charset=utf-8"
-    data = CreateJSON(host)
+    data = CreateJSON()
+  elseif string.match(query,"select=stl") then
+    filename = "TransponderList.json"
+    contenttype = "application/json; charset=utf-8"
+    data = TransponderList(false)
+  elseif string.match(query,"select=tl") then
+    filename = "TransponderList.json"
+    contenttype = "application/json; charset=utf-8"
+    data = TransponderList(true)
   end
 
   if data then

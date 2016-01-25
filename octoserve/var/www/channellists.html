@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE HTML>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -107,7 +107,9 @@ function DisableButtons(disabled)
    document.getElementById("ScanButton").disabled = disabled;
    document.getElementById("StatusButton").disabled = disabled;
    document.getElementById("DeleteButton").disabled = disabled;
+   document.getElementById("DeleteAllButton").disabled = disabled;
    document.getElementById("RestoreButton").disabled = disabled;
+   document.getElementById("UploadButton").disabled = disabled;
 }
 
 
@@ -168,6 +170,16 @@ function ScanStatus(response)
             document.getElementById("scantext").firstChild.nodeValue = "Nothing restored";
          else
             document.getElementById("scantext").firstChild.nodeValue = "Previous channel list restored";
+      }
+      else if( s.status == "error" )
+      {
+         document.getElementById("scancount").firstChild.nodeValue = "Error";
+         document.getElementById("scantext").firstChild.nodeValue = s.msg;
+      }
+      else if( s.status == "updated" )
+      {
+         document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+         document.getElementById("scantext").firstChild.nodeValue = s.msg + " updated";
       }
       else if( s.status == "retry" )
       {
@@ -236,11 +248,12 @@ function PollStatus()
    GetStatus();
 }
 
-function DeleteScan()
+function DeleteScan(all)
 {
    DisableButtons(true);
+   ScanReq.open("POST", "/channelscan.lua", true);
    ScanReq.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-   ScanReq.send("select=delete");
+   ScanReq.send("select=delete" + (all ? "&all=true" : ""));
 }
 
 function RestoreScan()
@@ -251,15 +264,32 @@ function RestoreScan()
    ScanReq.send("select=restore");
 }
 
+
+function Uploader(event)
+{
+   event.preventDefault();
+   document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+   document.getElementById("scantext").firstChild.nodeValue = "\u00A0";
+   var fileSelect = document.getElementById("UploadList");
+   if( fileSelect.files.length > 0 )
+   {
+      var formData = new FormData();
+      formData.append('filename', fileSelect.files[0], fileSelect.files[0].name)
+      DisableButtons(true);
+      ScanReq.open("POST", "/channelscan.lua", true);
+      ScanReq.send(formData);
+   }
+}
+
 </script>
 
 </head>
 <body onload="OnLoad()">
 
-<table class="maintable" align="center">
+<table class="maintable">
   <colgroup>
-    <col width="182px"/>
-    <col width="728px"/>
+    <col style="width: 182px"/>
+    <col style="width: 728px"/>
   </colgroup>
   <tr><td class="maintd" colspan="2">
     <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
@@ -270,7 +300,7 @@ function RestoreScan()
     <td class="content">
       <div>
         <!-- Begin Content -->
-        <table cellpadding="2px" align="center">
+        <table cellpadding="2px" class="center-div">
           <tr id="trCable" style="display:none">
             <td>Cable</td>
             <td style="text-align:right">
@@ -342,10 +372,34 @@ function RestoreScan()
                </form>
             </td>
           </tr>
+          <tr>
+            <td colspan="2" style="text-align:right">
+              <form action="" method="post" enctype="multipart/form-data" onsubmit="Uploader(event)">
+                <input id="UploadList" type="file" name="filename" value="*.json" size="30" accept=".json">
+                <input id="UploadButton" type="submit" value="Upload">
+              </form>
+            </td>
+          </tr>
         </table>
+        <hr/>
+        <div style="text-align: center">
+            <h4>Downloads</h4>
+            Channel List:
+               &nbsp;<a href="/channellist.lua?select=json">JSON</a>
+               &nbsp;<a href="/channellist.lua?select=m3u">M3U</a>
+            <br/>
+            Transponder List:
+               &nbsp;<a href="/channellist.lua?select=tl">Current</a>
+               &nbsp;<a href="/channellist.lua?select=stl">Default</a>
+               <br/>
+               <form action="">
+                 <input id="DeleteAllButton" type="Button" value="Delete All" onclick="DeleteScan(true)" >
+               </form>
+        </div>
 
         <hr/>
-        <table cellpadding="2px" align="center">
+        <h4 style="text-align: center">Old Format Lists</h4>
+        <table cellpadding="2px" class="center-div">
           <tr>
             <td>System Channel Database</td>
             <td>

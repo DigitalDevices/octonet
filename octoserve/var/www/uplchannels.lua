@@ -48,7 +48,7 @@ if not string.match(ctype,"multipart/form%-data") then
   return
 end
 
-local boundary = string.match(ctype,"boundary=(.*)") 
+local boundary = string.match(ctype,"boundary=(.*)")
 if not boundary then
   SendError("404","???")
   return
@@ -66,25 +66,32 @@ while true do
 end
 
 data = io.stdin:read("*a")
-data = string.sub(data,1,#data - #boundary - 4)
-
-local file = io.open("/tmp/"..filename,"w")
-if file then
-  file:write(data)
-  file:close()
+local i = data:find("--"..boundary,1,true)
+if i then
+   data = data:sub(1,i-1)
+else
+   data = nil
 end
 
-if string.match(filename,"%.tar%.gz$") then
-  os.execute("rm -rf /config/channels;mkdir /config/channels;cd /config/channels;gunzip -c /tmp/"..filename.."|tar -xf -");
-elseif string.match(filename,"%.zip$") then
-  os.execute("rm -rf /config/channels;mkdir /config/channels;cd /config/channels;unzip -q /tmp/"..filename);
-end
+if data then
+   local file = io.open("/tmp/"..filename,"w")
+   if file then
+     file:write(data)
+     file:close()
+   end
 
-os.remove("/tmp/"..filename)
+   if string.match(filename,"%.tar%.gz$") then
+     os.execute("rm -rf /config/channels;mkdir /config/channels;cd /config/channels;gunzip -c /tmp/"..filename.."|tar -xf -");
+   elseif string.match(filename,"%.zip$") then
+     os.execute("rm -rf /config/channels;mkdir /config/channels;cd /config/channels;unzip -q /tmp/"..filename);
+   end
+
+   os.remove("/tmp/"..filename)
+end
 
 -- TODO validate
 
 http_print(proto.." 303")
 http_print("Location: http://"..host.."/reboot.html")
 http_print()
- 
+
