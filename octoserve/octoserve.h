@@ -309,6 +309,8 @@ struct ossess {
 	int playing;
 	int nr;
 	
+	/* timers */
+	time_t mc_timeout;
 	uint32_t timeout_len;
 	time_t timeout;
  
@@ -324,6 +326,7 @@ struct ossess {
 	uint32_t mcc_port_vec_set;
 	uint32_t port_vec;
 	uint32_t port_vec_set;
+
 };
 
 enum {
@@ -487,8 +490,8 @@ struct octoserve {
 	uint32_t igmp_mode;
 	uint32_t igmp_tag; 
 	uint32_t igmp_timeout; 
-	uint32_t igmp_robust; 
-
+	uint32_t igmp_robust;
+	
 	int mld_sock;
 	int has_switch;
 	int strict;

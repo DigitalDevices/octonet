@@ -51,7 +51,11 @@ void proc_igmp(struct octoserve *os, uint8_t *b, int l, uint8_t *macheader)
 	if (hl + 1 > l)
 		return;
 	
-	//dump(b, l);
+//22:45:32.073241 IP edge > 239.7.1.1: igmp v2 report 239.7.1.1
+//0x0000:  0100 5e07 0101 089e 01b2 03c9 0800 46c0
+//0x0010:  0020 0000 4000 0102 3159 c0a8 020e ef07
+//0x0020:  0101 9404 0000 1600 f9f6 ef07 0101
+	dump(b, l);
 	sprintf(sd, "%03d.%03d.%03d.%03d -> %03d.%03d.%03d.%03d", 
 		b[12], b[13], b[14], b[15],
 		b[16], b[17], b[18], b[19]);
@@ -82,7 +86,8 @@ void proc_igmp(struct octoserve *os, uint8_t *b, int l, uint8_t *macheader)
 		s = (uint8_t *) &(((struct sockaddr_in *) &os->ssdp.sadr)->sin_addr);
 		a1 = (b[12] << 24) | (b[13] << 16) | (b[14] << 8) | b[15];
 		a2 = (s[0] << 24) | (s[1] << 16) | (s[2] << 8) | s[3];
-		dbgprintf(DEBUG_IGMP, "%08x < %08x ? %s\n", a1, a2, (a1 < a2) ? "yes" : "no");
+		dbgprintf(DEBUG_IGMP, "%08x < %08x ? %s\n", a1, a2,
+			  (a1 < a2) ? "yes" : "no");
 		if (a1 < a2) {
 			/* somebody else with lower IP is already sending queries */
 			os->igmp_mode = 3;
@@ -92,8 +97,7 @@ void proc_igmp(struct octoserve *os, uint8_t *b, int l, uint8_t *macheader)
 			dbgprintf(DEBUG_IGMP, "IGMP slave, tag = %u, timeout = %u\n",
 				  os->igmp_tag, os->igmp_timeout);
 		} else
-			dbgprintf(DEBUG_IGMP, "IGMP master, tag = %u, timeout = %u\n",
-				  os->igmp_tag, os->igmp_timeout);
+			dbgprintf(DEBUG_IGMP, "IGMP master, tag = %u\n", os->igmp_tag);
 		break;
 	}
 	case 0x12:
@@ -177,6 +181,18 @@ static void calc_cs(uint8_t *m, uint32_t len)
 	m[3] = cs & 0xff;
 }
 
+/*22:42:32.973024 IP octonet > all-systems.mcast.net: igmp query v3
+0x0000:  0100 5e00 0001 5484 7b00 141a 0800 4600
+0x0010:  0024 6682 4000 0102 db58 c0a8 024f e000
+0x0020:  0001 9404 0000 1164 ec1e 0000 0000 027d
+0x0030:  0000 0000 0000 0000 0000 0000
+22:41:49.696510 IP fuckoff > all-systems.mcast.net: igmp query v2
+0x0000:  0100 5e00 0001 30b5 c2aa 24b6 0800 46c0
+0x0010:  0020 0000 4000 0102 40a6 c0a8 02c8 e000
+0x0020:  0001 9404 0000 1164 ee9b 0000 0000 0000
+0x0030:  0000 0000 0000 0000 0000 0000
+*/
+
 void send_igmp_query(struct octoserve *os, uint8_t *group, uint8_t timeout)
 {
 	uint8_t msg[] = { 0x11, 0x64, 0x00, 0x00, 
@@ -218,7 +234,7 @@ void check_igmp(struct octoserve *os)
 	switch (os->igmp_mode) {
 	case 0:
 		if (tdiff > 124) {
-			os->igmp_timeout = 11;
+			os->igmp_timeout = 10;
 			dbgprintf(DEBUG_IGMP,
 				  "%u: IGMP master query, tag = %u, timeout = %u\n",
 				  t, os->igmp_tag, os->igmp_timeout);
@@ -226,15 +242,18 @@ void check_igmp(struct octoserve *os)
 			send_igmp_query(os, 0, 0);
 			os->igmp_time = t;
 			os->igmp_mode = 1;
+#if 0
 			if (os->igmp_robust) {
 				os->igmp_robust--;
 				os->igmp_time -= 94;
 			}
+#endif
 		}
 		break;
 	case 1:
 		if (tdiff > os->igmp_timeout) {
-			dbgprintf(DEBUG_IGMP, "%u: IGMP timeout, tag = %u\n", t, os->igmp_tag);
+			dbgprintf(DEBUG_IGMP, "%u: IGMP timeout, tag = %u, tdiff = %u\n",
+				  t, os->igmp_tag, tdiff);
 			os->igmp_mode = 0;
 		}
 		break;

@@ -480,7 +480,7 @@ static void check_mccs(struct ossess *sess)
 		if (tdiff >= 2) {
 			sess->mcc_state = 0;
 			sess->mcc_time = t;
-			printf("%u: mcc_state 2 done, tag = %d\n", t, sess->mcc_tag);
+			printf("%u: mcc_state 3 done, tag = %d\n", t, sess->mcc_tag);
 			update = 1;
 		}
 		break;
@@ -496,6 +496,13 @@ void session_timeout(struct ossess *sess)
 	mtime(&sess->timeout);	
 	sess->timeout += sess->timeout_len;
 	dbgprintf(DEBUG_RTSP, "new timeout %d\n", sess->timeout);
+}
+
+void session_mc_timeout(struct ossess *sess)
+{
+	mtime(&sess->mc_timeout);	
+	sess->timeout += 260;
+	dbgprintf(DEBUG_IGMP, "new mc timeout %d\n", sess->timeout);
 }
 
 void check_session_timeouts(struct octoserve *os)
@@ -567,6 +574,7 @@ static struct ossess *alloc_session(struct octoserve *os)
 			oss->nsfd = -1;
 			oss->timeout_len = 60;
 			session_timeout(oss);
+			session_mc_timeout(oss);
 			LIST_INIT(&oss->mccs);
 			mtime(&oss->mcc_time);
 			dbgprintf(DEBUG_SYS,
@@ -1582,7 +1590,7 @@ void mc_check(struct ossess *sess, int update)
 	for (mcc = sess->mccs.lh_first; mcc; mcc = next) {
 		next = mcc->mcc.le_next;
 		if (((sess->mcc_state == 0) && (sess->mcc_tag != mcc->tag)) ||
-		    (((os->igmp_mode & 1) == 0) && (os->igmp_tag != mcc->gtag))) {
+		    (((os->igmp_mode & 1) == 0) && (os->igmp_tag - mcc->gtag) > 1)) {
 			printf("removed client at %u.%u.%u.%u\n", 
 			       mcc->ip[0], mcc->ip[1], mcc->ip[2], mcc->ip[3]);
 			printf("mcc_tags: %d %d\n", sess->mcc_tag, mcc->tag);
@@ -1638,6 +1646,7 @@ void mc_join(struct octoserve *os, uint8_t *ip, uint8_t *mac, uint8_t *group)
 	if ((sess = match_session(os, group)) == NULL)
 		goto out;
 
+	session_mc_timeout(sess);
 	printf("matched session %d to join %u.%u.%u.%u\n", 
 	       sess->nr, ip[0], ip[1], ip[2], ip[3]);
 	for (mcc = sess->mccs.lh_first; mcc; mcc = mcc->mcc.le_next) 
@@ -2394,7 +2403,8 @@ static int alloc_igmp_raw_socket(struct octoserve *os)
 		{ 0x15, 0, 3, 0x00000800 },
 		{ 0x30, 0, 0, 0x00000017 },
 		{ 0x15, 0, 1, 0x00000002 },
-		{ 0x6, 0, 0, 0x0000ffff },
+		//{ 0x6, 0, 0, 0x0000ffff },
+		{ 0x6, 0, 0, 0x00040000 },
 		{ 0x6, 0, 0, 0x00000000 },
 	};
 	struct sock_fprog sfprog;
@@ -2505,11 +2515,13 @@ static void os_serve(struct octoserve *os)
 		num = select(mfd + 1, &fds, NULL, NULL, &timeout);
 		if (num < 0)
 			break;
+#if 0
 		if (FD_ISSET(os->igmp_sock, &fds)) {
 			n = recvfrom(os->igmp_sock, buf, sizeof(buf), 0, &cadr, &clen);
 			if (n > 0)
 				proc_igmp(os, buf, n, NULL);
 		}
+#endif
 		if (FD_ISSET(os->igmp_rsock, &fds)) {
 			n = recvfrom(os->igmp_rsock, buf, sizeof(buf), 0, &cadr, &clen);
 			if (n > 14)
