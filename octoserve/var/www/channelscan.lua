@@ -159,7 +159,7 @@ local function Keys()
    return data
 end
 
-local function Scan(params)
+local function Scan(cmd,params)
    local data = nil
    local rc = os.execute("mkdir /tmp/doscan.lock")
    if rc ~= 0 then
@@ -171,7 +171,7 @@ local function Scan(params)
          f:write("Scanning")
          f:close()
       end
-      os.execute("/var/channels/doscan.lua "..params.." >/tmp/doscan.log 2>&1 &")
+      os.execute("/var/channels/do"..cmd..".lua "..params.." >/tmp/doscan.log 2>&1 &")
    end
    return data
 end
@@ -336,7 +336,9 @@ end
 if cmd == "keys" then
    data = Keys()
 elseif cmd == "scan" then
-   data = Scan(params)
+   data = Scan("scan",params)
+elseif cmd == "epg" then
+   data = Scan("epgscan",params)
 elseif cmd == "status" then
    data = Status()
 elseif cmd == "delete" then

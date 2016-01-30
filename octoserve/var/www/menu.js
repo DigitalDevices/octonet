@@ -3,59 +3,19 @@
 
 MenuItems = new Array();
 
-MenuItems[0] = new Object();
-MenuItems[0].Text = "Home";
-MenuItems[0].Link = "index.html";
-
-MenuItems[1] = new Object();
-MenuItems[1].Text = "Browser TV";
-MenuItems[1].Link = "browsertv.html";
-
-MenuItems[2] = new Object();
-MenuItems[2].Text = "Stream Status";
-MenuItems[2].Link = "streamstatus.html";
-
-MenuItems[3] = new Object();
-MenuItems[3].Text = "Tuner Status";
-MenuItems[3].Link = "tunerstatus.html";
-
-MenuItems[4] = new Object();
-MenuItems[4].Text = "Unicable Settings";
-MenuItems[4].Link = "scif.html";
-
-MenuItems[5] = new Object();
-MenuItems[5].Text = "LNB Settings";
-MenuItems[5].Link = "lnbsettings.html";
-
-MenuItems[6] = new Object();
-MenuItems[6].Text = "System Settings";
-MenuItems[6].Link = "system.html";
-
-MenuItems[7] = new Object();
-MenuItems[7].Text = "Multicast Setup";
-MenuItems[7].Link = "multicast.html";
-
-MenuItems[8] = new Object();
-MenuItems[8].Text = "Channel Lists";
-MenuItems[8].Link = "channellists.html";
-
-MenuItems[9] = new Object();
-MenuItems[9].Text = "Update";
-MenuItems[9].Link = "update.html";
-
-MenuItems[10] = new Object();
-MenuItems[10].Text = "Reboot";
-MenuItems[10].Link = "reboot.html";
-
-MenuItems[11] = new Object();
-MenuItems[11].Text = "Hardware Monitor";
-MenuItems[11].Link = "monitor.html";
-
-MenuItems[12] = new Object();
-MenuItems[12].Text = "Licenses";
-MenuItems[12].Link = "licenses.html";
-
-// add additional items here
+MenuItems.push( { Text:"Home", Link:"index.html" } );
+MenuItems.push( { Text:"Browser TV", Link:"browsertv.html" } );
+MenuItems.push( { Text:"EPG", Link:"epg.html" } );
+MenuItems.push( { Text:"Stream Status", Link:"streamstatus.html" } );
+MenuItems.push( { Text:"Tuner Status", Link:"tunerstatus.html" } );
+MenuItems.push( { Text:"Unicable Settings", Link:"scif.html" } );
+MenuItems.push( { Text:"LNB Settings", Link:"lnbsettings.html" } );
+MenuItems.push( { Text:"System Settings", Link:"system.html" } );
+MenuItems.push( { Text:"Multicast Setup", Link:"multicast.html" } );
+MenuItems.push( { Text:"Channel Lists", Link:"channellists.html" } );
+MenuItems.push( { Text:"Update", Link:"update.html" } );
+MenuItems.push( { Text:"Hardware Monitor", Link:"monitor.html" } );
+MenuItems.push( { Text:"Licenses", Link:"licenses.html" } );
 
 // ---------------------------------------------------------------
 // Don't touch

@@ -1,12 +1,12 @@
 body {
-	color:#000000;
-	background-color:#000000;
-	margin:0;
+  color:#000000;
+  background-color:#000000;
+  margin:0;
   font-family:Arial,sans-serif;
 }
 
 .maintable {
-	color:#000000;
+  color:#000000;
   background-color:#FFFFFF;
   text-align:center;
   border:0;
@@ -19,7 +19,7 @@ body {
 }
 
 .menutable {
-	color:#000000;
+  color:#000000;
   background-color:#e0e0e0;
   text-align:center;
   border:5px;
@@ -30,7 +30,7 @@ body {
 }
 
 .menucur {
-	color:#e0e0e0;
+  color:#e0e0e0;
   background-color:#000000;
 }
 
@@ -44,7 +44,7 @@ body {
 }
 
 .content {
-	color:#000000;
+  color:#000000;
   background-color:#FFFFF0;
   text-align:left;
   vertical-align:top;
@@ -53,36 +53,36 @@ body {
 }
 
 .table {
-	color:#000000;
+  color:#000000;
   text-align:center;
   border:1px;
 }
 
 .tableleft {
-	color:#000000;
+  color:#000000;
   float:center;
   text-align:left;
   border:1px;
 }
 
 #streamstatus {
-	color:#000000;
+  color:#000000;
   text-align:center;
   border:1px;
   width:90%;
 }
 
 td#streamstatus {
-	color:#000080;
+  color:#000000;
 }
 
 #tunerstatus {
-	color:#000000;
+  color:#000000;
   text-align:center;
   border:1px;
   width:60%;
 }
 
 a img {
-	border:none;
+  border:none;
 }

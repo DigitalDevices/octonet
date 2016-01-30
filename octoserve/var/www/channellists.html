@@ -104,6 +104,7 @@ function OnLoad()
 
 function DisableButtons(disabled)
 {
+   document.getElementById("EpgButton").disabled = disabled;
    document.getElementById("ScanButton").disabled = disabled;
    document.getElementById("StatusButton").disabled = disabled;
    document.getElementById("DeleteButton").disabled = disabled;
@@ -156,7 +157,7 @@ function ScanStatus(response)
       else if( s.status == "done" )
       {
          document.getElementById("scancount").firstChild.nodeValue = s.count;
-         document.getElementById("scantext").firstChild.nodeValue = "Channels found";
+         document.getElementById("scantext").firstChild.nodeValue = s.msg;
       }
       else if( s.status == "deleted" )
       {
@@ -240,6 +241,16 @@ function InitiateScan()
       document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
       document.getElementById("scantext").firstChild.nodeValue = "\u00A0";
    }
+}
+
+function InitiateEPGScan()
+{
+   DisableButtons(true);
+      ScanReq.open("POST", "/channelscan.lua", true);
+      ScanReq.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      ScanReq.send("select=epg");
+      document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+      document.getElementById("scantext").firstChild.nodeValue = "Scanning...";
 }
 
 function PollStatus()
@@ -350,8 +361,9 @@ function Uploader(event)
             <td>&nbsp;</td>
             <td style="text-align:right">
                <form action="">
-                 <input id="ScanButton" type="Button" value="Start Scan" onclick="InitiateScan()" >
                  <input id="StatusButton" type="Button" value="Get Status" onclick="PollStatus()" >
+                 <input id="ScanButton" type="Button" value="Start Channel Scan" onclick="InitiateScan()" >
+                 <input id="EpgButton" type="Button" value="Start EPG Scan" onclick="InitiateEPGScan()" >
                </form>
             </td>
           </tr>
@@ -367,8 +379,8 @@ function Uploader(event)
             <td>&nbsp;</td>
             <td style="text-align:right">
                <form action="">
-                 <input id="DeleteButton" type="Button" value="Delete Scan" onclick="DeleteScan()" >
-                 <input id="RestoreButton" type="Button" value="Restore Previous Scan" onclick="RestoreScan()" >
+                 <input id="DeleteButton" type="Button" value="Delete Channel List" onclick="DeleteScan()" >
+                 <input id="RestoreButton" type="Button" value="Restore Previous Channel List" onclick="RestoreScan()" >
                </form>
             </td>
           </tr>

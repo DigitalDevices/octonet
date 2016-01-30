@@ -1,0 +1,304 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+
+<!-- Add page scripts here -->
+<style>
+.event_scroll {
+  text-align:right;
+  margin-left: auto;
+  margin-right: 2px;
+  width: 650px;
+}
+
+.event {
+  color:#000000;
+  background-color:#FFC0FF;
+  text-align:left;
+  margin-top: 3px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 650px;
+  border-radius: 15px;
+  padding: 10px;
+}
+
+.event_date {
+  display: inline-block;
+  font-weight: bold;
+  width: 330px;
+  text-align:left;
+}
+.event_duration {
+  display: inline-block;
+  width: 100px;
+  text-align:left;
+}
+.event_channel {
+  display: inline-block;
+  width: 200px;
+  text-align:left;
+}
+.event_name {
+  display: block;
+  font-size: 1em;
+  font-weight: bold;
+  text-align:left;
+}
+.event_text {
+  display: block;
+  margin-left: 20px;
+  text-align:left;
+}
+
+.message {
+  color:#FF0000;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-align:center;
+  margin-top: 3px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 650px;
+}
+</style>
+
+<script type="text/javascript">
+
+var reqChannelList = new XMLHttpRequest();
+reqChannelList.onreadystatechange=function()
+{
+    if (reqChannelList.readyState == 4 )
+    {
+      if( reqChannelList.status == 200 )
+         ChannelListResponse(reqChannelList.responseText);
+      else if( reqChannelList.status == 404 )
+         document.getElementById("message").firstChild.nodeValue = "Error loading channellist";
+    }
+}
+
+var reqEPG = new XMLHttpRequest();
+reqEPG.onreadystatechange=function()
+{
+    if (reqEPG.readyState == 4 )
+    {
+      if( reqEPG.status == 200 )
+         EPGResponse(reqEPG.responseText);
+      else if ( reqEPG.status == 404 )
+         document.getElementById("message").firstChild.nodeValue = "EPG not available";
+    }
+}
+
+var EPG = null;
+var ChannelList = null;
+var ChannelLookup = null;
+
+function LoadEPG()
+{
+   reqEPG.open("GET", "/epg.lua", true);
+   reqEPG.send();
+}
+
+function ChannelListResponse(response)
+{
+   ChannelList = JSON.parse(response);
+   if( ChannelList.GroupList[0].ChannelList[0].ID )
+   {
+      ChannelLookup = new Object();
+      for(var i = 0; i < ChannelList.GroupList.length; i += 1)
+      {
+         var Group = ChannelList.GroupList[i];
+         for(var j = 0; j < Group.ChannelList.length; j += 1)
+         {
+            ChannelLookup[Group.ChannelList[j].ID] = Group.ChannelList[j];
+         }
+      }
+      LoadEPG();
+   }
+   else
+   {
+      document.getElementById("message").firstChild.nodeValue = "EPG not available";
+   }
+}
+
+function CompareTime(a,b)
+{
+   //~ if( a.Time > b.Time ) return 1;
+   //~ if( a.Time < b.Time ) return -1;
+   return ( a.Time > b.Time ) ? 1 : -1;
+}
+
+var Position = 2000;
+
+function EPGResponse(response)
+{
+   try
+   {
+      EPG = JSON.parse(response);
+      document.getElementById("message").firstChild.nodeValue = "Sorting...";
+
+      EPG.EventList.sort(CompareTime);
+
+      document.getElementById("message").firstChild.nodeValue = EPG.EventList.length + " Events";
+
+      document.getElementById("message").style.display = "none";
+      document.getElementById("events").style.display = "block";
+      Current();
+   }
+   catch(e)
+   {
+      document.getElementById("message").firstChild.nodeValue = e.message;
+   }
+}
+
+function OnLoad()
+{
+   document.getElementById("events").style.display = "none";
+   EPG = null;
+   var msg = document.getElementById("message");
+   msg.firstChild.nodeValue = "Loading...";
+   msg.style.display = "block";
+
+   reqChannelList.open("GET", "/channellist.lua?select=json", true);
+   reqChannelList.send();
+}
+
+function Current() {
+   Position = Search(new Date())
+   Scroll(0);
+}
+
+function Scroll(amount)
+{
+   Position += amount;
+   if( Position < 0 )
+      Position = 0;
+   else if( Position + 1 >= EPG.EventList.length )
+      Position = EPG.EventList.length - 5;
+   for( var i = 0; i < 5; i += 1 )
+   {
+      ShowEvent(EPG.EventList[Position+i],i);
+   }
+}
+
+function Search(d)
+{
+   var a = 0;
+   var b = EPG.EventList.length - 1;
+   var i;
+
+   while((b - a) > 1)
+   {
+      i = Math.floor(a + (b - a)/2);
+      d1 = new Date(EPG.EventList[i].Time);
+      if( d1 >= d )
+         b = i;
+      else
+         a = i;
+   }
+   return b;
+}
+
+function ShowEvent(event,index)
+{
+   var box = document.getElementById("event" + index);
+
+   var d = new Date(event.Time);
+   var id = event.ID.match(/[A-Z]+:\d+:\d+:\d+/);
+   var ch = ChannelLookup[id[0]];
+   var Channel = "\u00A0";
+   var Text = "";
+   var Name = "";
+   if( ch ) Channel = ch.Title;
+   if( event.Text ) Text = event.Text;
+   if( event.Name ) Name = event.Name;
+   box.getElementsByClassName("event_date")[0].firstChild.nodeValue = d.toLocaleString();
+   box.getElementsByClassName("event_duration")[0].firstChild.nodeValue = event.Duration;
+   box.getElementsByClassName("event_channel")[0].firstChild.nodeValue = Channel;
+   box.getElementsByClassName("event_name")[0].firstChild.nodeValue = Name;
+   box.getElementsByClassName("event_text")[0].firstChild.nodeValue = Text;
+}
+</script>
+
+</head>
+<body onload="OnLoad()">
+
+<table class="maintable">
+  <colgroup>
+    <col style="width: 182px"/>
+    <col style="width: 728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+        <div id="message" class="message">&nbsp;</div>
+        <div id="events">
+           <div class="event_scroll">
+              <form action="">
+                <input type="Button" value="|<"  onclick="Scroll(-9999999)" >
+                <input type="Button" value="<<<" onclick="Scroll(-500)" >
+                <input type="Button" value="<<"  onclick="Scroll(-50)" >
+                <input type="Button" value="<"   onclick="Scroll(-5)" >
+                <input type="Button" value="[]"  onclick="Current()" >
+                <input type="Button" value=">"   onclick="Scroll(+5)" >
+                <input type="Button" value=">> " onclick="Scroll(+50)" >
+                <input type="Button" value=">>>" onclick="Scroll(+500)" >
+                <input type="Button" value=">|"  onclick="Scroll(+9999999)" >
+              </form>
+           </div>
+           <div id="event0" class="event">
+               <div class="event_date">&nbsp;</div>
+               <div class="event_duration">&nbsp;</div>
+               <div class="event_channel">&nbsp;</div>
+               <div class="event_name">&nbsp;</div>
+               <div class="event_text">&nbsp;</div>
+           </div>
+           <div id="event1" class="event">
+               <div class="event_date">&nbsp;</div>
+               <div class="event_duration">&nbsp;</div>
+               <div class="event_channel">&nbsp;</div>
+               <div class="event_name">&nbsp;</div>
+               <div class="event_text">&nbsp;</div>
+           </div>
+           <div id="event2" class="event">
+               <div class="event_date">&nbsp;</div>
+               <div class="event_duration">&nbsp;</div>
+               <div class="event_channel">&nbsp;</div>
+               <div class="event_name">&nbsp;</div>
+               <div class="event_text">&nbsp;</div>
+           </div>
+           <div id="event3" class="event">
+               <div class="event_date">&nbsp;</div>
+               <div class="event_duration">&nbsp;</div>
+               <div class="event_channel">&nbsp;</div>
+               <div class="event_name">&nbsp;</div>
+               <div class="event_text">&nbsp;</div>
+           </div>
+           <div id="event4" class="event">
+               <div class="event_date">&nbsp;</div>
+               <div class="event_duration">&nbsp;</div>
+               <div class="event_channel">&nbsp;</div>
+               <div class="event_name">&nbsp;</div>
+               <div class="event_text">&nbsp;</div>
+           </div>
+        </div>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

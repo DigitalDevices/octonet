@@ -218,7 +218,7 @@ if tl.SourceList then
                   local tracks= { }
                   local isradio = false
                   local isencrypted = false
-                  if line == "BEGIN" then
+                  if line == "SERVICE" then
                      while true do
                         line = octoscan:read("*l")
                         if not line then
@@ -261,8 +261,8 @@ if tl.SourceList then
                               if ChannelOverwrite.Group then
                                  gname = ChannelOverwrite.Group
                               end
-                              if ChannelOverwrite.pids then
-                                 gname = ChannelOverwrite.pids
+                              if ChannelOverwrite.Pids then
+                                 gname = ChannelOverwrite.Pids
                               end
                               if ChannelOverwrite.Title then
                                  sname = ChannelOverwrite.Title
@@ -355,7 +355,7 @@ if tl.SourceList then
 
 end
 
-Report(ChannelCount,"Done")
+Report(ChannelCount,"Channels found")
 os.execute("mv /tmp/doscan.lock/doscan.msg /tmp/doscan.msg")
 
 if restart_dms then
