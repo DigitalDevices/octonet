@@ -43,7 +43,13 @@ time_t mtime(time_t *t)
 }
 
 static int done = 0;
-static int use_nit = 0;
+static int eit_size = 0;
+static int eit_services = 0;
+static int eit_sections = 0;
+static int eit_events = 0;
+static int eit_shortsize = 0;
+static int eit_extsize = 0;
+static int eit_events_deleted = 0;
 
 char *pol2str[] = {"v", "h", "r", "l"};
 char *msys2str [] = {"undef", "dvbc", "dvbcb", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
@@ -127,14 +133,15 @@ struct ts_info {
 struct service {
 	struct list_head link;
 	struct tp_info *tpi;
+	struct list_head events;
 
 	char name[80];
 	char pname[80];
 
-	unsigned int got_pmt 	: 1;
-	unsigned int got_sdt 	: 1;
-	unsigned int ca_mode 	: 1;
-	unsigned int eit_pf 		: 1;
+	unsigned int got_pmt    : 1;
+	unsigned int got_sdt    : 1;
+	unsigned int ca_mode    : 1;
+	unsigned int eit_pf     : 1;
 	unsigned int eit_sched  : 1;
 
 	uint16_t sid;
@@ -150,11 +157,43 @@ struct service {
 	uint8_t  anum;
 };
 
+struct event {
+	struct list_head link;
+	//~ struct tp_info *tpi;
+
+	uint16_t  onid;
+	uint16_t  tsid;
+	uint16_t  sid;
+	uint16_t  eid;
+
+	uint16_t	 mjd;
+	uint8_t 	 sh;
+	uint8_t   sm;
+	uint8_t   ss;
+	uint8_t   dh;
+	uint8_t   dm;
+	uint8_t 	 ds;
+
+	uint8_t   s_lang[3];
+	uint8_t	 *s_name;
+	uint8_t	 *s_text;
+//	uint8_t   *extented;
+
+	uint8_t	 content;
+
+	uint8_t 	 tid;
+};
+
+#define MAX_EIT_SID 64
+
 struct tp_info {
 	struct list_head link;
 	struct list_head services;
 
 	int type;
+	unsigned int use_nit    : 1;
+	unsigned int scan_eit   : 1;
+
 	uint32_t src;
 
 	uint16_t nid;
@@ -174,6 +213,8 @@ struct tp_info {
 	uint32_t bw;
 	uint32_t fec;
 	uint32_t isi;
+
+	uint16_t eit_sid[MAX_EIT_SID];
 };
 
 struct scantp {
@@ -196,6 +237,33 @@ struct scanip {
 };
 
 
+static void free_event(struct event *e)
+{
+	if (e->s_name) free(e->s_name);
+	if (e->s_text) free(e->s_text);
+	free(e);
+}
+
+static void free_service(struct service *s)
+{
+	struct event *pe,*npe;
+	list_for_each_entry_safe(pe, npe, &s->events, link) {
+		list_del(&pe->link);
+		free_event(pe);
+	}
+	free(s);
+}
+
+static void free_tp_info(struct tp_info *p)
+{
+	struct service *ps,*nps;
+	list_for_each_entry_safe(ps, nps, &p->services, link) {
+		list_del(&ps->link);
+		free_service(ps);
+	}
+	free(p);
+}
+
 static struct service *get_service(struct tp_info *tpi, uint16_t sid)
 {
 	struct service *s;
@@ -205,6 +273,7 @@ static struct service *get_service(struct tp_info *tpi, uint16_t sid)
 			return s;
 	}
 	s = calloc(1, sizeof(struct service));
+	INIT_LIST_HEAD(&s->events);
 	s->sid = sid;
 	snprintf(s->name, sizeof(s->name), "Service %d", sid);
 	snprintf(s->pname, sizeof(s->name), "~");
@@ -338,7 +407,7 @@ static void send_setup(int s, char *host, char *port, char *tune,
 	(*seq)++;
 	if (len > 0 && len < sizeof(buf)) {
 		sendlen(s, buf, len);
-		//printf("Send: %s\n", buf);
+		//fprintf(stderr, "Send: %s\n", buf);
 	}
 }
 
@@ -358,7 +427,7 @@ static void send_play(int s, char *host, char *port, uint32_t strid,
 	(*seq)++;
 	if (len > 0 && len < sizeof(buf)) {
 		sendlen(s, buf, len);
-		//printf("Send: %s\n", buf);
+		//fprintf(stderr, "Send: %s\n", buf);
 	}
 }
 
@@ -377,7 +446,7 @@ static void send_teardown(int s, char *host, char *port, uint32_t strid,
 	(*seq)++;
 	if (len > 0 && len < sizeof(buf)) {
 		sendlen(s, buf, len);
-		//printf("Send: %s\n", buf);
+		//fprintf(stderr, "Send: %s\n", buf);
 	}
 }
 
@@ -409,13 +478,13 @@ static int get_url(char *url, char **a)
 		strcpy(port, dport);
 	}
 	*a = u + 1;
-	//printf("host %s, port %s\n", host, port);
+	//fprintf(stderr, "host %s, port %s\n", host, port);
 	s = streamsock(host, port, &sadr);
 	if (s < 0)
 		return -1;
 	if (!sockname(&sadr, sname))
 		return -1;
-	//printf("%s\n", sname);
+	//fprintf(stderr, "%s\n", sname);
 	return s;
 }
 
@@ -458,11 +527,11 @@ static int check_ok(int s, char *sid, uint32_t *strid)
 		if (e == l)
 			continue;
 		*e = 0;
-		//printf("%s\n", l);
+		//fprintf(stderr, "%s\n", l);
 		if (!strncasecmp(l, "Session:", 8)) {
 			getarg(l + 8, &a, &ae);
 			*ae = 0;
-			//printf("session = %s\n", a);
+			//fprintf(stderr, "session = %s\n", a);
 			strcpy(sid, a);
 		} else if (!strncasecmp(l, "Transport:", 10)) {
 			char *k;
@@ -476,12 +545,12 @@ static int check_ok(int s, char *sid, uint32_t *strid)
 						return -1;
 					a++;
 					sport2 = strtoul(a, &a, 10);
-					//printf("sports = %d-%d\n", sport, sport2);
+					//fprintf(stderr, "sports = %d-%d\n", sport, sport2);
 				}
 			}
 		} else if (!strncasecmp(l, "com.ses.streamID:", 17)) {
 			*strid = strtoul(l + 17, NULL, 10);
-			//printf("stream id = %d\n", *strid);
+			//fprintf(stderr, "stream id = %d\n", *strid);
 		}
 
 	}
@@ -657,7 +726,7 @@ int add_tp(struct scanip *sip, struct tp_info *tpi_new)
 	if (!tpi)
 		return -1;
 	memcpy(tpi, tpi_new, sizeof(struct tp_info));
-	//printf("added tp freq = %u\n", tpi->freq);
+	//fprintf(stderr, "added tp freq = %u\n", tpi->freq);
 	list_add_tail(&tpi->link, &sip->tps);
 	INIT_LIST_HEAD(&tpi->services);
 	return 0;
@@ -696,12 +765,13 @@ static int add_sfilter(struct ts_info *tsi, uint16_t pid, uint8_t tid, uint16_t 
 	sf->pidi = pidi;
 	sf->tid = tid;
 	sf->ext = ext;
+	sf->use_ext = use_ext;
 	sf->vnr = 0xff;
 	sf->timeout_len = timeout;
 	sf->timeout = mtime(NULL) + sf->timeout_len;
 	list_add_tail(&sf->link, &pidi->sfilters);
 	list_add_tail(&sf->tslink, &pidi->tsi->sfilters);
-	//printf("add_sfilter PID=%u TID=%u EXT=%u\n", pidi->pid, tid, ext);
+	//fprintf(stderr, "add_sfilter PID=%u TID=%u EXT=%u\n", pidi->pid, tid, ext);
 	return 0;
 }
 
@@ -793,7 +863,7 @@ static int update_pids(struct ts_info *tsi)
 	int len, len2, plen;
 	uint32_t pid;
 
-	//printf("tune=%s\n", &scon->tune[0]);
+	//fprintf(stderr, "tune=%s\n", &scon->tune[0]);
 	for (pid = 0, plen = 0; pid < 8192; pid++) {
 		if (tsi->pidi[pid].used) {
 			len2 = snprintf(pids + plen, sizeof(pids) - plen,
@@ -809,7 +879,7 @@ static int update_pids(struct ts_info *tsi)
 	if (!plen)
 		snprintf(pids, sizeof(pids), "=none");
 
-	//printf("pids%s\n",pids);
+	//fprintf(stderr, "pids%s\n",pids);
 
 	len = snprintf(buf, sizeof(buf),
 		       "PLAY rtsp://%s:%s/stream=%u?%s&pids%s RTSP/1.0\r\n"
@@ -821,7 +891,7 @@ static int update_pids(struct ts_info *tsi)
 	scon->seq++;
 	if (len > 0 && len < sizeof(buf)) {
 		sendlen(scon->sock, buf, len);
-		//printf("Send: %s\n", buf);
+		//fprintf(stderr, "Send: %s\n", buf);
 	}
 }
 
@@ -945,6 +1015,9 @@ static int nit_cb(struct sfilter *sf)
 		t.tsid = get16(buf + c);
 		t.onid = get16(buf + c + 2);
 		t.nid = nid;
+		t.use_nit = p->tsi->stp->tpi->use_nit;
+		t.scan_eit = p->tsi->stp->tpi->scan_eit;
+		//t.use_nit = p->tsi->stp->tpi->use_nit;
 		tdl = get12(buf + c + 4);
 		//fprintf(stderr, " tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
 		c += 6;
@@ -963,6 +1036,7 @@ static int nit_cb(struct sfilter *sf)
 			//fprintf(stderr, " freq = %u  pos = %u  sr = %u  fec = %u  \n", freq, pos, sr, fec);
 			//fprintf(stderr, "freq=%u&pol=%s&msys=%s&sr=%u\n",
 			//t.freq, pol2str[t.pol&3], t.type == 6 ? "dvbs2" : "dvbs", t.sr);
+			t.src = p->tsi->stp->tpi->src;
 			add_tp(sip, &t);
 			break;
 		case 0x44:
@@ -1132,12 +1206,23 @@ static int sdt_cb(struct sfilter *sf)
 		s->eit_pf    = ( buf[c + 2] & 0x01 );
 		s->ca_mode   = ( buf[c + 3] & 0x10 ) >> 4;
 
-		//printf("sid = %04x, dll = %u\n", sid, dll);
+		if ( p->tsi->stp->tpi->scan_eit && s->eit_sched /*&& !s->ca_mode*/ ) {
+			int i;
+			for ( i = 0; i < MAX_EIT_SID; i++ ) {
+				if (p->tsi->stp->tpi->eit_sid[0] == 0 || p->tsi->stp->tpi->eit_sid[i] == sid) {
+					eit_services += 1;
+					add_sfilter(p->tsi, 0x12, 0x50, sid, 2, 15);
+					break;
+				}
+			}
+		}
+
+		//fprintf(stderr, "sid = %04x, dll = %u\n", sid, dll);
 		for (d = 0; d < dll; d += dl + 2) {
 			doff = c + d + 5;
 			tag = buf[doff];
 			dl = buf[doff + 1];
-			//printf("desc %02x: %u\n", tag, dl);
+			//fprintf(stderr, "desc %02x: %u\n", tag, dl);
 			if (tag == 0x48) {
 				spnl = buf[doff + 3];
 				snl = buf[doff + 4 + spnl];
@@ -1145,12 +1230,170 @@ static int sdt_cb(struct sfilter *sf)
             s->name[79] = 0x00;
 				en300468_parse_string_to_utf8(s->pname, buf + doff + 4, spnl);
             if( s->pname[79] != 0 )
-               printf("********************************************* PNAME OVERFLOW %d spnl = %d",spnl);
+               fprintf(stderr, "********************************************* PNAME OVERFLOW %d spnl = %d",spnl);
 				en300468_parse_string_to_utf8(s->name, buf + doff + 5 + spnl, snl);
             if( s->name[79] != 0 )
-               printf("********************************************* SNAME OVERFLOW %d snl = %d",snl);
+               fprintf(stderr, "********************************************* SNAME OVERFLOW %d snl = %d",snl);
 				s->got_sdt = 1;
 			}
+		}
+	}
+
+	return 0;
+}
+
+static int eit_cb(struct sfilter *sf,int refresh)
+{
+	struct pid_info *p = sf->pidi;
+	uint8_t *buf=p->buf, tag;
+	uint16_t tid, onid, sid, tsid;
+	uint8_t snr;
+	int slen, dll, c, dl, d, doff, l;
+	uint16_t eid,mjd,teid;
+	struct service *s;
+	struct event e;
+	struct event *pe;
+
+	tid  = buf[0];
+	sid  = get16(buf + 3);
+	tsid = get16(buf + 8);
+	onid = get16(buf + 10);
+	snr  = buf[6];
+
+	slen = get12(buf + 1) + 3;
+	if (buf[1] & 0x80)
+		slen -= 4;
+
+	s = get_service(p->tsi->stp->tpi, sid);
+
+	if ( refresh ) {
+		fprintf(stderr,"eit_cb refresh %02X %u\n",tid,sid);
+		struct event *npe;
+		list_for_each_entry_safe(pe, npe, &s->events, link) {
+			if( pe->tid == tid ) {
+				list_del(&pe->link);
+				free_event(pe);
+				eit_events_deleted += 1;
+			}
+		}
+	}
+
+	eit_size += slen;
+	eit_sections += 1;
+
+//	fprintf(stderr, "EIT %02x %d:%d:%d %d %d\n",tid,onid,tsid,sid,snr,slen);
+
+
+	for (c = 14; c < slen; c += dll + 12) {
+		memset(&e, 0, sizeof(struct event));
+
+		e.tid = tid;
+		e.sid = sid;
+		e.tsid = tsid;
+		e.onid = onid;
+		e.eid = get16(buf + c + 0);
+
+		e.mjd = get16(buf + c + 2);
+		e.sh = getbcd(buf + c + 4,2);
+		e.sm = getbcd(buf + c + 5,2);
+		e.ss = getbcd(buf + c + 6,2);
+		e.dh = getbcd(buf + c + 7,2);
+		e.dm = getbcd(buf + c + 8,2);
+		e.ds = getbcd(buf + c + 9,2);
+
+//		fprintf(stderr, "                Event %5d  %5d Start %02d:%02d:%02d Duration %02d:%02d:%02d\n",e.eid,e.mjd,e.sh,e.sm,e.ss,e.dh,e.dm,e.ds);
+		dll = get12(buf + c + 10);
+
+		eit_events += 1;
+		//eit_shortsize += sizeof(struct event) + 16;
+
+		for (d = 0; d < dll; d += dl + 2) {
+			doff = c + d + 12;
+			tag = buf[doff];
+			dl = buf[doff + 1];
+			switch ( tag ) {
+				case 0x42: // Stuffing
+					break;
+				case 0x4A: // linkage
+				   if ( buf[doff+8] == 0x0D ) {
+						teid = get16(buf + doff + 9);
+						fprintf(stderr, "   LINK SID %5u EID %5u Tag %teid %5u listet = %d, simul = %d\n"
+									        ,sid,e.eid,teid,(buf[doff + 11] & 0x80) >> 7, (buf[doff + 11] & 0x80) >> 6 );
+					} else
+						fprintf(stderr, "   LINK SID %5u EID %5u Type 0x%02X len %d\n",sid,e.eid,buf[doff+8],slen);
+					break;
+				case 0x4D: // short
+					if( dl >= 5 ) {
+						e.s_lang[0] = buf[doff + 2];
+						e.s_lang[1] = buf[doff + 3];
+						e.s_lang[2] = buf[doff + 4];
+						doff += 5;
+						l = buf[doff];
+						if (l > 0) {
+							e.s_name = malloc(l+1);
+							if( e.s_name ) {
+								memcpy(e.s_name,buf + doff, l + 1);
+							}
+						}
+						eit_shortsize +=  l;
+						doff += l + 1;
+						l = buf[doff];
+						if (l > 0) {
+							e.s_text = malloc(l+1);
+							if( e.s_text ) {
+								memcpy(e.s_text,buf + doff, l + 1);
+							}
+						}
+						eit_shortsize += l;
+					}
+					break;
+				case 0x4E: // extended
+					break;
+				case 0x4F: // time shift
+					break;
+				case 0x50: // component
+					break;
+				case 0x53: // CA
+					break;
+				case 0x54: // content
+					break;
+				case 0x55: // parental
+					break;
+				case 0x57: // telephone
+					break;
+				case 0x5E: // multilingual
+					break;
+				case 0x5F: // private data
+					break;
+				case 0x61: // short smoothing buffer
+					break;
+				case 0x64: // data broadcast
+					break;
+				case 0x69: // private data
+					break;
+				case 0x75: // TVA id
+					break;
+				case 0x76: // content identifier
+					break;
+				case 0x7D: // XAIT location
+					break;
+				case 0x7E: // FTA content managment
+					break;
+				case 0x7F: // extension
+					break;
+				default:
+					//fprintf(stderr, "   SID %5u EID %5u Tag %02x  len %d\n",sid,e.eid,tag,slen);
+					break;
+			}
+		}
+
+		pe = malloc(sizeof(struct event));
+		if (pe) {
+			memcpy(pe,&e,sizeof(struct event));
+			list_add_tail(&pe->link, &s->events);
+		} else {
+			if (e.s_name) free(e.s_name);
+			if (e.s_text) free(e.s_text);
 		}
 	}
 
@@ -1168,7 +1411,8 @@ static int proc_sec(struct pid_info *p)
 	uint8_t snr, vnr, lsnr, tid;
 	struct sfilter *sf, *sfn;
 	uint16_t ext;
-	int i, res;
+	int i, n, res;
+	int refresh;
 
 	tid = buf[0];
 	ext = ((buf[3] << 8) | buf[4]);
@@ -1188,16 +1432,18 @@ static int proc_sec(struct pid_info *p)
 				sf->use_ext = 2;
 			}
 		}
+		refresh = 0;
 		if (!sf->vnr_set) {
 			sf->vnr = vnr;
 			sf->vnr_set = 1;
 		}
 		if (sf->vnr != vnr) {
-			printf("TID %u ext %u\n", tid, ext);
-			printf("VNR change %u->%u\n", sf->vnr, vnr);
+			fprintf(stderr, "TID %02x ext %u\n", tid, ext);
+			fprintf(stderr, "VNR change %u->%u\n", sf->vnr, vnr);
 
 			sf->todo_set = 0;
 			sf->vnr = vnr;
+			refresh = 1;
 			//sf->done = 0;
 		}
 		if (sf->done)
@@ -1206,34 +1452,53 @@ static int proc_sec(struct pid_info *p)
 			for (i = 0; i <= lsnr; i++)
 				sf->todo[i >> 5] |= (1UL << (i & 31));
 			sf->todo_set = 1;
+
+			if (tid == 0x50 || tid == 0x60) {
+				uint8_t ltid = buf[13] & 0x0F;
+				for (i = 1; i <= ltid; i++) {
+					add_sfilter(p->tsi, 0x12, tid + i, sf->ext, 2, i < 2 ? 15 : 45);
+				}
+			}
 		}
-		switch (tid) {
-		case 0x00:
-			res = pat_cb(sf);
-			break;
-		case 0x02:
-			res = pmt_cb(sf);
-			break;
-		case 0x40:
-		case 0x41:
-			if( use_nit )
-            res = nit_cb(sf);
-			break;
-		case 0x42:
-		case 0x46:
-			res = sdt_cb(sf);
-			break;
-		default:
-			break;
-		}
-		if (res == 0) {
-			sf->todo[snr >> 5] &= ~(1UL << (snr & 31));
-			if (all_zero_8(sf->todo)) {
-				sf->done = 1;
-				list_del(&sf->tslink);
-			} else
-				sf->timeout = mtime(NULL) + sf->timeout_len;
-			break;
+		if ( sf->todo[snr >> 5] & (1UL << (snr & 31)) ) {
+			switch (tid) {
+			case 0x00:
+				res = pat_cb(sf);
+				break;
+			case 0x02:
+				res = pmt_cb(sf);
+				break;
+			case 0x40:
+			case 0x41:
+				if( p->tsi->stp->tpi->use_nit )
+					res = nit_cb(sf);
+				break;
+			case 0x42:
+			case 0x46:
+				res = sdt_cb(sf);
+				break;
+			default:
+				if (tid >= 0x4E && tid <= 0x6F) {
+					res = eit_cb(sf, refresh);
+				}
+				break;
+			}
+			if (res == 0) {
+				sf->todo[snr >> 5] &= ~(1UL << (snr & 31));
+				if (tid >= 0x4E && tid <= 0x6F) {
+					uint8_t slsnr = buf[12];
+					for (i = slsnr + 1; i <= (slsnr | 7); i++)
+						sf->todo[i >> 5] &= ~(1UL << (i & 31));
+						//fprintf(stderr, "    %08x%08x%08x%08x%08x%08x%08x%08x\n",
+						//		sf->todo[7],sf->todo[6],sf->todo[5],sf->todo[4],sf->todo[3],sf->todo[2],sf->todo[1],sf->todo[0]);
+				}
+				if (all_zero_8(sf->todo)) {
+					sf->done = 1;
+					list_del(&sf->tslink);
+				} else
+					sf->timeout = mtime(NULL) + sf->timeout_len;
+				break;
+			}
 		}
 	}
 	if (&sf->link == &p->sfilters)
@@ -1251,7 +1516,7 @@ static int pid_info_proc_section(struct pid_info *p)
 	uint16_t ext;
 	int res;
 
-        if (p->bufp != p->len) {
+	if (p->bufp != p->len) {
 		if (p->len && p->bufp > p->len)
 			goto exit;
 		return 0;
@@ -1277,8 +1542,8 @@ static int pid_info_proc_section(struct pid_info *p)
 
 	if (res && p->add_ext) {
 		if (tid == 0x42 || tid == 0x02) {
-			printf("section not matched");
-			printf("adding %02x:%04x\n", tid, ext);
+			fprintf(stderr, "section not matched");
+			fprintf(stderr, "adding %02x:%04x\n", tid, ext);
 			//add_sfilter(p->tsi, p->pid, tid, ext, 1, 5);
 			//proc_sec(p);
 		}
@@ -1409,15 +1674,83 @@ void proc_tsps(struct ts_info *tsi, uint8_t *tsp, uint32_t len)
 
 /****************************************************************************/
 /****************************************************************************/
+// Valid till 28.2.2100
+static void get_date_from_mjd(uint16_t mjd, uint16_t *y, uint8_t *m, uint8_t *d)
+{
+	static int dm[] = {31,30,31,30,31,31,30,31,30,31,31,28};
+	int i,p,r;
+	r = mjd - 51604;  // 0 = 1.3.2000
+	if (r < 0)
+		r += 65536;
+	p = r / (365*4+1);
+	r = r - p * (365*4+1);
+	*y = p * 4 + 2000;
+	p = r / 365;
+	r = r - p * 365;
+	//~ fprintf(stderr, " %d,%d\n",p,r);
+	*y += p;
+	if (p < 4) {
+		for (i = 0; i < 12; i += 1) {
+			*m = i < 10 ? i + 3 : i - 9;
+			if (r < dm[i]) {
+				*d = r + 1;
+				if ( i >= 10 )
+					*y += 1;
+				break;
+			}
+			r -= dm[i];
+		}
+	} else {
+		*m = 2;
+		*d = 29;
+	}
+}
 
-static void dump_tp(struct tp_info *tpi)
+static void print_events(struct tp_info *tpi)
+{
+	struct service *s;
+	struct event *e;
+	char t[512];
+	int i;
+	uint16_t y;
+	uint8_t m,d;
+
+
+	list_for_each_entry(s, &tpi->services, link) {
+		list_for_each_entry(e, &s->events, link) {
+			printf("EVENT\n");
+			printf(" ID:%d:%d:%d:%d\n", e->onid, e->tsid, e->sid, e->eid);
+			get_date_from_mjd(e->mjd,&y,&m,&d);
+			printf(" TIME:%04d-%02d-%02dT%02d:%02d:%02dZ\n", y, m, d, e->sh, e->sm, e->ss);
+			printf(" DUR:%02d:%02d:%02d\n", e->dh, e->dm, e->ds);
+			for ( i = 0; i < 3; i += 1) {
+				if( e->s_lang[i] < 0x20 || e->s_lang[i] >= 0x7F )
+					 e->s_lang[i] = '?';
+			}
+			printf(" LANG:%c%c%c\n", e->s_lang[0], e->s_lang[1], e->s_lang[2]);
+			if( e->s_name ) {
+				en300468_parse_string_to_utf8(t,&e->s_name[1],e->s_name[0]);
+				printf(" NAME:%s\n",t);
+			}
+			if( e->s_text ) {
+				en300468_parse_string_to_utf8(t,&e->s_text[1],e->s_text[0]);
+				printf(" TEXT:%s\n",t);
+			}
+			printf("END\n");
+		}
+	}
+}
+
+
+
+static void print_services(struct tp_info *tpi)
 {
 	struct service *s;
 	int i;
 
 	list_for_each_entry(s, &tpi->services, link) {
 		if (s->got_pmt && (s->vpid != 0 || s->anum>0)) {
-			printf("BEGIN\n");
+			printf("SERVICE\n");
 			printf(" PNAME:%s\n",s->pname);
 			printf(" SNAME:%s\n",s->name);
 			printf(" ONID:%d\n",s->onid);
@@ -1466,8 +1799,8 @@ static void dump_tp(struct tp_info *tpi)
 			fflush(stdout);
 		}
 		//~ if (!s->got_pmt)
-			//~ printf("NO PMT: ");
-		//~ printf("%s:%s sid=%04x pmt=%04x pcr=%04x vpid=%04x apid=%04x\n",
+			//~ fprintf(stderr, "NO PMT: ");
+		//~ fprintf(stderr, "%s:%s sid=%04x pmt=%04x pcr=%04x vpid=%04x apid=%04x\n",
 		       //~ s->pname, s->name, s->sid, s->pmt, s->pcr, s->vpid, s->apid[0]);
 	}
 }
@@ -1489,7 +1822,7 @@ static int scan_tp(struct scantp *stp)
 	scon->seq = 0;
 	scon->usock = udpsock(&sadr, "0");
 	if (scon->usock < 0) {
-		printf("Could not get UDP socket\n");
+		fprintf(stderr, "Could not get UDP socket\n");
 		return -1;
 	}
 	//setsockopt(usock, SOL_SOCKET, SO_RCVBUF, &rbuf, sizeof(rbuf));
@@ -1500,8 +1833,8 @@ static int scan_tp(struct scantp *stp)
 		getsockname(scon->usock, (struct sockaddr*) &sin, &len);
 		scon->nsport = ntohs(sin.sin_port);
 	}
-	//printf("Socket port = %u\n", scon->nsport);
-	//printf("host = %s, port = %s\n", scon->host, scon->port);
+	//fprintf(stderr, "Socket port = %u\n", scon->nsport);
+	//fprintf(stderr, "host = %s, port = %s\n", scon->host, scon->port);
 
 	scon->sock = streamsock(scon->host, scon->port, &sadr);
 	if (scon->sock < 0)
@@ -1516,7 +1849,6 @@ static int scan_tp(struct scantp *stp)
 
 	add_sfilter(&stp->tsi, 0x00, 0x00, 0, 0, 5);
 	add_sfilter(&stp->tsi, 0x11, 0x42, 0, 1, 5);
-	//add_sfilter(p->tsi, 0x11, 0x46, 0, 1, 15);
 
 	stp->timeout = mtime(NULL) + 10;
 	while (!done && !stp->tsi.done && mtime(NULL) < stp->timeout) {
@@ -1542,7 +1874,10 @@ static int scan_tp(struct scantp *stp)
 			}
 		}
 	}
-	dump_tp(stp->tpi);
+	if( stp->tpi->scan_eit )
+		print_events(stp->tpi);
+	else
+		print_services(stp->tpi);
 	a = 0;
 	send_teardown(scon->sock, scon->host, scon->port, scon->strid, &scon->seq, scon->sid);
 	close(scon->sock);
@@ -1597,7 +1932,7 @@ static int scanip(struct scanip *sip)
 		printf("\nTUNE:%s\n", stp->scon.tune);
       fflush(stdout);
 		stp->tpi = tpi;
-   		scan_tp(stp);
+		scan_tp(stp);
 		ts_info_release(tsi);
 		list_del(&tpi->link);
 		list_add(&tpi->link, &sip->tps_done);
@@ -1624,11 +1959,11 @@ void scanip_release(struct scanip *sip)
 
 	list_for_each_entry_safe(p, n, &sip->tps, link) {
 		list_del(&p->link);
-		free(p);
+		free_tp_info(p);
 	}
 	list_for_each_entry_safe(p, n, &sip->tps_done, link) {
 		list_del(&p->link);
-		free(p);
+		free_tp_info(p);
 	}
 }
 
@@ -1675,10 +2010,14 @@ void usage() {
 	printf("           example: --msys=dvbs\n");
 	printf("    --mtype=<modulation type>, -t <modulation type>\n");
 	printf("       modulation type = 16qam,32qam,64qam,128qam,256qam (required for DVB-C)\n");
+	printf("    --eit, -e\n");
+	printf("       Do an EIT scan\n");
+	printf("    --eit_sid=<sid list>, -e <sid list>\n");
+	printf("       sid list = comma separated list of sid numbers\n");
+	printf("           example: --eit_sid=1000,1002,3003\n");
 	printf("    --help, -?\n");
 	printf("\n");
 	printf("  Notes on NIT scanning:\n");
-	printf("    NIT scanning is currently not reliable for DVB-S/S2 (to be fixed).\n");
 	printf("    With some cable providers or inhouse retransmission systems\n");
 	printf("    it may be not usable, i.e. due to wrong frequencies in the NIT.\n");
 	printf("\n");
@@ -1744,18 +2083,53 @@ int main(int argc, char **argv)
 			{"pol", required_argument, 0, 'p'},
 			{"msys", required_argument, 0, 'm'},
 			{"mtype", required_argument, 0, 't'},
+			{"eit", no_argument, 0, 'e'},
+			{"eit_sid", required_argument, 0, 'E'},
 			{"help", no_argument , 0, '?'},
 			{0, 0, 0, 0}
 		};
 		c = getopt_long(argc, argv,
-				"nf:s:S:p:m:t:?",
+				"nf:s:S:p:m:t:e:x:?",
 				long_options, &option_index);
 		if (c==-1)
 			break;
 
 		switch (c) {
+		case 'x':
+			{
+				uint16_t mjd = strtoul(optarg, NULL, 10);
+				uint16_t y;
+				uint8_t m,d;
+				get_date_from_mjd(mjd,&y,&m,&d);
+				printf(" Date = %02d.%02d.%02d\n",d,m,y);
+				return(0);
+			}
+			break;
+
 		case 'n':
-			use_nit = 1;
+			tpi.use_nit = 1;
+			break;
+
+		case 'e':
+			tpi.scan_eit = 1;
+			break;
+
+		case 'E':
+			{
+				char *p = optarg;
+				char *pn = p;
+				tpi.scan_eit = 1;
+				for (i = 0; i < MAX_EIT_SID; i++) {
+					if (tpi.eit_sid[i] == 0) {
+						tpi.eit_sid[i] = strtoul(p, &pn, 10);
+						if ( *pn != ',' )
+							break;
+						p = pn + 1;
+					}
+				}
+				if ( p == pn )
+					fprintf(stderr,"Invalid arg to --eit %s",optarg);
+			}
 			break;
 
 		case 'f':
@@ -1830,5 +2204,9 @@ int main(int argc, char **argv)
 	//scan_cable(&sip);
 	scanip(&sip);
 	scanip_release(&sip);
+
+	fprintf(stderr, "EIT Total size: %d Short size: %d\n",eit_size, eit_shortsize);
+	fprintf(stderr, "    Services: %d Sections: %d Events: %d (%d deleted)\n",
+			eit_services, eit_sections, eit_events - eit_events_deleted, eit_events_deleted);
 }
 
