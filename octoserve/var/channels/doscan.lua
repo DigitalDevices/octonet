@@ -262,7 +262,7 @@ if tl.SourceList then
                                  gname = ChannelOverwrite.Group
                               end
                               if ChannelOverwrite.Pids then
-                                 gname = ChannelOverwrite.Pids
+                                 pids = ChannelOverwrite.Pids
                               end
                               if ChannelOverwrite.Title then
                                  sname = ChannelOverwrite.Title

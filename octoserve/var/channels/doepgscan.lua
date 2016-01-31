@@ -100,7 +100,7 @@ else
                   Params = Params .. " --mtype="..v
                end
             end
-            local Key,Sid = Channel.ID:match("^(%a+):%d+:%d+:(%d+)")
+            local Key,Sid = Channel.ID:match("^([A-Z0-9]+):%d+:%d+:(%d+)")
             if Key and Sid then
                local t = tl[Params]
                if t then

@@ -209,7 +209,7 @@ function ShowEvent(event,index)
    var box = document.getElementById("event" + index);
 
    var d = new Date(event.Time);
-   var id = event.ID.match(/[A-Z]+:\d+:\d+:\d+/);
+   var id = event.ID.match(/[A-Z0-9]+:\d+:\d+:\d+/);
    var ch = ChannelLookup[id[0]];
    var Channel = "\u00A0";
    var Text = "";
