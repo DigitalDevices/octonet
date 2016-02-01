@@ -107,7 +107,8 @@ function LoadEPG()
 function ChannelListResponse(response)
 {
    ChannelList = JSON.parse(response);
-   if( ChannelList.GroupList[0].ChannelList[0].ID )
+   var Valid = false;
+   if( ChannelList.GroupList[0].ChannelList )
    {
       ChannelLookup = new Object();
       for(var i = 0; i < ChannelList.GroupList.length; i += 1)
@@ -115,9 +116,16 @@ function ChannelListResponse(response)
          var Group = ChannelList.GroupList[i];
          for(var j = 0; j < Group.ChannelList.length; j += 1)
          {
-            ChannelLookup[Group.ChannelList[j].ID] = Group.ChannelList[j];
+            if( Group.ChannelList[j].ID )
+            {
+               Valid = true;
+               ChannelLookup[Group.ChannelList[j].ID] = Group.ChannelList[j];
+            }
          }
       }
+   }
+   if( Valid )
+   {
       LoadEPG();
    }
    else

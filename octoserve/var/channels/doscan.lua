@@ -216,8 +216,9 @@ if tl.SourceList then
                   local sid = 0
                   local pids = ""
                   local tracks= { }
-                  local isradio = false
+                  local isradio = nil
                   local isencrypted = false
+                  local hasepg = nil
                   if line == "SERVICE" then
                      while true do
                         line = octoscan:read("*l")
@@ -275,7 +276,10 @@ if tl.SourceList then
                            local channel = { Title=sname,
                                              Request = '?'..Request..cireq.."&pids="..all_pids,
                                              Tracks=tracks,
-                                             ID=ID, Order=Order  }
+                                             ID=ID, Order=Order, Radio=isradio }
+                           if not hasepg then
+                              channel.NoEPG = true
+                           end
                            if ((not isradio) or (include_radio > 0)) and ((not isencrypted) or (include_encrypted > 0)) then
                               local group = GetGroup(ChannelList,gname)
                               if group then
@@ -289,6 +293,10 @@ if tl.SourceList then
                         local par,val = line:match("^ (%a+):(.*)")
                         if par == "RADIO" then
                            isradio = true
+                        elseif par == "EIT" then
+                           if val:sub(2,2) == "1" then
+                              hasepg = true
+                           end
                         elseif par == "PNAME" then
                            pname = val
                         elseif par == "SNAME" then

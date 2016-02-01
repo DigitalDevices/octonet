@@ -16,6 +16,8 @@ var hasCable = false;
 var hasSat = false;
 var hasTer = false;
 
+var StartTime = null;
+
 var xmlhttp = new XMLHttpRequest();
 var url = "/channelscan.lua?select=keys";
 
@@ -156,8 +158,16 @@ function ScanStatus(response)
       }
       else if( s.status == "done" )
       {
+         var sec = "";
+         if( StartTime )
+         {
+            var t = new Date() - StartTime;
+            sec = ", time: " + Math.floor(t/1000) + " seconds";
+            StartTime = null;
+         }
+
          document.getElementById("scancount").firstChild.nodeValue = s.count;
-         document.getElementById("scantext").firstChild.nodeValue = s.msg;
+         document.getElementById("scantext").firstChild.nodeValue = s.msg + sec;
       }
       else if( s.status == "deleted" )
       {
@@ -235,6 +245,7 @@ function InitiateScan()
       ScanReq.send("select=scan" + param + "&sitables=1&sort=1&restartdms=1");
       document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
       document.getElementById("scantext").firstChild.nodeValue = "Scanning...";
+      StartTime = new Date();
    }
    else
    {
@@ -246,11 +257,12 @@ function InitiateScan()
 function InitiateEPGScan()
 {
    DisableButtons(true);
-      ScanReq.open("POST", "/channelscan.lua", true);
-      ScanReq.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-      ScanReq.send("select=epg");
-      document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
-      document.getElementById("scantext").firstChild.nodeValue = "Scanning...";
+   ScanReq.open("POST", "/channelscan.lua", true);
+   ScanReq.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+   ScanReq.send("select=epg");
+   document.getElementById("scancount").firstChild.nodeValue = "\u00A0";
+   document.getElementById("scantext").firstChild.nodeValue = "Scanning...";
+   StartTime = new Date();
 }
 
 function PollStatus()

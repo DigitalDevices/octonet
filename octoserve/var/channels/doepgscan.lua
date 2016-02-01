@@ -68,6 +68,7 @@ local Max = 999999
 local Count = 0
 local ChannelCount = 0
 local EventCount = 0
+local ReportInterval = 1000
 
 Report(ChannelCount,"*")
 
@@ -82,7 +83,7 @@ else
    local Group
    for _,Group in ipairs(cl.GroupList) do
       for _,Channel in ipairs(Group.ChannelList) do
-         if Channel.ID then
+         if Channel.ID and not Channel.NoEPG then
             local Params = ""
             local p,v
             for p,v in Channel.Request:gmatch("(%a+)=([%w%.]+)") do
@@ -113,6 +114,7 @@ else
          end
       end
    end
+   cl = nil
 
    os.execute("rm "..outfile)
    local gzip = io.popen('gzip >'..outfile..".tmp","w")
@@ -121,22 +123,21 @@ else
       local newline = "\n "
       local Params
       local Key, t
+      local encode = newencoder()
       for Params,t in pairs(tl) do
          Report(Count,"of "..ChannelCount.." transponders, "..EventCount.." events")
-         Count = Count + 1
          Key = t.Key
          print("--------------------------------------------------------------")
-         collectgarbage();
          local cmd = 'octoscan --eit_sid '..t.Sids..' '..Options..Params..' '..ipAddr
          print(cmd)
          local octoscan = io.popen(cmd,"r")
          if octoscan then
+            tmp_count = ReportInterval
             while true do
                local line = octoscan:read("*l")
                if not line then
                   break
                end
---~                print(line)
                local eid = nil
                local name = nil
                local text = nil
@@ -149,7 +150,6 @@ else
                      if not line then
                         break
                      end
---~                      print(line)
                      if line == "END" then
                         if eid then
                            local event = { ID = Key..":"..eid }
@@ -169,13 +169,17 @@ else
                            --    event.Language = language
                            -- end
 
-                           local encode = newencoder()
                            local e = encode(event)
                            gzip:write(newline..e)
                            newline = ",\n "
                            EventCount = EventCount + 1
+
+                           tmp_count = tmp_count - 1
+                           if tmp_count == 0 then
+                              Report(Count,"of "..ChannelCount.." transponders, "..EventCount.." events")
+                              tmp_count = ReportInterval
+                           end
                         end
-                        collectgarbage();
                         break
                      end
 
@@ -198,6 +202,7 @@ else
             end
             octoscan:close()
          end
+         Count = Count + 1
       end
       gzip:write("\n]}")
       gzip:close()
