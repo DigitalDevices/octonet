@@ -1009,63 +1009,64 @@ static int nit_cb(struct sfilter *sf)
 	//fprintf(stderr, "NIT(%02x): len %u nid %u snr %02x lsnr %02x", buf[0], slen, nid, buf[6], buf[7]);
 	//fprintf(stderr, " ndl %02x  tsll %02x\n", ndl, tsll);
 
-	for (c = tsp + 2; c < slen; c += tdl) {
-		//dump(buf + c + 6, tdl);
-      memset(&t, 0, sizeof(struct tp_info));
-		t.tsid = get16(buf + c);
-		t.onid = get16(buf + c + 2);
-		t.nid = nid;
-		t.use_nit = p->tsi->stp->tpi->use_nit;
-		t.scan_eit = p->tsi->stp->tpi->scan_eit;
-		//t.use_nit = p->tsi->stp->tpi->use_nit;
-		tdl = get12(buf + c + 4);
-		//fprintf(stderr, " tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
-		c += 6;
-		switch (buf[c]) {
-		case 0x43:
-			t.freq = getbcd(buf + c + 2, 8) / 100;
-			t.freq_frac = 0;
-			t.pos = getbcd(buf + c + 6, 4);
-			t.sr = getbcd(buf + c + 9, 7) / 10;
-			t.east = (buf[c + 8] & 0x80) >> 7;
-			t.pol = 1 ^ ((buf[c + 8] & 0x60) >> 5); // H V L R
-			t.ro = (buf[c + 8] & 0x18) >> 3;  // 35 25 20
-			t.type = t.msys = ((buf[c + 8] & 0x04) >> 2) ? 6 : 5;
-			t.mod = buf[c + 8] & 0x03; // auto qpsk 8psk 16-qam
-			t.fec = buf[c + 12] & 0x0f; // undef 1/2 2/3 3/4 5/6 7/8 8/9 3/5 4/5 9/10
-			//fprintf(stderr, " freq = %u  pos = %u  sr = %u  fec = %u  \n", freq, pos, sr, fec);
-			//fprintf(stderr, "freq=%u&pol=%s&msys=%s&sr=%u\n",
-			//t.freq, pol2str[t.pol&3], t.type == 6 ? "dvbs2" : "dvbs", t.sr);
-			t.src = p->tsi->stp->tpi->src;
-			add_tp(sip, &t);
-			break;
-		case 0x44:
-			{
-				uint32_t freq = getbcd(buf + c + 2, 8);
-				t.freq =  freq / 10000;
-				t.freq_frac =  freq % 10000;
-			}
-			t.sr = getbcd(buf + c + 9, 7) / 10;
-			t.mod = buf[c + 8]; // undef 16 32 64 128 256
-			t.msys = 1;
-			t.type = 1;
-			//fprintf(stderr, " freq = %u  pos = %u  sr = %u  fec = %u  \n", freq, pos, sr, fec);
-			//fprintf(stderr, "freq=%u&msys=dvbc&mtype=%s\n", t.freq, mtype2str[t.mod]);
-
-			if( t.freq >= 50 && t.freq <= 1000 && t.sr >= 1000 && t.sr <= 7100 && t.mod >= 1 && t.mod <= 5 )
+	if (p->tsi->stp->tpi->use_nit) {
+		for (c = tsp + 2; c < slen; c += tdl) {
+			//dump(buf + c + 6, tdl);
+			memset(&t, 0, sizeof(struct tp_info));
+			t.tsid = get16(buf + c);
+			t.onid = get16(buf + c + 2);
+			t.nid = nid;
+			t.use_nit = p->tsi->stp->tpi->use_nit;
+			t.scan_eit = p->tsi->stp->tpi->scan_eit;
+			//t.use_nit = p->tsi->stp->tpi->use_nit;
+			tdl = get12(buf + c + 4);
+			//fprintf(stderr, " tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
+			c += 6;
+			switch (buf[c]) {
+			case 0x43:
+				t.freq = getbcd(buf + c + 2, 8) / 100;
+				t.freq_frac = 0;
+				t.pos = getbcd(buf + c + 6, 4);
+				t.sr = getbcd(buf + c + 9, 7) / 10;
+				t.east = (buf[c + 8] & 0x80) >> 7;
+				t.pol = 1 ^ ((buf[c + 8] & 0x60) >> 5); // H V L R
+				t.ro = (buf[c + 8] & 0x18) >> 3;  // 35 25 20
+				t.type = t.msys = ((buf[c + 8] & 0x04) >> 2) ? 6 : 5;
+				t.mod = buf[c + 8] & 0x03; // auto qpsk 8psk 16-qam
+				t.fec = buf[c + 12] & 0x0f; // undef 1/2 2/3 3/4 5/6 7/8 8/9 3/5 4/5 9/10
+				//fprintf(stderr, " freq = %u  pos = %u  sr = %u  fec = %u  \n", freq, pos, sr, fec);
+				//fprintf(stderr, "freq=%u&pol=%s&msys=%s&sr=%u\n",
+				//t.freq, pol2str[t.pol&3], t.type == 6 ? "dvbs2" : "dvbs", t.sr);
+				t.src = p->tsi->stp->tpi->src;
 				add_tp(sip, &t);
-			else {
-				fprintf(stderr, " *************************  freq = %u  sr = %u  mod = %u  \n", t.freq, t.sr, t.mod);
-				fprintf(stderr, " *************************  buffer start:\n" );
-				dump(buf, 32);
-				fprintf(stderr, " *************************  buffer position (c-32,c+16)  c = %d, slen = %d\n", c, slen);
-				dump(buf + c - 32, 48);
-			}
+				break;
+			case 0x44:
+				{
+					uint32_t freq = getbcd(buf + c + 2, 8);
+					t.freq =  freq / 10000;
+					t.freq_frac =  freq % 10000;
+				}
+				t.sr = getbcd(buf + c + 9, 7) / 10;
+				t.mod = buf[c + 8]; // undef 16 32 64 128 256
+				t.msys = 1;
+				t.type = 1;
+				//fprintf(stderr, " freq = %u  pos = %u  sr = %u  fec = %u  \n", freq, pos, sr, fec);
+				//fprintf(stderr, "freq=%u&msys=dvbc&mtype=%s\n", t.freq, mtype2str[t.mod]);
+
+				if( t.freq >= 50 && t.freq <= 1000 && t.sr >= 1000 && t.sr <= 7100 && t.mod >= 1 && t.mod <= 5 )
+					add_tp(sip, &t);
+				else {
+					fprintf(stderr, " *************************  freq = %u  sr = %u  mod = %u  \n", t.freq, t.sr, t.mod);
+					fprintf(stderr, " *************************  buffer start:\n" );
+					dump(buf, 32);
+					fprintf(stderr, " *************************  buffer position (c-32,c+16)  c = %d, slen = %d\n", c, slen);
+					dump(buf + c - 32, 48);
+				}
 			break;
 
+			}
 		}
 	}
-
 	return 0;
 }
 
@@ -1470,17 +1471,17 @@ static int proc_sec(struct pid_info *p)
 				break;
 			case 0x40:
 			case 0x41:
-				if( p->tsi->stp->tpi->use_nit )
-					res = nit_cb(sf);
+				res = nit_cb(sf);
 				break;
 			case 0x42:
 			case 0x46:
 				res = sdt_cb(sf);
 				break;
 			default:
-				if (tid >= 0x4E && tid <= 0x6F) {
+				if (tid >= 0x4E && tid <= 0x6F)
 					res = eit_cb(sf, refresh);
-				}
+				else
+					res = -1;
 				break;
 			}
 			if (res == 0) {
@@ -1930,7 +1931,7 @@ static int scanip(struct scanip *sip)
 		tpi = list_first_entry(&sip->tps, struct tp_info, link);
 		tpstring(tpi, &stp->scon.tune[0], sizeof(stp->scon.tune));
 		printf("\nTUNE:%s\n", stp->scon.tune);
-      fflush(stdout);
+		fflush(stdout);
 		stp->tpi = tpi;
 		scan_tp(stp);
 		ts_info_release(tsi);
