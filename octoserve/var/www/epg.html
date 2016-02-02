@@ -198,7 +198,7 @@ function Current() {
    if( input.type == "datetime-local" )
    {
       var d1 = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-      input.value = d1.toISOString().substr(0,19);
+      input.value = d1.toISOString().substr(0,16);
    }
    // else
    // {
@@ -283,15 +283,8 @@ function ScrollTo()
    {
       if( input.type == "datetime-local" )
       {
-   //      d = new Date(input.value);
          d = new Date(Date.parse(input.value) + d.getTimezoneOffset() * 60000);
-         document.getElementById("searchtext").value = "**>" + input.value + "<**";
-
       }
-//      Text = d.getTimezoneOffset().toString();
-//  var d = new Date(Text);
-//   var box = document.getElementById("event0");
-//   box.getElementsByClassName("event_date")[0].firstChild.nodeValue = d.toLocaleString();
       Position = Search(d)
       Scroll(0);
    }
