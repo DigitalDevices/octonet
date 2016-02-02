@@ -106,23 +106,30 @@ function LoadEPG()
 
 function ChannelListResponse(response)
 {
-   ChannelList = JSON.parse(response);
    var Valid = false;
-   if( ChannelList.GroupList[0].ChannelList )
+   try
    {
-      ChannelLookup = new Object();
-      for(var i = 0; i < ChannelList.GroupList.length; i += 1)
+      ChannelList = JSON.parse(response);
+      if( ChannelList.GroupList[0].ChannelList )
       {
-         var Group = ChannelList.GroupList[i];
-         for(var j = 0; j < Group.ChannelList.length; j += 1)
+         ChannelLookup = new Object();
+         for(var i = 0; i < ChannelList.GroupList.length; i += 1)
          {
-            if( Group.ChannelList[j].ID )
+            var Group = ChannelList.GroupList[i];
+            for(var j = 0; j < Group.ChannelList.length; j += 1)
             {
-               Valid = true;
-               ChannelLookup[Group.ChannelList[j].ID] = Group.ChannelList[j];
+               if( Group.ChannelList[j].ID )
+               {
+                  Valid = true;
+                  ChannelLookup[Group.ChannelList[j].ID] = Group.ChannelList[j];
+               }
             }
          }
       }
+   }
+   catch(e)
+   {
+      Valid = false;
    }
    if( Valid )
    {
@@ -164,8 +171,17 @@ function EPGResponse(response)
    }
 }
 
+var hasTimeInput = false;
+
 function OnLoad()
 {
+   var input = document.getElementById("datetime");
+   hasTimeInput = input.type == "datetime-local";
+   if( !hasTimeInput )
+   {
+       input.form.style.display = "none";
+   }
+
    document.getElementById("events").style.display = "none";
    EPG = null;
    var msg = document.getElementById("message");
@@ -177,7 +193,18 @@ function OnLoad()
 }
 
 function Current() {
-   Position = Search(new Date())
+   var d = new Date();
+   var input = document.getElementById("datetime");
+   if( input.type == "datetime-local" )
+   {
+      var d1 = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+      input.value = d1.toISOString().substr(0,19);
+   }
+   // else
+   // {
+   //    input.value = d.toLocaleString();
+   // }
+   Position = Search(d)
    Scroll(0);
 }
 
@@ -231,6 +258,79 @@ function ShowEvent(event,index)
    box.getElementsByClassName("event_name")[0].firstChild.nodeValue = Name;
    box.getElementsByClassName("event_text")[0].firstChild.nodeValue = Text;
 }
+
+function ClearEvent(index)
+{
+   var box = document.getElementById("event" + index);
+   box.getElementsByClassName("event_date")[0].firstChild.nodeValue = "";
+   box.getElementsByClassName("event_duration")[0].firstChild.nodeValue = "";
+   box.getElementsByClassName("event_channel")[0].firstChild.nodeValue = "";
+   box.getElementsByClassName("event_name")[0].firstChild.nodeValue = "";
+   box.getElementsByClassName("event_text")[0].firstChild.nodeValue = "";
+}
+
+
+function ScrollTo()
+{
+   var d = new Date();
+   var Text = "?;";
+   var input = document.getElementById("datetime");
+   if( input.value == "" )
+   {
+      Current();
+   }
+   else
+   {
+      if( input.type == "datetime-local" )
+      {
+   //      d = new Date(input.value);
+         d = new Date(Date.parse(input.value) + d.getTimezoneOffset() * 60000);
+         document.getElementById("searchtext").value = "**>" + input.value + "<**";
+
+      }
+//      Text = d.getTimezoneOffset().toString();
+//  var d = new Date(Text);
+//   var box = document.getElementById("event0");
+//   box.getElementsByClassName("event_date")[0].firstChild.nodeValue = d.toLocaleString();
+      Position = Search(d)
+      Scroll(0);
+   }
+}
+
+function SearchText()
+{
+   var j = 0;
+   var SearchText = document.getElementById("searchtext").value.toLowerCase();
+   if( SearchText.length > 0 )
+   {
+      for(var i = Position; i < EPG.EventList.length && j < 5; i += 1)
+      {
+         var event = EPG.EventList[i];
+         var id = event.ID.match(/[A-Z0-9]+:\d+:\d+:\d+/);
+         var ch = ChannelLookup[id[0]];
+         var Compare = "";
+         if( ch ) Compare = Compare = ch.Title;
+         if( event.Text ) Compare = Compare + "\u00A0" + event.Text;
+         if( event.Name ) Compare = Compare + "\u00A0" + event.Name;
+         Compare = Compare.toLowerCase();
+         if( Compare.indexOf(SearchText) >= 0 )
+         {
+            ShowEvent(event,j);
+            j = j + 1;
+            Position = i + 1;
+         }
+      }
+      if( j == 0 )
+         Position = 0;
+      for( j = j; j < 5; j += 1)
+      {
+         ClearEvent(j);
+      }
+   }
+   else
+      Current();
+}
+
 </script>
 
 </head>
@@ -253,6 +353,15 @@ function ShowEvent(event,index)
         <div id="message" class="message">&nbsp;</div>
         <div id="events">
            <div class="event_scroll">
+
+                Search:
+              <form action="javascript:SearchText()" style="display:inline-block">
+                <input id="searchtext" style="width: 200px" type="search" value="" onchange="SearchText()">
+              </form>
+
+              <form action="javascript:void()" style="display:inline-block">
+                <input id="datetime" type="datetime-local" value=""  onchange="ScrollTo()" >
+              </form>
               <form action="">
                 <input type="Button" value="|<"  onclick="Scroll(-9999999)" >
                 <input type="Button" value="<<<" onclick="Scroll(-500)" >
