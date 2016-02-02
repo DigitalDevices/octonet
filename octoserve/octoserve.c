@@ -501,8 +501,8 @@ void session_timeout(struct ossess *sess)
 void session_mc_timeout(struct ossess *sess)
 {
 	mtime(&sess->mc_timeout);	
-	sess->timeout += 260;
-	dbgprintf(DEBUG_IGMP, "new mc timeout %d\n", sess->timeout);
+	sess->mc_timeout += 260;
+	dbgprintf(DEBUG_IGMP, "new mc timeout %d\n", sess->mc_timeout);
 }
 
 void check_session_timeouts(struct octoserve *os)
@@ -1448,6 +1448,8 @@ static int setup_session(struct oscon *con, int newtrans)
 		}
 	} else {
 		if (pidchange && conform) {
+                        /* non-owner tried to change pids,
+			   copy back owner pids and return error */
 			copy_params(sess, ownsess);
 			return -455;
 		}
@@ -1456,7 +1458,6 @@ static int setup_session(struct oscon *con, int newtrans)
 		if (conform && !owner && sess->trans.mcast) {
 			if (!ownsess->trans.mcast)
 				return -455;
-			sess->nsfd = ownsess->nsfd;
 		} else 
 #ifndef IGNORE_NS
 			if (get_ns(sess) < 0)
@@ -1465,9 +1466,7 @@ static int setup_session(struct oscon *con, int newtrans)
 		newtrans = 1;
 	} 
  	if (newtrans) {
-		if (str->session != sess &&
-		    sess->trans.mcast &&
-		    conform) {
+		if (!owner && sess->trans.mcast && conform) {
 			memcpy(&sess->trans, &str->session->trans, sizeof(struct ostrans));
 			dbgprintf(DEBUG_RTSP, "non-owner tried to change transport parameters\n");
 		}
@@ -1525,8 +1524,10 @@ static int stop_session(struct ossess *sess)
 
 static int start_session(struct ossess *sess)
 {
-	if (sess->playing)
+	if (sess->playing) {
+		sess->playing |= 1;
 		return 0;
+	}
 	dbgprintf(DEBUG_SYS, "start session %d\n", sess->nr);
 	if (sess->stream->ca) {
 		uint8_t canum = sess->stream->ca->nr - 1;
@@ -1546,12 +1547,16 @@ static int play_session(struct oscon *con)
 	struct dvb_params *p = &con->p;
 	struct ostrans *trans = &con->trans;
 	struct octoserve *os = sess->os;
+	struct osstrm *str = sess->stream;
 
-	if (p) {
+	if (p) { 
 		res = setup_session(con, 0);
 		if (res < 0)
 			return res;
 	}
+
+	if (sess->trans.mcast && conform)
+		sess = str->session;
 #ifndef IGNORE_NS
 	if (sess->nsfd < 0) 
 		return -455;
@@ -1603,6 +1608,7 @@ void mc_check(struct ossess *sess, int update)
 		if (os->has_switch)
 			update_switch_vec(sess);
 		if (!sess->mccs.lh_first)
+		//if (mtime() > sess->mc_timeout)
 			stop_session(sess);
 	}
 	pthread_mutex_unlock(&os->lock);
