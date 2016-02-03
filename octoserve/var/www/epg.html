@@ -172,6 +172,21 @@ function EPGResponse(response)
 }
 
 var hasTimeInput = false;
+var hasIntl = false;
+var DateOptions = {
+   weekday:"long",
+   day:"numeric",
+   month:"long",
+   year:"numeric"
+};
+
+var TimeOptions = {
+   hour:"2-digit",
+   minute:"2-digit",
+   hour12:false
+};
+
+var Locale;
 
 function OnLoad()
 {
@@ -180,6 +195,15 @@ function OnLoad()
    if( !hasTimeInput )
    {
        input.form.style.display = "none";
+   }
+
+   if( window.Intl && typeof window.Intl === "object" )
+   {
+      hasIntl = true;
+      var Region = new Intl.DateTimeFormat();
+      var o = Region.resolvedOptions();
+      Locale = o.locale;
+      // document.getElementById("searchtext").value = Locale;
    }
 
    document.getElementById("events").style.display = "none";
@@ -252,7 +276,8 @@ function ShowEvent(event,index)
    if( ch ) Channel = ch.Title;
    if( event.Text ) Text = event.Text;
    if( event.Name ) Name = event.Name;
-   box.getElementsByClassName("event_date")[0].firstChild.nodeValue = d.toLocaleString();
+   box.getElementsByClassName("event_date")[0].firstChild.nodeValue =
+         d.toLocaleDateString(Locale,DateOptions) + " - " + d.toLocaleTimeString(Locale,TimeOptions);
    box.getElementsByClassName("event_duration")[0].firstChild.nodeValue = event.Duration;
    box.getElementsByClassName("event_channel")[0].firstChild.nodeValue = Channel;
    box.getElementsByClassName("event_name")[0].firstChild.nodeValue = Name;
@@ -283,6 +308,7 @@ function ScrollTo()
    {
       if( input.type == "datetime-local" )
       {
+         // document.getElementById("searchtext").value = input.value;
          d = new Date(Date.parse(input.value) + d.getTimezoneOffset() * 60000);
       }
       Position = Search(d)
