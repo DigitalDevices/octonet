@@ -16,6 +16,7 @@
 var VLCPluginValid = false;
 var VLCPlugin;
 var RTSPLink = false;
+var UseAudioPids = true;
 
 if( browserType == "Netscape" )
 {
@@ -35,6 +36,7 @@ if( browserType == "Netscape" )
         if( browserPlatform == "win" )
         {
           if( navigator.plugins[i].version >= "2.0.6.0" ) VLCPluginValid = true;
+          if( navigator.plugins[i].version >= "2.2.0.0" ) UseAudioPids = false;
         }
         else if( browserPlatform == "linux" )
         {
@@ -76,7 +78,7 @@ function PlayEvent()
 function SetAudioChannel(ac)
 {
   var vlc = vlcplayer;
-  if( ac < CurTracks.length ) vlc.audio.track = CurTracks[ac];
+  if( ac < CurTracks.length ) vlc.audio.track = UseAudioPids ? CurTracks[ac] : ac + 1;
 }
 
 function MuteAudio()
