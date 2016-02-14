@@ -1,0 +1,5 @@
+config BR2_PACKAGE_OCTOSCAN
+       bool "octoscan"
+       default n
+       help
+              http://www.digitaldevices.de
