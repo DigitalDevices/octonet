@@ -592,11 +592,52 @@ static int open_fe(struct dvbfe *fe)
 	return 0;
 }
 
+static uint32_t ber_quality(struct dvbfe *fe)
+{
+	return 100;
+}
+
+static void calc_lq(struct dvbfe *fe)
+{
+	struct dtv_fe_stats st;
+	int64_t str, snr;
+	
+	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
+	str = st.stat[0].uvalue;
+	str = (str * 48) / 10000 + 344;
+	if (str < 0)
+		str = 0;
+	if (str > 255)
+		str = 255;
+	fe->level = str;
+	// str: 0-255: -25dbm = 224, -65dbm = 32
+	// qual: 0-15 15=BER<2*10^-4 PER<10^-7
+	get_stat(fe->fd, DTV_STAT_CNR, &st);
+	snr = st.stat[0].uvalue;
+
+	switch (fe->n_param[PARAM_MSYS] - 1) {
+	case SYS_DVBS:
+	case SYS_DVBS2:
+		break;
+	case SYS_DVBC_ANNEX_A:
+		break;
+	case SYS_DVBT:
+		break;
+	case SYS_DVBT2:
+		break;
+	case SYS_DVBC2:
+		break;
+	default:
+		break;
+	}
+}
+
 static void get_stats(struct dvbfe *fe)
 {
 	uint16_t sig = 0, snr = 0;
 	fe_status_t stat;
 	uint32_t str, cnr;
+	int64_t val;
 	struct dtv_fe_stats st;
 	
 	ioctl(fe->fd, FE_READ_STATUS, &stat);
@@ -615,12 +656,16 @@ static void get_stats(struct dvbfe *fe)
 		fe->quality = snr >> 9;
 	}
 	dbgprintf(DEBUG_DVB, "fe%d: stat=%02x str=%04x snr=%04x\n", fe->nr, stat, sig, snr);
-
+	dbgprintf(DEBUG_DVB, "fe%d: level=%u quality=%u\n", fe->nr, fe->level, fe->quality);
+	calc_lq(fe);
+	dbgprintf(DEBUG_DVB, "fe%d: level=%u quality=%u\n", fe->nr, fe->level, fe->quality);
 
 	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
-	dbgprintf(DEBUG_DVB, "fe%d: str=%016llx\n", fe->nr, st.stat[0].uvalue);
+	val = st.stat[0].uvalue;
+	dbgprintf(DEBUG_DVB, "fe%d: str=%lld.%03lld\n", fe->nr, val / 1000, val % 1000);
 	get_stat(fe->fd, DTV_STAT_CNR, &st);
-	dbgprintf(DEBUG_DVB, "fe%d: cnr=%016llx\n", fe->nr, st.stat[0].uvalue);
+	val = st.stat[0].uvalue;
+	dbgprintf(DEBUG_DVB, "fe%d: cnr=%lld.%03lld\n", fe->nr, val / 1000, val % 1000);
 }
 
 void handle_fe(struct dvbfe *fe)
