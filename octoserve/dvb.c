@@ -1289,28 +1289,30 @@ void scif_config(struct octoserve *os, char *name, char *val)
 		dbgprintf(DEBUG_DVB, "setting type = %d\n", os->scif_type);
 	}
 	if (!strncasecmp(name, "tuner", 5) &&
-	    name[5] >= 0x31 && name[5] <= 0x38) {
-		int fe = name[5] - 0x31;
-		char *end;
-		unsigned long int nr = strtoul(val, &end, 10), freq = 0;
+	    name[5] >= 0x31 && name[5] <= 0x39) {
+		int fe = strtol(name + 5, NULL, 10 );
+		if(fe >= 1 && fe <= MAX_DVB_FE) {
+			char *end;
+			unsigned long int nr = strtoul(val, &end, 10), freq = 0;
 
-		if (*end == ',') {
-			val = end + 1;
-			freq = strtoul(val, &end, 10);
-			if (val == end)
-				return;
+			if (*end == ',') {
+				val = end + 1;
+				freq = strtoul(val, &end, 10);
+				if (val == end)
+					return;
+			}
+			if (nr == 0)
+				os->dvbfe[fe].scif_type = 0;
+			else {
+				os->dvbfe[fe].scif_slot = nr - 1;
+				os->dvbfe[fe].scif_freq = freq;
+				os->dvbfe[fe].scif_type = os->scif_type;
+			}
+			dbgprintf(DEBUG_DVB, "fe%d: type=%d, slot=%d, freq=%d\n", fe,
+				  os->dvbfe[fe].scif_type,
+				  os->dvbfe[fe].scif_slot,
+				  os->dvbfe[fe].scif_freq);
 		}
-		if (nr == 0)
-			os->dvbfe[fe].scif_type = 0;
-		else {
-			os->dvbfe[fe].scif_slot = nr - 1;
-			os->dvbfe[fe].scif_freq = freq;
-			os->dvbfe[fe].scif_type = os->scif_type;
-		}
-		dbgprintf(DEBUG_DVB, "fe%d: type=%d, slot=%d, freq=%d\n", fe,
-			  os->dvbfe[fe].scif_type,
-			  os->dvbfe[fe].scif_slot,
-			  os->dvbfe[fe].scif_freq);
 	}
 }
 
