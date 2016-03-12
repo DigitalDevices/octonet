@@ -592,18 +592,290 @@ static int open_fe(struct dvbfe *fe)
 	return 0;
 }
 
+static int32_t Log10x100(uint32_t x)
+{
+	static uint32_t LookupTable[100] = {
+		101157945, 103514217, 105925373, 108392691, 110917482,
+		113501082, 116144861, 118850223, 121618600, 124451461, // 800.5 - 809.5
+		127350308, 130316678, 133352143, 136458314, 139636836,
+		142889396, 146217717, 149623566, 153108746, 156675107, // 810.5 - 819.5
+		160324539, 164058977, 167880402, 171790839, 175792361,
+		179887092, 184077200, 188364909, 192752491, 197242274, // 820.5 - 829.5
+		201836636, 206538016, 211348904, 216271852, 221309471,
+		226464431, 231739465, 237137371, 242661010, 248313311, // 830.5 - 839.5
+		254097271, 260015956, 266072506, 272270131, 278612117,
+		285101827, 291742701, 298538262, 305492111, 312607937, // 840.5 - 849.5
+		319889511, 327340695, 334965439, 342767787, 350751874,
+		358921935, 367282300, 375837404, 384591782, 393550075, // 850.5 - 859.5
+		402717034, 412097519, 421696503, 431519077, 441570447,
+		451855944, 462381021, 473151259, 484172368, 495450191, // 860.5 - 869.5
+		506990708, 518800039, 530884444, 543250331, 555904257,
+		568852931, 582103218, 595662144, 609536897, 623734835, // 870.5 - 879.5
+		638263486, 653130553, 668343918, 683911647, 699841996,
+		716143410, 732824533, 749894209, 767361489, 785235635, // 880.5 - 889.5
+		803526122, 822242650, 841395142, 860993752, 881048873,
+		901571138, 922571427, 944060876, 966050879, 988553095, // 890.5 - 899.5
+	};
+	int32_t y = 800;
+	int i = 0;
+
+	if( x == 0 ) return 0;
+	
+	if( x >= 1000000000 ) {
+		x /= 10;
+		y += 100;
+	}
+	
+	while (x < 100000000 ) {
+		x *= 10;
+		y -= 100;
+	}
+	
+	while ( i < 100 && x > LookupTable[i] ) i += 1;
+	y += i;
+	return y;
+}
+
+static int32_t berq_rs(uint32_t BERNumerator, uint32_t BERDenominator)
+{
+     int32_t LogBER = Log10x100(BERDenominator) - Log10x100(BERNumerator);
+     int32_t BERQual = 100;
+     
+     if ( BERNumerator == 0 )
+	     return 100;
+     if (LogBER < 700) {
+	     if (LogBER <  300)
+		     BERQual = 0;
+	     else
+		     BERQual = (LogBER + 5) / 5 - 40;
+     }
+     return BERQual;
+}
+
+static int32_t berq_bch(uint32_t BERNumerator, uint32_t BERDenominator)
+{
+     int32_t LogBER = Log10x100(BERDenominator) - Log10x100(BERNumerator);
+     int32_t BERQual = 100;
+     
+     if (BERNumerator == 0 )
+	     return 100;
+     if (LogBER < 700) {
+	     if( LogBER <  400 )
+		     BERQual = 0;
+	     else
+		     BERQual = 40;
+     }
+     return BERQual;
+}
+
+
 static uint32_t ber_quality(struct dvbfe *fe)
 {
+	struct dtv_fe_stats ber;
+	
+	get_stat(fe->fd, DTV_STAT_PRE_ERROR_BIT_COUNT, &ber);
+	get_stat(fe->fd, DTV_STAT_PRE_TOTAL_BIT_COUNT, &ber);
+	
 	return 100;
 }
+
+static int32_t dvbsq(uint32_t snr, uint32_t fec,
+		     uint32_t ber_num, uint32_t ber_den)
+{
+	int32_t SignalToNoiseRel = -1000;
+	int32_t Quality = 0;
+	int32_t BERQuality = berq_rs(ber_num, ber_den);
+	
+	// SNR Values for quasi errorfree reception from Nordig 2.2
+	static const int32_t DVBS_SN[] = {
+		// 1/2 2/3 3/4    5/6    7/8
+		0, 38, 56, 67, 0, 77, 0, 84
+	};
+	
+	if (fec >= FEC_NONE && fec <= FEC_7_8 )
+		SignalToNoiseRel = snr / 100 - DVBS_SN[fec];
+	
+	if( SignalToNoiseRel < -70 )
+		Quality = 0;
+	else if( SignalToNoiseRel < 30 )
+		Quality = ((SignalToNoiseRel + 70) * BERQuality) / 100;
+	else
+		Quality = BERQuality;
+	return (Quality * 3) / 20;
+}
+
+
+int32_t dvbs2q(int32_t snr, uint32_t fec, uint32_t mod,
+	       uint32_t ber_num, uint32_t ber_den)
+{
+	static const int32_t DVBS2_SN_QPSK[] = {
+		// 1/2 2/3 3/4 4/5 5/6 6/7 7/8 8/9 AUT  3/5 9/10 2/5 
+		0, 20, 41, 50, 57, 62,  0,  0, 72,  0,  32,  74,  7, 
+	};
+	static const int32_t DVBS2_SN_8PSK[] = {
+		// 1/2 2/3 3/4 4/5  5/6 6/7 7/8  8/9 AUT  3/5 9/10 2/5 
+		0,  0, 76, 89,  0, 104,  0,  0, 117,  0,  65, 120,  0, 
+	};
+	static const int32_t DVBS2_SN_16APSK[] = {
+		// 1/2  2/3  3/4  4/5  5/6 6/7 7/8  8/9 AUT  3/5 9/10 2/5 
+		0,  0, 100, 112, 120, 126,  0,  0, 139,  0,   0, 141,  0, 
+	};
+	static const int32_t DVBS2_SN_32APSK[] = {
+		// 1/2 2/3  3/4  4/5  5/6 6/7 7/8  8/9 AUT  3/5 9/10 2/5 
+		0,  0,  0, 137, 146, 153,  0,  0, 167,  0,   0, 171,  0, 
+	};
+	int32_t BERQuality = berq_bch(ber_num, ber_den);
+	int32_t Quality = 0;
+	int32_t SignalToNoiseRel = -1000, snc;
+	
+	if (fec > FEC_2_5 )
+		return 0;
+	switch (mod) {
+	case QPSK:
+		snc = DVBS2_SN_QPSK[fec];
+		break;
+	case PSK_8:
+		snc = DVBS2_SN_8PSK[fec];
+		break;
+	case APSK_16:
+		snc = DVBS2_SN_16APSK[fec];
+		break;
+	case APSK_32:
+		snc = DVBS2_SN_32APSK[fec];
+		break;
+	default:
+		return 0;
+	}
+	SignalToNoiseRel = snr / 100 - snc;
+	
+	if (SignalToNoiseRel < -30 )
+		Quality = 0;
+	else if( SignalToNoiseRel < 30 )
+		Quality = ((SignalToNoiseRel + 30) * BERQuality) / 60;
+	else
+		Quality = 100;
+	return (Quality * 3) / 20;
+}
+
+static int32_t dvbcq(int32_t snr, uint32_t mod,
+	       uint32_t ber_num, uint32_t ber_den)
+{
+	int32_t SignalToNoiseRel = 0;
+	int32_t Quality = 0;
+	int32_t BERQuality = berq_rs(ber_num, ber_den);
+	
+	switch (mod) {
+	case QAM_16: SignalToNoiseRel = snr - 200; break;
+	case QAM_32: SignalToNoiseRel = snr - 230; break;
+	case QAM_64:  SignalToNoiseRel = snr - 260; break;
+	case QAM_128: SignalToNoiseRel = snr - 290; break;
+	case QAM_256: SignalToNoiseRel = snr - 320; break;
+	}
+
+	if (SignalToNoiseRel < -70)
+		Quality = 0;
+	else if (SignalToNoiseRel < 30)
+		Quality = ((SignalToNoiseRel + 70) * BERQuality) / 100;
+	else
+		Quality = BERQuality;
+	return (Quality * 3) / 20;}
+
+#if 0
+int32_t CDigitalDemodulator::DVBTQuality(int32_t SignalToNoise,DVBT_Constellation Constellation,DVBT_CodeRate CodeRate,uint32_t BERNominator, uint32_t BERDenominator )
+{
+     int32_t Quality = 0;
+     int32_t BERQuality = BERQualityRS(BERNominator, BERDenominator);
+     int32_t SignalToNoiseRel = -1000;
+
+     // SNR Values for quasi error free reception from Nordig 2.2
+     static const int32_t QE_SN[] =
+     {
+         51, // QPSK 1/2
+         69, // QPSK 2/3
+         79, // QPSK 3/4
+         89, // QPSK 5/6
+         97, // QPSK 7/8
+         108, // 16-QAM 1/2
+         131, // 16-QAM 2/3
+         146, // 16-QAM 3/4
+         156, // 16-QAM 5/6
+         160, // 16-QAM 7/8
+         165, // 64-QAM 1/2
+         187, // 64-QAM 2/3
+         202, // 64-QAM 3/4
+         216, // 64-QAM 5/6
+         225, // 64-QAM 7/8
+     };
+
+     if( Constellation <= DVBT_64QAM && CodeRate <= DVBT_CR_7_8 )
+     {
+         SignalToNoiseRel = SignalToNoise - QE_SN[int(Constellation) * 5 + int(CodeRate)];
+     }
+
+     if( SignalToNoiseRel < -70 ) Quality = 0;
+     else if( SignalToNoiseRel < 30 )
+     {
+         Quality = ((SignalToNoiseRel + 70) * BERQuality)/100;
+     }
+     else
+         Quality = BERQuality;
+
+     KdPrintEx((MSG_TRACE " - " __FUNCTION__ " SNR = %d(%d) Qual %d\n",SignalToNoise,SignalToNoiseRel,Quality));
+     return Quality;
+}
+
+int32_t CDigitalDemodulator::DVBT2Quality(int32_t SignalToNoise,DVBT2_Modulation Modulation,DVBT2_CodeRate CodeRate,DVBT2_FECType FECType,
+                                        DVBT2_PilotPattern PilotPattern, uint32_t BERNominator, uint32_t BERDenominator )
+{
+     int32_t Quality = 0;
+     int32_t BERQuality = BERQualityBCH(BERNominator, BERDenominator);
+     int32_t SignalToNoiseRel = -1000;
+
+     static const int32_t QE_SN[] =
+     {
+      // 1/2, 3/5,  2/3,  3/4,  4/5,  5/6, 1/3, 2/5
+          32,  49,   59,   68,   74,   80,  15,  24,  // 16K QPSK
+          82, 104,  116,  130,  136,  141,  62,  74,  // 16K 16-QAM
+         123, 151,  165,  181,  190,  197, 101, 114,  // 16K 64-QAM
+         164, 202,  211,  232,  246,  255, 137, 153,  // 16K 256-QAM
+
+          35,  47,   56,   66,   72,   77,  13,  22,  // 64K QPSK
+          87, 101,  114,  125,  133,  138,  60,  72,  // 64K 16-QAM
+         130, 148,  162,  177,  187,  194,  98, 111,  // 64K 64-QAM
+         170, 194,  208,  229,  243,  251, 132, 148,  // 64K 256-QAM
+     };
+
+     if( Modulation <= DVBT2_256QAM && CodeRate <= DVBT2_CR_2_5 && FECType <= DVBT2_64K  )
+     {
+         int Index = int(FECType) * 32 + int(Modulation) * 8 + int(CodeRate);
+         SignalToNoiseRel = SignalToNoise - QE_SN[Index];
+
+              if( PilotPattern >= DVBT2_PP3 && PilotPattern <= DVBT2_PP4 ) SignalToNoiseRel += 5;
+         else if( PilotPattern >= DVBT2_PP5 && PilotPattern <= DVBT2_PP8 ) SignalToNoiseRel += 10;
+     }
+
+     if( SignalToNoiseRel < -30 ) Quality = 0;
+     else if( SignalToNoiseRel < 30 )
+     {
+         Quality = ((SignalToNoiseRel + 30) * BERQuality)/60;
+     }
+     else
+         Quality = 100;
+
+     KdPrintEx((MSG_TRACE " - " __FUNCTION__ " SNR = %d(%d) Qual %d\n",SignalToNoise,SignalToNoiseRel,Quality));
+     return Quality;
+}
+#endif
 
 static void calc_lq(struct dvbfe *fe)
 {
 	struct dtv_fe_stats st;
 	int64_t str, snr;
+	uint32_t mod, fec, ber_num, ber_den;
 	
 	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
 	str = st.stat[0].uvalue;
+	dbgprintf(DEBUG_DVB, "fe%d: str=%lld\n", fe->nr, str);
 	str = (str * 48) / 10000 + 344;
 	if (str < 0)
 		str = 0;
@@ -614,12 +886,27 @@ static void calc_lq(struct dvbfe *fe)
 	// qual: 0-15 15=BER<2*10^-4 PER<10^-7
 	get_stat(fe->fd, DTV_STAT_CNR, &st);
 	snr = st.stat[0].uvalue;
+	dbgprintf(DEBUG_DVB, "fe%d: snr=%lld\n", fe->nr, snr);
+	get_property(fe->fd, DTV_INNER_FEC, &fec);
+	fe->param[PARAM_FEC] = fec + 1;
+	get_property(fe->fd, DTV_MODULATION, &mod);
+	fe->param[PARAM_MTYPE] = mod + 1;
 
+	get_stat(fe->fd, DTV_STAT_PRE_ERROR_BIT_COUNT, &st);
+	ber_num = st.stat[0].uvalue;
+	get_stat(fe->fd, DTV_STAT_PRE_TOTAL_BIT_COUNT, &st);
+	ber_den = st.stat[0].uvalue;
+
+	dbgprintf(DEBUG_DVB, "fe%d: fec=%u mod=%u\n", fe->nr, fec, mod);
 	switch (fe->n_param[PARAM_MSYS] - 1) {
 	case SYS_DVBS:
+		fe->quality = dvbsq(snr, fec, ber_num, ber_den);
+		break;
 	case SYS_DVBS2:
+		fe->quality = dvbs2q(snr, fec, mod, ber_num, ber_den);
 		break;
 	case SYS_DVBC_ANNEX_A:
+		fe->quality = dvbcq(snr, mod, ber_num, ber_den);
 		break;
 	case SYS_DVBT:
 		break;
@@ -630,6 +917,7 @@ static void calc_lq(struct dvbfe *fe)
 	default:
 		break;
 	}
+	dbgprintf(DEBUG_DVB, "fe%d: level=%u quality=%u\n", fe->nr, fe->level, fe->quality);
 }
 
 static void get_stats(struct dvbfe *fe)
@@ -641,31 +929,9 @@ static void get_stats(struct dvbfe *fe)
 	struct dtv_fe_stats st;
 	
 	ioctl(fe->fd, FE_READ_STATUS, &stat);
-	ioctl(fe->fd, FE_READ_SIGNAL_STRENGTH, &sig);
-	ioctl(fe->fd, FE_READ_SNR, &snr);
-
 	fe->stat = stat;
 	fe->lock = (stat == 0x1f) ? 1 : 0;
-
-	/* FIXME: use new stats API */
-	if (fe->type & (1UL << SYS_DVBS2)) {
-		fe->level = sig >> 8;
-		fe->quality = snr >> 12;
-	} else {
-		fe->level = sig >> 2;
-		fe->quality = snr >> 9;
-	}
-	dbgprintf(DEBUG_DVB, "fe%d: stat=%02x str=%04x snr=%04x\n", fe->nr, stat, sig, snr);
-	dbgprintf(DEBUG_DVB, "fe%d: level=%u quality=%u\n", fe->nr, fe->level, fe->quality);
 	calc_lq(fe);
-	dbgprintf(DEBUG_DVB, "fe%d: level=%u quality=%u\n", fe->nr, fe->level, fe->quality);
-
-	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
-	val = st.stat[0].uvalue;
-	dbgprintf(DEBUG_DVB, "fe%d: str=%lld.%03lld\n", fe->nr, val / 1000, val % 1000);
-	get_stat(fe->fd, DTV_STAT_CNR, &st);
-	val = st.stat[0].uvalue;
-	dbgprintf(DEBUG_DVB, "fe%d: cnr=%lld.%03lld\n", fe->nr, val / 1000, val % 1000);
 }
 
 void handle_fe(struct dvbfe *fe)
