@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- (c)2012 Digital Devices GmbH.  All rights reserved -->
 <!-- $Id: SCIFDataBase.xml 639 2015-12-18 13:24:21Z manfred $ -->
 <SCIFDataBase xmlns="http://schemas.DigitalDevices.de/SCIFDataBase">
@@ -47,6 +47,40 @@
     <UBSlot Frequency="2040"/>
   </OutdoorUnit>
   <OutdoorUnit Name="IDLU-UST110-CUO1O-32P" Manufacturer="Inverto" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+    <UBSlot Frequency="984"/>
+    <UBSlot Frequency="1020"/>
+    <UBSlot Frequency="1056"/>
+    <UBSlot Frequency="1092"/>
+    <UBSlot Frequency="1128"/>
+    <UBSlot Frequency="1164"/>
+    <UBSlot Frequency="1256"/>
+    <UBSlot Frequency="1292"/>
+    <UBSlot Frequency="1328"/>
+    <UBSlot Frequency="1364"/>
+    <UBSlot Frequency="1458"/>
+    <UBSlot Frequency="1494"/>
+    <UBSlot Frequency="1530"/>
+    <UBSlot Frequency="1566"/>
+    <UBSlot Frequency="1602"/>
+    <UBSlot Frequency="1638"/>
+    <UBSlot Frequency="1716"/>
+    <UBSlot Frequency="1752"/>
+    <UBSlot Frequency="1788"/>
+    <UBSlot Frequency="1824"/>
+    <UBSlot Frequency="1860"/>
+    <UBSlot Frequency="1896"/>
+    <UBSlot Frequency="1932"/>
+    <UBSlot Frequency="1968"/>
+    <UBSlot Frequency="2004"/>
+    <UBSlot Frequency="2076"/>
+    <UBSlot Frequency="2112"/>
+    <UBSlot Frequency="2148"/>
+  </OutdoorUnit>
+  <OutdoorUnit Name="IDLU-32UL40-UNBOO-OPP" Manufacturer="Inverto" Type="LNB" Protocol="EN50607">
     <UBSlot Frequency="1210"/>
     <UBSlot Frequency="1420"/>
     <UBSlot Frequency="1680"/>
