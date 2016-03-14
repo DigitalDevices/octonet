@@ -1619,6 +1619,7 @@ void scif_config(struct octoserve *os, char *name, char *val)
 				if (val == end)
 					return;
 			}
+			fe--;
 			if (nr == 0)
 				os->dvbfe[fe].scif_type = 0;
 			else {
