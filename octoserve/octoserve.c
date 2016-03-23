@@ -432,6 +432,24 @@ static void *release_session(struct ossess *oss)
 	pthread_mutex_unlock(&os->lock);
 }
 
+static void *release_no_sessions(struct ossess *oss)
+{
+	struct octoserve *os = oss->os;
+	struct osstrm *str = oss->stream;
+	int i;
+	
+	dbgprintf(DEBUG_SYS, "release session nr %d id %010d\n", oss->nr, oss->id);
+	pthread_mutex_lock(&os->lock);
+	mc_del(oss);
+	for (i = 0; i < MAX_SESSION; i++) {
+		if (os->session[i].state && 
+		    (os->session[i].stream == str) &&
+		    (&os->session[i] != oss))
+			_release_session(&os->session[i]);
+	}
+	pthread_mutex_unlock(&os->lock);
+}
+
 static struct ossess *get_session(struct octoserve *os, uint32_t id)
 {
 	int i;
@@ -1463,12 +1481,16 @@ static int setup_session(struct oscon *con, int newtrans)
 			if (get_ns(sess) < 0)
 				return -455;
 #endif
-		newtrans = 1;
+		newtrans |= 256;
 	} 
  	if (newtrans) {
-		if (!owner && sess->trans.mcast && conform) {
-			memcpy(&sess->trans, &str->session->trans, sizeof(struct ostrans));
-			dbgprintf(DEBUG_RTSP, "non-owner tried to change transport parameters\n");
+		if (sess->trans.mcast && conform) {
+			if (owner && newtrans > 1)
+				release_no_sessions(sess);
+			else {
+				memcpy(&sess->trans, &str->session->trans, sizeof(struct ostrans));
+				dbgprintf(DEBUG_RTSP, "non-owner tried to change transport parameters\n");
+			}
 		}
 		if (setup_nsp(&sess->trans, &nsp) < 0)
 			return -1;
@@ -1925,24 +1947,25 @@ static void cpyarg(char *d, char *s)
 
 static int cmp_trans(struct ostrans *t,  struct ostrans *u)
 {
-	if (t->mcast != u->mcast)
-		return 1;
+	uint32_t ret = 0;
 	
-	if (t->cport != u->cport)
-		return 2;
-	if (t->cport2 != u->cport2)
-		return 3;
-	if (t->flags != u->flags)
-		return 4;
 	if (t->ttl != u->ttl)
-		return 5;
-	return 0;
+		ret |= 1;
+	if (t->mcast != u->mcast)
+		ret |= 2;
+	if (t->cport != u->cport)
+		ret |= 4;
+	if (t->cport2 != u->cport2)
+		ret |= 8;
+	if (t->flags != u->flags)
+		ret |= 16;
+	return ret;
 }
 
 static int proc_setup(struct oscon *con)
 {
 	struct osstrm *str = 0;
-	int newtrans = 0;
+	uint32_t newtrans = 0;
 	int res;
 	
 	if (!con->transport_parsed) {
@@ -2004,9 +2027,10 @@ static int proc_setup(struct oscon *con)
 				con->session->stream->session = con->session;
 			}
 		}
-		newtrans = 1;
+		newtrans = 256;
 	}
-	if (newtrans || cmp_trans(&con->session->trans, &con->trans)) {
+	newtrans |= cmp_trans(&con->session->trans, &con->trans);
+	if (newtrans) {
 		con->trans.sport = con->session->stream->sport;
 		con->trans.sport2 = con->session->stream->sport2;
 		
@@ -2029,7 +2053,6 @@ static int proc_setup(struct oscon *con)
 			memcpy(con->trans.mcip, ip, 4);
 		}
 		con->session->trans = con->trans;
-		newtrans = 1;
 	}
 	res = setup_session(con, newtrans);
 	if (res < 0) {
