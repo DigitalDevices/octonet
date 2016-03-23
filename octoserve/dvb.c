@@ -733,7 +733,7 @@ int32_t dvbs2q(int32_t snr, uint32_t fec, uint32_t mod,
 	};
 	int32_t BERQuality = berq_bch(ber_num, ber_den);
 	int32_t Quality = 0;
-	int32_t SignalToNoiseRel = -1000, snc;
+	int32_t SignalToNoiseRel = -1000, snc = 0;
 	
 	if (fec > FEC_2_5 )
 		return 0;
@@ -765,7 +765,7 @@ int32_t dvbs2q(int32_t snr, uint32_t fec, uint32_t mod,
 }
 
 static int32_t dvbcq(int32_t snr, uint32_t mod,
-	       uint32_t ber_num, uint32_t ber_den)
+		     uint32_t ber_num, uint32_t ber_den)
 {
 	int32_t SignalToNoiseRel = 0;
 	int32_t Quality = 0;
@@ -785,92 +785,97 @@ static int32_t dvbcq(int32_t snr, uint32_t mod,
 		Quality = ((SignalToNoiseRel + 70) * BERQuality) / 100;
 	else
 		Quality = BERQuality;
-	return (Quality * 3) / 20;}
-
-#if 0
-int32_t CDigitalDemodulator::DVBTQuality(int32_t SignalToNoise,DVBT_Constellation Constellation,DVBT_CodeRate CodeRate,uint32_t BERNominator, uint32_t BERDenominator )
-{
-     int32_t Quality = 0;
-     int32_t BERQuality = BERQualityRS(BERNominator, BERDenominator);
-     int32_t SignalToNoiseRel = -1000;
-
-     // SNR Values for quasi error free reception from Nordig 2.2
-     static const int32_t QE_SN[] =
-     {
-         51, // QPSK 1/2
-         69, // QPSK 2/3
-         79, // QPSK 3/4
-         89, // QPSK 5/6
-         97, // QPSK 7/8
-         108, // 16-QAM 1/2
-         131, // 16-QAM 2/3
-         146, // 16-QAM 3/4
-         156, // 16-QAM 5/6
-         160, // 16-QAM 7/8
-         165, // 64-QAM 1/2
-         187, // 64-QAM 2/3
-         202, // 64-QAM 3/4
-         216, // 64-QAM 5/6
-         225, // 64-QAM 7/8
-     };
-
-     if( Constellation <= DVBT_64QAM && CodeRate <= DVBT_CR_7_8 )
-     {
-         SignalToNoiseRel = SignalToNoise - QE_SN[int(Constellation) * 5 + int(CodeRate)];
-     }
-
-     if( SignalToNoiseRel < -70 ) Quality = 0;
-     else if( SignalToNoiseRel < 30 )
-     {
-         Quality = ((SignalToNoiseRel + 70) * BERQuality)/100;
-     }
-     else
-         Quality = BERQuality;
-
-     KdPrintEx((MSG_TRACE " - " __FUNCTION__ " SNR = %d(%d) Qual %d\n",SignalToNoise,SignalToNoiseRel,Quality));
-     return Quality;
+	return (Quality * 3) / 20;
 }
 
-int32_t CDigitalDemodulator::DVBT2Quality(int32_t SignalToNoise,DVBT2_Modulation Modulation,DVBT2_CodeRate CodeRate,DVBT2_FECType FECType,
-                                        DVBT2_PilotPattern PilotPattern, uint32_t BERNominator, uint32_t BERDenominator )
+int32_t dvbtq(int32_t snr, uint32_t mod, uint32_t fec,
+	      uint32_t ber_num, uint32_t ber_den)
 {
-     int32_t Quality = 0;
-     int32_t BERQuality = BERQualityBCH(BERNominator, BERDenominator);
-     int32_t SignalToNoiseRel = -1000;
+	int32_t Quality = 0;
+	int32_t BERQuality = berq_rs(ber_num, ber_den);
+	int32_t SignalToNoiseRel = -1000, snc = 0;
+	
+	// SNR Values for quasi error free reception from Nordig 2.2
+	static const int32_t DVBT_SN_QPSK[] = {
+		// 1/2 2/3 3/4 4/5 5/6 6/7 7/8 8/9 AUT  3/5 9/10 2/5 
+		0, 51, 69, 79,  0, 89,  0, 97,  0,  0,   0,   0,  0, 
+	};
+	static const int32_t DVBT_SN_QAM16[] = {
+		//  1/2  2/3  3/4 4/5  5/6 6/7  7/8 8/9 AUT  3/5 9/10 2/5 
+		0, 108, 131, 146,  0, 156,  0, 160,  0,  0,   0,   0,  0, 
+	};
+	static const int32_t DVBT_SN_QAM64[] = {
+		//  1/2  2/3  3/4 4/5  5/6 6/7  7/8 8/9 AUT  3/5 9/10 2/5 
+		0, 165, 187, 202,  0, 216,  0, 225,  0,  0,   0,   0,  0, 
+	};
 
-     static const int32_t QE_SN[] =
-     {
-      // 1/2, 3/5,  2/3,  3/4,  4/5,  5/6, 1/3, 2/5
-          32,  49,   59,   68,   74,   80,  15,  24,  // 16K QPSK
-          82, 104,  116,  130,  136,  141,  62,  74,  // 16K 16-QAM
-         123, 151,  165,  181,  190,  197, 101, 114,  // 16K 64-QAM
-         164, 202,  211,  232,  246,  255, 137, 153,  // 16K 256-QAM
+	if (fec > FEC_2_5 )
+		return 0;
+	switch (mod) {
+	case QPSK:
+		snc = DVBT_SN_QPSK[fec];
+		break;
+	case QAM_16:
+		snc = DVBT_SN_QAM16[fec];
+		break;
+	case QAM_64:
+		snc = DVBT_SN_QAM64[fec];
+		break;
+	default:
+		break;
+	}
+	SignalToNoiseRel = snr / 100 - snc;
 
-          35,  47,   56,   66,   72,   77,  13,  22,  // 64K QPSK
-          87, 101,  114,  125,  133,  138,  60,  72,  // 64K 16-QAM
-         130, 148,  162,  177,  187,  194,  98, 111,  // 64K 64-QAM
-         170, 194,  208,  229,  243,  251, 132, 148,  // 64K 256-QAM
-     };
+	if (SignalToNoiseRel < -70 )
+		Quality = 0;
+	else if (SignalToNoiseRel < 30)
+		Quality = ((SignalToNoiseRel + 70) * BERQuality)/100;
+	else
+		Quality = BERQuality;
+	
+	return (Quality * 3) / 20;
+}
 
-     if( Modulation <= DVBT2_256QAM && CodeRate <= DVBT2_CR_2_5 && FECType <= DVBT2_64K  )
-     {
-         int Index = int(FECType) * 32 + int(Modulation) * 8 + int(CodeRate);
-         SignalToNoiseRel = SignalToNoise - QE_SN[Index];
+#if 0
 
-              if( PilotPattern >= DVBT2_PP3 && PilotPattern <= DVBT2_PP4 ) SignalToNoiseRel += 5;
-         else if( PilotPattern >= DVBT2_PP5 && PilotPattern <= DVBT2_PP8 ) SignalToNoiseRel += 10;
-     }
-
-     if( SignalToNoiseRel < -30 ) Quality = 0;
-     else if( SignalToNoiseRel < 30 )
-     {
-         Quality = ((SignalToNoiseRel + 30) * BERQuality)/60;
-     }
-     else
-         Quality = 100;
-
-     KdPrintEx((MSG_TRACE " - " __FUNCTION__ " SNR = %d(%d) Qual %d\n",SignalToNoise,SignalToNoiseRel,Quality));
-     return Quality;
+int32_t dvbt2q(int32_t snr, uint32_t mod, uint32_t fec, uint32_t trans, uint32_t pilot,
+	      uint32_t ber_num, uint32_t ber_den)
+{
+	int32_t Quality = 0;
+	int32_t BERQuality = BERQualityBCH(BERNominator, BERDenominator);
+	int32_t SignalToNoiseRel = -1000;
+	
+	static const int32_t QE_SN[] = {
+		// 1/2, 3/5,  2/3,  3/4,  4/5,  5/6, 1/3, 2/5
+		32,  49,   59,   68,   74,   80,  15,  24,  // 16K QPSK
+		82, 104,  116,  130,  136,  141,  62,  74,  // 16K 16-QAM
+		123, 151,  165,  181,  190,  197, 101, 114,  // 16K 64-QAM
+		164, 202,  211,  232,  246,  255, 137, 153,  // 16K 256-QAM
+		
+		35,  47,   56,   66,   72,   77,  13,  22,  // 64K QPSK
+		87, 101,  114,  125,  133,  138,  60,  72,  // 64K 16-QAM
+		130, 148,  162,  177,  187,  194,  98, 111,  // 64K 64-QAM
+		170, 194,  208,  229,  243,  251, 132, 148,  // 64K 256-QAM
+	};
+	
+	if( Modulation <= DVBT2_256QAM && CodeRate <= DVBT2_CR_2_5 && FECType <= DVBT2_64K  )
+	{
+		int Index = int(FECType) * 32 + int(Modulation) * 8 + int(CodeRate);
+		SignalToNoiseRel = SignalToNoise - QE_SN[Index];
+		
+		if( PilotPattern >= DVBT2_PP3 && PilotPattern <= DVBT2_PP4 ) SignalToNoiseRel += 5;
+		else if( PilotPattern >= DVBT2_PP5 && PilotPattern <= DVBT2_PP8 ) SignalToNoiseRel += 10;
+	}
+	
+	if( SignalToNoiseRel < -30 ) Quality = 0;
+	else if( SignalToNoiseRel < 30 )
+	{
+		Quality = ((SignalToNoiseRel + 30) * BERQuality)/60;
+	}
+	else
+		Quality = 100;
+	
+	return (Quality * 3) / 20;
 }
 #endif
 
@@ -893,7 +898,6 @@ static void calc_lq(struct dvbfe *fe)
 	// qual: 0-15 15=BER<2*10^-4 PER<10^-7
 	get_stat(fe->fd, DTV_STAT_CNR, &st);
 	snr = st.stat[0].uvalue;
-	dbgprintf(DEBUG_DVB, "fe%d: snr=%lld\n", fe->nr, snr);
 	get_property(fe->fd, DTV_INNER_FEC, &fec);
 	fe->param[PARAM_FEC] = fec + 1;
 	get_property(fe->fd, DTV_MODULATION, &mod);
@@ -904,6 +908,8 @@ static void calc_lq(struct dvbfe *fe)
 	get_stat(fe->fd, DTV_STAT_PRE_TOTAL_BIT_COUNT, &st);
 	ber_den = st.stat[0].uvalue;
 
+	dbgprintf(DEBUG_DVB, "fe%d: snr=%lld ber=%llu/%llu\n",
+		  fe->nr, snr, ber_num, ber_den);
 	dbgprintf(DEBUG_DVB, "fe%d: fec=%u mod=%u\n", fe->nr, fec, mod);
 	switch (fe->n_param[PARAM_MSYS] - 1) {
 	case SYS_DVBS:
@@ -916,8 +922,10 @@ static void calc_lq(struct dvbfe *fe)
 		fe->quality = dvbcq(snr, mod, ber_num, ber_den);
 		break;
 	case SYS_DVBT:
+		fe->quality = dvbtq(snr, mod, fec, ber_num, ber_den);
 		break;
 	case SYS_DVBT2:
+		//fe->quality = dvbtq(snr, mod, fec, ber_num, ber_den);
 		break;
 	case SYS_DVBC2:
 		break;
