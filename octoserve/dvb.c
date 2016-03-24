@@ -177,9 +177,8 @@ static int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)
 	return 0;
 }
 
-
-static int set_fe(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds,
-	uint32_t input)
+static int set_fe_input(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds,
+			uint32_t input)
 {
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
@@ -207,18 +206,26 @@ static int set_fe(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds,
 	return 0;
 }
 
-static int set_fe_old(int fd, uint32_t fr, uint32_t sr)
+static int set_fe(int fd, uint32_t fr, uint32_t sr, fe_delivery_system_t ds)
 {
-	struct dvb_frontend_parameters p = {
-		.frequency = fr,
-		.inversion = INVERSION_AUTO,
-		.u.qpsk.symbol_rate = sr,
-		.u.qpsk.fec_inner = FEC_AUTO,
-	};
-
-	dbgprintf(DEBUG_DVB, "set front %d %d \n", fr, sr);
-	if (ioctl(fd, FE_SET_FRONTEND, &p) == -1) {
-		perror("FE_SET_FRONTEND error");
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_DELIVERY_SYSTEM, .u.data = ds },
+		{ .cmd = DTV_FREQUENCY, .u.data = fr },
+		{ .cmd = DTV_INVERSION, .u.data = INVERSION_AUTO },
+		{ .cmd = DTV_SYMBOL_RATE, .u.data = sr },
+		{ .cmd = DTV_INNER_FEC, .u.data = FEC_AUTO },
+//		{ .cmd = DTV_STREAM_ID, .u.data = fe->param[PARAM_ISI] },
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+	
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
 		return -1;
 	}
 	return 0;
@@ -293,7 +300,7 @@ static int set_en50494(int fd, uint32_t freq, uint32_t sr,
 	if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
 		perror("FE_SET_VOLTAGE failed");
 
-	set_fe(fd, ubfreq * 1000, sr * 1000, ds, 3 & (sat >> 6));
+	set_fe_input(fd, ubfreq * 1000, sr * 1000, ds, 3 & (sat >> 6));
 	dbgprintf(DEBUG_DVB, "EN50494 %02x %02x %02x %02x %02x\n", 
 		  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
 }
@@ -327,7 +334,7 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
 	if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
 		perror("FE_SET_VOLTAGE failed");
 
-	set_fe(fd, ubfreq * 1000, sr * 1000, ds, 3 & (sat >> 6));
+	set_fe_input(fd, ubfreq * 1000, sr * 1000, ds, 3 & (sat >> 6));
 	dbgprintf(DEBUG_DVB, "EN50607 %02x %02x %02x %02x\n", 
 		  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
 }
@@ -391,7 +398,7 @@ static int tune_sat(struct dvbfe *fe)
 	} else {
 		//set_property(fe->fd, DTV_INPUT, 3 & (lnb >> 6));
 		diseqc(fe->fd, lnb, fe->param[PARAM_POL] - 1, hi);
-		set_fe(fe->fd, freq, fe->param[PARAM_SR] * 1000, ds, 0);
+		set_fe(fe->fd, freq, fe->param[PARAM_SR] * 1000, ds);
 	}
 }
 
