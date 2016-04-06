@@ -72,6 +72,7 @@
 #define DEBUG_DVB     16
 #define DEBUG_IGMP    32
 #define DEBUG_SWITCH  64
+#define DEBUG_DEBUG  256
 
 #if 0
 #define dbgprintf(_mask_, ...) \

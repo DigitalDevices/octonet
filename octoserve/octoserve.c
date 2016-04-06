@@ -26,6 +26,7 @@ uint32_t flags;
 uint32_t conform = 0;
 #define FLAGS_TRANSPORT 1
 
+static uint32_t session_is_playing(struct ossess *sess);
 
 uint64_t mtime_nano(void)
 {
@@ -358,6 +359,11 @@ static void *_release_session(struct ossess *oss)
 	}
 	oss->playing = 0;
 	oss->state = 0;
+	if (oss->trans.mcast && conform) {
+		dbgprintf(DEBUG_SYS, "check mc owner\n");
+		if (!session_is_playing(oss))
+			ioctl(oss->stream->session->nsfd, NS_STOP);			
+	}
 }
 
 static void *release_stream(struct osstrm *str)
@@ -448,6 +454,29 @@ static void *release_no_sessions(struct ossess *oss)
 			_release_session(&os->session[i]);
 	}
 	pthread_mutex_unlock(&os->lock);
+}
+
+static uint32_t session_is_playing(struct ossess *sess)
+{
+	struct osstrm *str = sess->stream;
+	struct octoserve *os = sess->os;
+	int i;
+	uint32_t playing = 0;
+
+	if (!(sess->trans.mcast && conform))
+		return sess->playing;
+	pthread_mutex_lock(&os->lock);
+	for (i = 0; i < MAX_SESSION; i++)
+		if (os->session[i].state && 
+		    (os->session[i].stream == str)) {
+			playing |= os->session[i].playing;
+			dbgprintf(DEBUG_DEBUG, "playing[%u] = %u\n",
+				  i, os->session[i].playing);
+		}
+	pthread_mutex_unlock(&os->lock);
+	dbgprintf(DEBUG_DEBUG, "playing = %u\n", playing);
+	
+	return playing;
 }
 
 static struct ossess *get_session(struct octoserve *os, uint32_t id)
@@ -1436,7 +1465,10 @@ static int setup_session(struct oscon *con, int newtrans)
 		return -500;
 	pidchange = merge_pids(sp, p);
 	
+	dbgprintf(DEBUG_DEBUG, "stream setup newtrans=%u pidchange=%u\n",
+		  newtrans, pidchange);
 	if (owner) { /* stream owner */
+		dbgprintf(DEBUG_DEBUG, "stream owner setup\n");
 		merge_params(sp, p);
 		
 		if (str->fe && (sp->set & (1UL << PARAM_FE)) &&
@@ -1465,6 +1497,7 @@ static int setup_session(struct oscon *con, int newtrans)
 			dvb_tune(str->fe, sp);
 		}
 	} else {
+		dbgprintf(DEBUG_DEBUG, "non stream owner setup\n");
 		if (pidchange && conform) {
                         /* non-owner tried to change pids,
 			   copy back owner pids and return error */
@@ -1473,15 +1506,21 @@ static int setup_session(struct oscon *con, int newtrans)
 		}
 	}
 	if (sess->nsfd < 0) {
+		dbgprintf(DEBUG_DEBUG, "no fd, conform=%u owner=%u mc=%u\n",
+			  conform, owner, sess->trans.mcast);
 		if (conform && !owner && sess->trans.mcast) {
+			dbgprintf(DEBUG_DEBUG, "conform non-owner MCAST owner MC=%u\n",
+				ownsess->trans.mcast);
 			if (!ownsess->trans.mcast)
 				return -455;
-		} else 
+		} else {
+			dbgprintf(DEBUG_DEBUG, "owner or unicast get fd\n");
 #ifndef IGNORE_NS
 			if (get_ns(sess) < 0)
 				return -455;
 #endif
-		newtrans |= 256;
+			newtrans |= 256;
+		}
 	} 
  	if (newtrans) {
 		if (sess->trans.mcast && conform) {
@@ -1533,10 +1572,10 @@ static int setup_session(struct oscon *con, int newtrans)
 
 static int stop_session(struct ossess *sess)
 {
-	if (!sess->playing)
+	if (!session_is_playing(sess))
 		return 0;
 	sess->playing &= ~1;
-	if (sess->playing)
+	if (session_is_playing(sess))
 		return 0;
 	printf("stopping session %d\n", sess->nr);
 	if (sess->nsfd >= 0)
@@ -1546,7 +1585,7 @@ static int stop_session(struct ossess *sess)
 
 static int start_session(struct ossess *sess)
 {
-	if (sess->playing) {
+	if (session_is_playing(sess)) {
 		sess->playing |= 1;
 		return 0;
 	}
@@ -1576,16 +1615,22 @@ static int play_session(struct oscon *con)
 		if (res < 0)
 			return res;
 	}
-
-	if (sess->trans.mcast && conform)
-		sess = str->session;
+	dbgprintf(DEBUG_SYS, "%s fd %d\n", __FUNCTION__, sess->nsfd);
+	pthread_mutex_lock(&os->lock);
+	/* for strict multicast there is only the stream owners stream */
+	if (sess->trans.mcast && conform) {
+#ifndef IGNORE_NS
+		if (str->session->nsfd < 0) 
+			return -455;
+#endif
+		start_session(str->session);
+	} else {
 #ifndef IGNORE_NS
 	if (sess->nsfd < 0) 
 		return -455;
 #endif
-	dbgprintf(DEBUG_SYS, "%s fd %d\n", __FUNCTION__, sess->nsfd);
-	pthread_mutex_lock(&os->lock);
-	start_session(sess);
+		start_session(sess);
+	}
 	sess->playing |= 2;
 	pthread_mutex_unlock(&os->lock);
 	return 0;
@@ -1710,7 +1755,7 @@ void mc_join(struct octoserve *os, uint8_t *ip, uint8_t *mac, uint8_t *group)
 		if (os->has_switch)
 			update_switch_vec(sess);
 	}
-	if (!sess->playing) 
+	if (!session_is_playing(sess)) 
 		start_session(sess);
 out:
 	pthread_mutex_unlock(&os->lock);
@@ -1992,6 +2037,7 @@ static int proc_setup(struct oscon *con)
 			send_error(con, 400);
 			return -1;
 		}
+		
 #if 0
 		if (con->session && con->session != str->session) {
 			/* if we already have a session ID we
