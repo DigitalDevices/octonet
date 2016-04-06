@@ -45,23 +45,30 @@ function CreateM3U(host)
       local newdecoder = require("lunajson.decoder")
       local decode = newdecoder()
       local channellist = decode(json)
+      local lcn = 0
       for _,group in ipairs(channellist.GroupList) do
+         lcn = math.floor((lcn + 99)/100) * 100
          for _,channel in ipairs(group.ChannelList) do
-            table.insert(m3u,"#EXTINF:0,"..group.Title.." - "..channel.Title.."\n")
+            lcn = lcn + 1
+            table.insert(m3u,string.format("#EXTINF:0,%d. %s - %s\n",lcn,group.Title,channel.Title))
             table.insert(m3u,"rtsp://"..host..":554/"..channel.Request.."\n")
          end
       end
    else
       local SourceList = LoadSourceList()
+      local lcn = 0
       for _,f in pairs(SourceList) do
+         lcn = math.floor((lcn + 999)/1000) * 1000
          if f.system == "dvbs" or f.system == "dvbs2" then
             for _,c in ipairs(f.ChannelList) do
-               table.insert(m3u,"#EXTINF:0,"..f.title.." - "..c.title.."\n")
+               lcn = lcn + 1
+               table.insert(m3u,string.format("#EXTINF:0,%d. %s - %s\n",lcn,f.title,c.title))
                table.insert(m3u,"rtsp://"..host..":554/?src="..f.src.."&"..c.request.."\n")
             end
          else
             for _,c in ipairs(f.ChannelList) do
-               table.insert(m3u,"#EXTINF:0,"..f.title.." - "..c.title.."\n")
+               lcn = lcn + 1
+               table.insert(m3u,string.format("#EXTINF:0,%d. %s - %s\n",lcn,f.title,c.title))
                table.insert(m3u,"rtsp://"..host..":554/?"..c.request.."\n")
             end
          end
