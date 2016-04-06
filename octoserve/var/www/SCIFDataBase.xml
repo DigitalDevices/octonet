@@ -307,6 +307,32 @@
     <UBSlot Frequency="1680"/>
     <UBSlot Frequency="2040"/>
   </OutdoorUnit>
+  <OutdoorUnit Name="Dur-Line UK 124" Manufacturer="Dura-Sat" Type="LNB" Protocol="EN50607">
+    <UBSlot Frequency="1210"/>
+    <UBSlot Frequency="1420"/>
+    <UBSlot Frequency="1680"/>
+    <UBSlot Frequency="2040"/>
+    <UBSlot Frequency="1005"/>
+    <UBSlot Frequency="1050"/>
+    <UBSlot Frequency="1095"/>
+    <UBSlot Frequency="1140"/>
+    <UBSlot Frequency="1260"/>
+    <UBSlot Frequency="1305"/>
+    <UBSlot Frequency="1350"/>
+    <UBSlot Frequency="1475"/>
+    <UBSlot Frequency="1520"/>
+    <UBSlot Frequency="1565"/>
+    <UBSlot Frequency="1610"/>
+    <UBSlot Frequency="1725"/>
+    <UBSlot Frequency="1770"/>
+    <UBSlot Frequency="1815"/>
+    <UBSlot Frequency="1860"/>
+    <UBSlot Frequency="1905"/>
+    <UBSlot Frequency="1950"/>
+    <UBSlot Frequency="1995"/>
+    <UBSlot Frequency="2085"/>
+    <UBSlot Frequency="2130"/>
+  </OutdoorUnit>
   <OutdoorUnit Name="SMUC 58-NT/DC" Manufacturer="Resch" Type="Switch">
     <UBSlot Frequency="1284"/>
     <UBSlot Frequency="1400"/>
