@@ -14,6 +14,7 @@ MenuItems.push( { Text:"System Settings", Link:"system.html" } );
 MenuItems.push( { Text:"Multicast Setup", Link:"multicast.html" } );
 MenuItems.push( { Text:"Channel Lists", Link:"channellists.html" } );
 MenuItems.push( { Text:"Update", Link:"update.html" } );
+MenuItems.push( { Text:"Reboot", Link:"reboot.html" } );
 MenuItems.push( { Text:"Hardware Monitor", Link:"monitor.html" } );
 MenuItems.push( { Text:"Licenses", Link:"licenses.html" } );
 
