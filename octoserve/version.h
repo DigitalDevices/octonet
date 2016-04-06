@@ -19,5 +19,5 @@
 
 #ifndef _OCTOSERVE_VERSION_
 #define _OCTOSERVE_VERSION_
-#define OCTOSERVE_VERSION "1.0.63"
+#define OCTOSERVE_VERSION "1.0.64"
 #endif
