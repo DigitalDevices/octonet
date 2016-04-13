@@ -450,7 +450,8 @@ static void *release_no_sessions(struct ossess *oss)
 	for (i = 0; i < MAX_SESSION; i++) {
 		if (os->session[i].state && 
 		    (os->session[i].stream == str) &&
-		    (&os->session[i] != oss))
+		    (&os->session[i] != oss) &&
+		    os->session[i].trans.mcast)
 			_release_session(&os->session[i]);
 	}
 	pthread_mutex_unlock(&os->lock);
@@ -1524,7 +1525,7 @@ static int setup_session(struct oscon *con, int newtrans)
 	} 
  	if (newtrans) {
 		if (sess->trans.mcast && conform) {
-			if (owner && newtrans > 1)
+			if (owner && (newtrans & ~1UL))
 				release_no_sessions(sess);
 			else {
 				memcpy(&sess->trans, &str->session->trans, sizeof(struct ostrans));
