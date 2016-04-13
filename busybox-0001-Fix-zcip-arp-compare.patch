@@ -1,0 +1,12 @@
+diff -rup busybox-1.23.1.orig/networking/zcip.c busybox-1.23.1/networking/zcip.c
+--- busybox-1.23.1.orig/networking/zcip.c	2015-01-27 09:48:58.000000000 +0100
++++ busybox-1.23.1/networking/zcip.c	2016-04-13 15:36:12.255391459 +0200
+@@ -521,7 +521,7 @@ int zcip_main(int argc UNUSED_PARAM, cha
+ 			target_ip_conflict = 0;
+ 
+ 			if (memcmp(&p.arp.arp_sha, &eth_addr, ETH_ALEN) != 0) {
+-				if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr))) {
++				if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr)) == 0) {
+ 					/* A probe or reply with source_ip == chosen ip */
+ 					source_ip_conflict = 1;
+ 				}

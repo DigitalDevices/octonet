@@ -14,6 +14,7 @@ if [ ! -e buildroot ]; then
   tar xf buildroot-2015.02-rc2.tar.bz2
   mv buildroot-2015.02-rc2 buildroot
   cp dvb-apps-0002-Fix-broken-bitops-on-arm.patch buildroot/package/dvb-apps/
+  cp busybox-0001-Fix-zcip-arp-compare.patch buildroot/package/busybox/
   if [ -e dl ]; then
      ln -sf ../dl buildroot
   fi
