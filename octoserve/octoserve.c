@@ -216,9 +216,9 @@ void send_error(struct oscon *con, int err)
 	dbgprintf(DEBUG_RTSP, "Send Error:\n%s\n", buf);
 }
 
-static void *release_session(struct ossess *oss);
+static void release_session(struct ossess *oss);
 
-static void *release_ca(struct dvbca *ca)
+static void release_ca(struct dvbca *ca)
 {
 	dbgprintf(DEBUG_SYS, "release ca %d\n", ca->nr);
 	pthread_mutex_lock(&ca->os->lock);
@@ -278,7 +278,7 @@ static struct dvbca *alloc_ca(struct osstrm *str)
 	return NULL;
 }
 
-static void *release_fe(struct octoserve *os, struct dvbfe *fe)
+static void release_fe(struct octoserve *os, struct dvbfe *fe)
 {
 	if (!fe)
 		return;
@@ -342,7 +342,7 @@ static void shutdown_con(struct oscon *con)
 	dbgprintf(DEBUG_SYS, "shutdown con %u at %u\n", con->nr, con->timeout);
 }
 
-static void *_release_session(struct ossess *oss)
+static void _release_session(struct ossess *oss)
 {
 	struct octoserve *os = oss->os;
 	int i;
@@ -366,7 +366,7 @@ static void *_release_session(struct ossess *oss)
 	}
 }
 
-static void *release_stream(struct osstrm *str)
+static void release_stream(struct osstrm *str)
 {
 	struct octoserve *os = str->os;
 	int i;
@@ -423,7 +423,7 @@ static struct osstrm *get_stream(struct octoserve *os, int id)
 	return r;
 }
 
-static void *release_session(struct ossess *oss)
+static void release_session(struct ossess *oss)
 {
 	struct octoserve *os = oss->os;
 	int i;
@@ -438,7 +438,7 @@ static void *release_session(struct ossess *oss)
 	pthread_mutex_unlock(&os->lock);
 }
 
-static void *release_no_sessions(struct ossess *oss)
+static void release_no_sessions(struct ossess *oss)
 {
 	struct octoserve *os = oss->os;
 	struct osstrm *str = oss->stream;
@@ -1447,6 +1447,25 @@ static void copy_params(struct ossess *s, struct ossess *t)
 	memcpy(&s->p, &t->p, sizeof(struct dvb_params));
 }
 
+static void adjust_no_sessions(struct ossess *oss)
+{
+	struct octoserve *os = oss->os;
+	struct osstrm *str = oss->stream;
+	int i;
+	
+	dbgprintf(DEBUG_SYS, "adjust session nr %d id %010d\n", oss->nr, oss->id);
+	for (i = 0; i < MAX_SESSION; i++) {
+		struct ossess *nso = &os->session[i];
+
+		if (nso->state && (nso->stream == str) &&
+		    (nso != oss) && !nso->trans.mcast) {
+			memcpy(&nso->p, &oss->p, sizeof(struct dvb_params));
+			if (nso->nsfd >= 0)
+				ioctl(nso->nsfd, NS_SET_PIDS, nso->p.pid);
+		}
+	}
+}
+
 static int setup_session(struct oscon *con, int newtrans)
 {
 	struct dvbfe *fe;
@@ -1458,8 +1477,8 @@ static int setup_session(struct oscon *con, int newtrans)
 	struct osstrm *str = sess->stream;
 	struct ossess *ownsess = str->session;
 	int pidchange;
-	int owner = 0;
-
+	int owner = 0, tuned = 0;
+	
 	if (sess == ownsess)
 		owner = 1;
 	if (!str)
@@ -1494,8 +1513,10 @@ static int setup_session(struct oscon *con, int newtrans)
 			}
 			str->fe = fe;
 			dvb_tune(str->fe, sp);
+			tuned = 1;
 		} else if (p->set & 0xffff8) { 
 			dvb_tune(str->fe, sp);
+			tuned = 1;
 		}
 	} else {
 		dbgprintf(DEBUG_DEBUG, "non stream owner setup\n");
@@ -1541,7 +1562,10 @@ static int setup_session(struct oscon *con, int newtrans)
 		
 		if (sess->nsfd >= 0)
 			ioctl(sess->nsfd, NS_SET_PIDS, &pids);
-	} 
+	}
+	if (conform && owner && !sess->trans.mcast && (pidchange || tuned)) 
+		adjust_no_sessions(sess);
+	
 	if (p->set & ((1UL << PARAM_CI))) {
 		if (p->param[PARAM_CI] == 0 && str->ca)
 			release_ca(str->ca);
