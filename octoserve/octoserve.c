@@ -1459,9 +1459,11 @@ static void adjust_no_sessions(struct ossess *oss)
 
 		if (nso->state && (nso->stream == str) &&
 		    (nso != oss) && !nso->trans.mcast) {
+			uint8_t *pids = nso->p.pid;
+
 			memcpy(&nso->p, &oss->p, sizeof(struct dvb_params));
 			if (nso->nsfd >= 0)
-				ioctl(nso->nsfd, NS_SET_PIDS, nso->p.pid);
+				ioctl(nso->nsfd, NS_SET_PIDS, &pids);
 		}
 	}
 }
