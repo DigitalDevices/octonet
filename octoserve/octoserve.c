@@ -59,9 +59,14 @@ static void update_switch_vec(struct ossess *sess)
 {
 	struct osmcc *mcc;
 	uint32_t vec = 0;
+	struct ossess *ownsess = sess->stream->session;
 
+	if (!sess->os->has_switch)
+		return;
 	for (mcc = sess->mccs.lh_first; mcc; mcc = mcc->mcc.le_next)
 		vec |= mcc->port_vec;
+	if (conform && ownsess->trans.mcast && (ownsess->playing & 2))
+		vec |= 0x1f;
 	if (vec != sess->mcc_port_vec_set || sess->port_vec != sess->port_vec_set) {
 		sess->mcc_port_vec_set = vec;
 		sess->port_vec_set = sess->port_vec;
@@ -468,7 +473,8 @@ static uint32_t session_is_playing(struct ossess *sess)
 		return sess->playing;
 	pthread_mutex_lock(&os->lock);
 	for (i = 0; i < MAX_SESSION; i++)
-		if (os->session[i].state && 
+		if (os->session[i].state &&
+		    os->session[i].trans.mcast &&
 		    (os->session[i].stream == str)) {
 			playing |= os->session[i].playing;
 			dbgprintf(DEBUG_DEBUG, "playing[%u] = %u\n",
@@ -1591,8 +1597,7 @@ static int setup_session(struct oscon *con, int newtrans)
 			set_pmt(str->ca, p->pmt);
 	}
 	if (con->session->trans.mcast) {
-		if (con->os->has_switch)
-			update_switch_vec(sess);
+		update_switch_vec(sess);
 	}
 	return 0;
 }
@@ -1602,29 +1607,29 @@ static int stop_session(struct ossess *sess)
 	if (!session_is_playing(sess))
 		return 0;
 	sess->playing &= ~1;
-	if (session_is_playing(sess))
-		return 0;
-	printf("stopping session %d\n", sess->nr);
-	if (sess->nsfd >= 0)
-		ioctl(sess->nsfd, NS_STOP);
+	if (!session_is_playing(sess)) {
+		printf("stopping session %d\n", sess->nr);
+		if (sess->nsfd >= 0)
+			ioctl(sess->nsfd, NS_STOP);
+	}
+	update_switch_vec(sess);
 	return 0;
 }
 
 static int start_session(struct ossess *sess)
 {
-	if (session_is_playing(sess)) {
-		sess->playing |= 1;
-		return 0;
-	}
-	dbgprintf(DEBUG_SYS, "start session %d\n", sess->nr);
-	if (sess->stream->ca) {
-		uint8_t canum = sess->stream->ca->nr - 1;
+	if (!session_is_playing(sess)) {
+		dbgprintf(DEBUG_SYS, "start session %d\n", sess->nr);
+		if (sess->stream->ca) {
+			uint8_t canum = sess->stream->ca->nr - 1;
+			if (sess->nsfd >= 0)
+				ioctl(sess->nsfd, NS_SET_CI, &canum);
+		}
 		if (sess->nsfd >= 0)
-			ioctl(sess->nsfd, NS_SET_CI, &canum);
+			ioctl(sess->nsfd, NS_START);
 	}
-	if (sess->nsfd >= 0)
-		ioctl(sess->nsfd, NS_START);
 	sess->playing |= 1;
+	update_switch_vec(sess);
 	return 0;
 }
 
@@ -1653,13 +1658,15 @@ static int play_session(struct oscon *con)
 		start_session(str->session);
 	} else {
 #ifndef IGNORE_NS
-	if (sess->nsfd < 0) 
-		return -455;
+		if (sess->nsfd < 0) 
+			return -455;
 #endif
 		start_session(sess);
 	}
+	dbgprintf(DEBUG_SYS, "%s set playing =2\n", __FUNCTION__);
 	sess->playing |= 2;
 	pthread_mutex_unlock(&os->lock);
+	update_switch_vec(sess);
 	return 0;
 }
 
@@ -1671,6 +1678,8 @@ static struct ossess *match_session(struct octoserve *os, uint8_t *group)
 	for (i = 0; i < MAX_SESSION; i++) {
 		sess = &os->session[i];
 		if (!sess->state || !sess->trans.mcast)
+			continue;
+		if (conform && sess->stream->session != sess)
 			continue;
 		if (!memcmp(sess->trans.mcip, group, 4))
 			return sess;
@@ -1699,10 +1708,9 @@ void mc_check(struct ossess *sess, int update)
 		}
 	}
 	if (update) {
-		if (os->has_switch)
-			update_switch_vec(sess);
+		update_switch_vec(sess);
 		if (!sess->mccs.lh_first)
-		//if (mtime() > sess->mc_timeout)
+			//if (mtime() > sess->mc_timeout)
 			stop_session(sess);
 	}
 	pthread_mutex_unlock(&os->lock);
@@ -1719,8 +1727,7 @@ void mc_del(struct ossess *sess)
 		LIST_REMOVE(mcc, mcc);
 		free(mcc);
 	}
-	if (os->has_switch)
-		update_switch_vec(sess);
+	update_switch_vec(sess);
 	pthread_mutex_unlock(&os->lock);
 }
 
@@ -1779,8 +1786,7 @@ void mc_join(struct octoserve *os, uint8_t *ip, uint8_t *mac, uint8_t *group)
 			newmcc->port_vec = port;
 			sess->mcc_port_vec |= port;
 		}
-		if (os->has_switch)
-			update_switch_vec(sess);
+		update_switch_vec(sess);
 	}
 	if (!session_is_playing(sess)) 
 		start_session(sess);
@@ -1823,8 +1829,7 @@ void mc_leave(struct octoserve *os, uint8_t *ip, uint8_t *group)
 			break;
 		}
 	}
-	if (os->has_switch)
-		update_switch_vec(sess);
+	update_switch_vec(sess);
 out:
 	pthread_mutex_unlock(&os->lock);
 }
