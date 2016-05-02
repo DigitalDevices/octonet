@@ -65,7 +65,8 @@ static void update_switch_vec(struct ossess *sess)
 		return;
 	for (mcc = sess->mccs.lh_first; mcc; mcc = mcc->mcc.le_next)
 		vec |= mcc->port_vec;
-	if (conform && ownsess->trans.mcast && (ownsess->playing & 2))
+	//if (conform && ownsess->trans.mcast && (ownsess->playing & 2))
+	if (conform && ownsess->trans.mcast && session_is_playing(ownsess))
 		vec |= 0x1f;
 	if (vec != sess->mcc_port_vec_set || sess->port_vec != sess->port_vec_set) {
 		sess->mcc_port_vec_set = vec;
@@ -1463,8 +1464,7 @@ static void adjust_no_sessions(struct ossess *oss)
 	for (i = 0; i < MAX_SESSION; i++) {
 		struct ossess *nso = &os->session[i];
 
-		if (nso->state && (nso->stream == str) &&
-		    (nso != oss) && !nso->trans.mcast) {
+		if (nso->state && (nso->stream == str) && (nso != oss)) {
 			uint8_t *pids = nso->p.pid;
 
 			memcpy(&nso->p, &oss->p, sizeof(struct dvb_params));
@@ -1571,7 +1571,7 @@ static int setup_session(struct oscon *con, int newtrans)
 		if (sess->nsfd >= 0)
 			ioctl(sess->nsfd, NS_SET_PIDS, &pids);
 	}
-	if (conform && owner && !sess->trans.mcast && (pidchange || tuned)) 
+	if (conform && owner && (pidchange || tuned)) 
 		adjust_no_sessions(sess);
 	
 	if (p->set & ((1UL << PARAM_CI))) {
@@ -1788,8 +1788,7 @@ void mc_join(struct octoserve *os, uint8_t *ip, uint8_t *mac, uint8_t *group)
 		}
 		update_switch_vec(sess);
 	}
-	if (!session_is_playing(sess)) 
-		start_session(sess);
+	start_session(sess);
 out:
 	pthread_mutex_unlock(&os->lock);
 }
