@@ -1018,7 +1018,6 @@ static int nit_cb(struct sfilter *sf)
 			t.nid = nid;
 			t.use_nit = p->tsi->stp->tpi->use_nit;
 			t.scan_eit = p->tsi->stp->tpi->scan_eit;
-			//t.use_nit = p->tsi->stp->tpi->use_nit;
 			tdl = get12(buf + c + 4);
 			//fprintf(stderr, " tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
 			c += 6;
@@ -1078,6 +1077,7 @@ static int pat_cb(struct sfilter *sf)
 	int slen, ilen, eslen, c;
 	uint16_t pid, pnr;
 	uint8_t snr, lsnr;
+	uint16_t nit_pid = 0x10;
 
 	slen = (((buf[1]&0x03)<<8)|buf[2])+3;
 	sf->ext = ((buf[3]<<8)|buf[4]);
@@ -1093,10 +1093,11 @@ static int pat_cb(struct sfilter *sf)
 			add_sfilter(p->tsi, pid, 0x02, pnr, 2, 5);
 			add_sfilter(p->tsi, 0x11, 0x42, pnr, 2, 5);
 		} else {
-			add_sfilter(p->tsi, pid, 0x40, 0, 1, 15);
-			//add_sfilter(p->tsi, pid, 0x41, 0, 1, 15);
+			nit_pid = pid;
 		}
 	}
+	add_sfilter(p->tsi, nit_pid, 0x40, 0, 1, 15);
+	//add_sfilter(p->tsi, nit_pid, 0x41, 0, 1, 15);
 	//fprintf(stderr, "\n");
 	return 0;
 }
