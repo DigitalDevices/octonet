@@ -47,6 +47,7 @@ static int read_id(char *type, uint32_t *id)
 	name[len] = 0;
 	*id = strtol(name, NULL, 10);
 	printf("%s.id = %d\n", type, *id);
+	close(fd);
 	return 0;
 }
 

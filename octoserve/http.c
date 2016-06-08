@@ -32,7 +32,7 @@ char xmldesc[] =
 	"<specVersion>\r\n<major>1</major>\r\n<minor>1</minor>\r\n</specVersion>\r\n"
 	"<device>\r\n"
 	"<deviceType>urn:ses-com:device:SatIPServer:1</deviceType>\r\n"
-	"<friendlyName>OctopusNet</friendlyName>\r\n"
+	"<friendlyName>%s</friendlyName>\r\n"
 	"<manufacturer>Digital Devices GmbH</manufacturer>\r\n"
 	"<manufacturerURL>http://www.digitaldevices.de</manufacturerURL>\r\n"
 	"<modelDescription>OctopusNet</modelDescription>\r\n"
@@ -138,6 +138,22 @@ void send_http_file(int sock, char *fn)
 	close(fd);
 }
 
+static int read_boxname(char *name)
+{
+	int fd, len;
+
+	strcpy(name, "OctopusNet");
+	fd = open("/config/boxname", O_RDONLY);
+	if (fd < 0)
+		return 0;
+	printf("read boxname from /etc/boxname\n");
+	len = read(fd, name, 79);
+	if (len > 0)
+		name[len] = 0;
+	close(fd);
+	return 0;
+}
+
 void send_xml(struct os_ssdp *ss)
 {
 	struct octoserve *os = ss->os;
@@ -145,7 +161,9 @@ void send_xml(struct os_ssdp *ss)
 	int len, len2;
 	uint8_t *mac = &os->mac[0];
 	int serial = (mac[5] | (mac[4] << 8) | (mac[3] << 16)) / 2;
+	char boxname[80];
 
+	read_boxname(boxname);
 	len = 0;
 	if (os->dvbs2num)
 		len += sprintf(cap + len, ",DVBS2-%u", os->dvbs2num);
@@ -158,7 +176,8 @@ void send_xml(struct os_ssdp *ss)
 	if (os->dvbc2num)
 		len += sprintf(cap + len, ",DVBC2-%u", os->dvbc2num); 
 	len = snprintf(buf, sizeof(buf), xmldesc,
-		       ss->configid, serial, ss->uuid_str, cap + 1);
+		       ss->configid, boxname,
+		       serial, ss->uuid_str, cap + 1);
 	if (len <= 0 || len >= sizeof(buf))
 		return;
 	len2=sprintf(buf2, httpxml, len);
