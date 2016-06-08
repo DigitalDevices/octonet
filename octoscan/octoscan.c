@@ -1,8 +1,26 @@
+/*  
+    (C) 2015-16 Digital Devices GmbH. 
+
+    Octoscan is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Octoscan is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with octoserve.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <signal.h>
+#include <stddef.h>
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -27,6 +45,10 @@
 #include <net/if_arp.h>
 #include <time.h>
 #include <ctype.h>
+
+
+#define container_of(p, st, field) (st*)((char*)(p) - offsetof(st, field))
+
 #include "list.h"
 
 #include <getopt.h>
@@ -273,7 +295,7 @@ static struct service *get_service(struct tp_info *tpi, uint16_t sid)
 			return s;
 	}
 	s = calloc(1, sizeof(struct service));
-	INIT_LIST_HEAD(&s->events);
+	list_head_init(&s->events);
 	s->sid = sid;
 	snprintf(s->name, sizeof(s->name), "Service %d", sid);
 	snprintf(s->pname, sizeof(s->name), "~");
@@ -662,7 +684,7 @@ uint32_t dvb_crc32(uint8_t *data, int len)
 static void pid_info_init(struct pid_info *pidi, uint16_t pid, struct ts_info *tsi)
 {
 	memset(pidi, 0, sizeof(struct pid_info));
-	INIT_LIST_HEAD(&pidi->sfilters);
+	list_head_init(&pidi->sfilters);
 	pidi->pid=pid;
 	pidi->tsi=tsi;
 }
@@ -728,7 +750,7 @@ int add_tp(struct scanip *sip, struct tp_info *tpi_new)
 	memcpy(tpi, tpi_new, sizeof(struct tp_info));
 	//fprintf(stderr, "added tp freq = %u\n", tpi->freq);
 	list_add_tail(&tpi->link, &sip->tps);
-	INIT_LIST_HEAD(&tpi->services);
+	list_head_init(&tpi->services);
 	return 0;
 }
 
@@ -779,8 +801,8 @@ void ts_info_init(struct ts_info *tsi)
 {
 	int i;
 
-	INIT_LIST_HEAD(&tsi->pids);
-	INIT_LIST_HEAD(&tsi->sfilters);
+	list_head_init(&tsi->pids);
+	list_head_init(&tsi->sfilters);
 	for (i=0; i<0x2000; i++)
 		pid_info_init(&tsi->pidi[i], i, tsi);
 }
@@ -1949,8 +1971,8 @@ void term_action(int sig, siginfo_t *si, void *d)
 
 void scanip_init(struct scanip *sip, char *host)
 {
-	INIT_LIST_HEAD(&sip->tps);
-	INIT_LIST_HEAD(&sip->tps_done);
+	list_head_init(&sip->tps);
+	list_head_init(&sip->tps_done);
 	sip->done = 0;
 	sip->host = host;
 }
