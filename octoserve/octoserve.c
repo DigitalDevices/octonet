@@ -2686,7 +2686,7 @@ static void os_serve(struct octoserve *os)
 	killall_sessions(os);
 }
 
-static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt, int noswitch)
+static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt, int msmode)
 {
 	struct octoserve *os;
 	struct os_ssdp *ss;
@@ -2728,7 +2728,7 @@ static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt
 	if (os->has_switch)
 		switch_get_port(os->mac);
 
-	init_dvb(os, nodvbt, noswitch);
+	init_dvb(os, nodvbt, msmode);
 
 	ss = &os->ssdp;
 	if (init_ssdp(os, &os->ssdp, debug, nossdp, nodms) < 0) {
@@ -2778,6 +2778,27 @@ static int fexists(char *fn)
 	return (!stat(fn, &b));
 }
 
+static int read_msmode(char *fn)
+{
+	int fd, len;
+	char mode[80];
+		
+	fd = open(fn, O_RDONLY);
+	if (fd < 0)
+		return 0;
+	len = read(fd, mode, 7);
+	if (len < 0)
+		return 0;
+	close (fd);
+	if (len == 4 && !strncasecmp(mode, "none", 4))
+		return 0;
+	if (len == 4 && !strncasecmp(mode, "quad", 4))
+		return 1;
+	if (len == 7 && !strncasecmp(mode, "quattro", 7))
+		return 2;
+	return 0;
+}
+
 static void awrite(char *fn, char *txt)
 {
 	FILE *f = fopen(fn, "w");
@@ -2788,7 +2809,7 @@ static void awrite(char *fn, char *txt)
 
 int main(int argc, char **argv)
 {
-	int nodms = 0, nossdp = 0, nodvbt = 0, vlan = 0, noswitch = 0;
+	int nodms = 0, nossdp = 0, nodvbt = 0, vlan = 0, msmode = 1;
 		
 	printf("Octoserve " OCTOSERVE_VERSION
 	       ", Copyright (C) 2012-15 Digital Devices GmbH\n"); 
@@ -2803,7 +2824,6 @@ int main(int argc, char **argv)
 			{"nossdp", no_argument, 0, 'n'},
 			{"nodms", no_argument, 0, 'm'},
 			{"nodvbt", no_argument, 0, 't'},
-			{"noswitch", no_argument, 0, 's'},
 			{"conform", no_argument, 0, 'c'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
@@ -2830,9 +2850,6 @@ int main(int argc, char **argv)
 		case 't':
 			nodvbt = 1;
 			break;
-		case 's':
-			noswitch = 1;
-			break;
 		case 'c':
 			conform = 1;
 			break;
@@ -2848,7 +2865,9 @@ int main(int argc, char **argv)
 	if (fexists("/config/nodms.enabled"))
 		nodms = 1;
 	if (fexists("/config/noswitch.enabled"))
-		noswitch = 1;
+		msmode = 0;
+	else
+		msmode = read_msmode("/config/msmode");
 	if (fexists("/config/nodvbt.enabled"))
 		nodvbt = 1;
 	if (fexists("/config/vlan.enabled")) {
@@ -2858,7 +2877,7 @@ int main(int argc, char **argv)
 		awrite("/sys/class/ddbridge/ddbridge0/vlan", "0");
 	printf("nodms = %d, nodvbt = %d, vlan = %d\n", nodms, nodvbt, vlan);
 	
-	os = os_init("eth0", nossdp, nodms, nodvbt, noswitch);
+	os = os_init("eth0", nossdp, nodms, nodvbt, msmode);
 	if (!os)
 		return -1;
 	set_termaction();

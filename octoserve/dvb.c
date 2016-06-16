@@ -1078,7 +1078,7 @@ int dvb_tune(struct dvbfe *fe, struct dvb_params *p)
 	return ret;
 }
 
-static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int noswitch)
+static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int msmode)
 {
 	struct dtv_properties dps;
 	struct dtv_property dp[10];
@@ -1132,13 +1132,13 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int n
 	}
 	if (fe->input[3]) {
 		os->has_feswitch = 1;
-		if (noswitch) {
+		if (!msmode) {
 			if (fe->input[2] >= fe->input[1]) {
 				fe->type = 0;
 				return -1;
 			}
 		} else
-			os->do_feswitch = 1;
+			os->do_feswitch = msmode;
 	}
 	
 	os->dvbfe_num++;
@@ -1146,7 +1146,7 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int n
 	return 0;
 }
 
-static int scan_dvbfe(struct octoserve *os, int nodvbt, int noswitch)
+static int scan_dvbfe(struct octoserve *os, int nodvbt, int msmode)
 {
 	int a, f, fd;
 	char fname[80];
@@ -1156,7 +1156,7 @@ static int scan_dvbfe(struct octoserve *os, int nodvbt, int noswitch)
 			sprintf(fname, "/dev/dvb/adapter%d/frontend%d", a, f); 
 			fd = open(fname, O_RDWR);
 			if (fd >= 0) {
-				init_fe(os, a, f, fd, nodvbt, noswitch);
+				init_fe(os, a, f, fd, nodvbt, msmode);
 				close(fd);
 			}
 		}
@@ -1747,14 +1747,14 @@ void lnb_config(struct octoserve *os, char *name, char *val)
 	}
 }
 
-int init_dvb(struct octoserve *os, int nodvbt, int noswitch)
+int init_dvb(struct octoserve *os, int nodvbt, int msmode)
 {
 	int i, j;
 
 	pthread_mutex_init(&nsd_lock, 0);
 	pthread_mutex_init(&os->uni_lock, 0);
 
-	scan_dvbfe(os, nodvbt, noswitch);
+	scan_dvbfe(os, nodvbt, msmode);
 	scan_dvbca(os);
 
 	os->scif_type = 0;
@@ -1764,7 +1764,7 @@ int init_dvb(struct octoserve *os, int nodvbt, int noswitch)
 		uint32_t fmode = 0;
 		
 		if (os->do_feswitch) {
-			fmode = 1;
+			fmode = msmode;
 			if (os->scif_type)
 				fmode = 0;//3;
 		}
