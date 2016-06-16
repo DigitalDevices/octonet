@@ -147,6 +147,7 @@ struct rtsp_error {
 #define PARAM_GI        15
 #define PARAM_PLP       16
 #define PARAM_ISI       16
+#define PARAM_PLS       17
 #define PARAM_T2ID      17
 #define PARAM_SM        18
 #define PARAM_C2TFT     19
@@ -205,10 +206,12 @@ struct dvbfe {
 
 	uint32_t tune;
 	uint32_t param[32];
+	uint32_t set;
 
 	uint32_t n_tune;
 	uint32_t n_param[32];
-
+	uint32_t n_set;
+	
 	pthread_mutex_t mutex;
 };
 

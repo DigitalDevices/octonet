@@ -693,6 +693,8 @@ static void send_option(struct oscon *con)
 	}
 }
 
+#define PAR2STR(par) ((p->set & (1UL << PARAM_##par)) ? par##2str[p->param[PARAM_POL]] : "")
+
 char *pol2str[] = {"", "v", "h", "r", "l", NULL};
 char *msys2str [] = {"", "undef", "dvbc", "dvbcb", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
 		      "isdbt", "isdbs", "isdbc", "atsc", "atscmh", "dtmb", "cmmb", "dab",
@@ -1106,13 +1108,20 @@ static int parse_url(struct oscon *con, int streamonly)
 					break;
 				p->set |= (1UL << PARAM_T2ID);
 				dbgprintf(DEBUG_SYS, "t2id=%d, ", p->param[PARAM_T2ID]);
-			} else if (!strncasecmp(url, "isi=", 4)) {
-				url += 4;
+			} else if (!strncasecmp(url, "x_isi=", 6)) {
+				url += 6;
 				p->param[PARAM_ISI] = strtoul(url, &end, 10);
 				if (end == url)
 					break;
 				p->set |= (1UL << PARAM_ISI);
-				dbgprintf(DEBUG_SYS, "isi=%d, ", p->param[PARAM_ISI]);
+				dbgprintf(DEBUG_SYS, "x_isi=%d, ", p->param[PARAM_ISI]);
+			} else if (!strncasecmp(url, "x_pls=", 6)) {
+				url += 6;
+				p->param[PARAM_PLS] = strtoul(url, &end, 0);
+				if (end == url)
+					break;
+				p->set |= (1UL << PARAM_PLS);
+				dbgprintf(DEBUG_SYS, "x_pls=%d, ", p->param[PARAM_PLS]);
 			} else if (!strncasecmp(url, "freq=", 5)) {
 				float f;
 
