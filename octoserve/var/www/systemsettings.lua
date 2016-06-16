@@ -1,5 +1,7 @@
 #!/usr/bin/lua
 
+local url = require("socket.url")
+
 function SaveOctoserveConf(Section,Values)
   local ConfStart
   local ConfEnd
@@ -25,10 +27,11 @@ function SaveOctoserveConf(Section,Values)
 end
 
 function ReadSetting(name)
-  local enabled = false
+  local enabled = "false"
   local tmp = io.open("/config/"..name..".enabled","r")
   if tmp then
-    enabled = true
+    enabled = "true"
+    tmp:close()
   end
   return(enabled)
 end
@@ -44,6 +47,50 @@ function WriteSetting(name,enabled)
     end
   end
   return enabled ~= wasenabled
+end
+
+function WriteConfigFile(name,value)
+  local f = io.open("/config/"..name,"w")
+  if f then
+    f:write(value)
+    f:close()
+  end
+end
+
+function CheckMaxS8()
+   local isMaxS8 = "false"
+   local tmp = io.open("/sys/class/ddbridge/ddbridge0/devid1")
+   if tmp then
+      devid = tmp:read("*l")
+      tmp:close()
+      if devid == "0007dd01" then
+         isMaxS8 = "true"
+      end
+   end
+   return isMaxS8
+end
+
+function GetBoxName()
+   local boxname = ""
+   local tmp = io.open("/config/boxname")
+   if tmp then
+      boxname = tmp:read("*l")
+      boxname = boxname:gsub("OctopusNet:","",1);
+      tmp:close()
+   end
+   return boxname
+end
+
+function GetMSMode()
+   local msmode = "quad"
+   local tmp = io.open("/config/msmode")
+   if tmp then
+      msmode = tmp:read("*l")
+      tmp:close()
+   elseif ReadSetting('noswitch') then
+      msmode = "none"
+   end
+   return msmode
 end
 
 
@@ -79,30 +126,50 @@ if arg[1] then
 end
 
 if query ~= "" then
+    query = url.unescape(query)
     os.execute("echo \""..query.."\" >/tmp/query")
     local params = {}
-    for w in string.gmatch(query,"(%a%w+%=%d+%,?%d*%,?%d*)") do
+    for w in string.gmatch(query,"(%a%w*%=[%w %(%)%-@/]*)") do
       table.insert(params,w)
+      os.execute("echo \""..w.."\" >>/tmp/query")
     end
     
     -- TODO: More validation
     local nextloc = "index.html"
     local restart = 0;
+    local restartdms = 0;
     for _,v in ipairs(params) do
-      name,value = string.match(v,"(%w+)%=(%d+)")
-      if( WriteSetting(name,value == "1") ) then
+      name,value = string.match(v,"(%w+)%=(.+)")
+      if name == "msmode" then
+         os.remove("/config/noswitch.enabled")
+         WriteConfigFile("msmode",value);
+         restart = 1;         
+      elseif name == "boxname" then
+         if value ~= "" then
+            WriteConfigFile("boxname","OctopusNet:"..value);
+         else
+            os.remove("/config/boxname")
+         end
+         restart = 1;
+         restartdms = 1;
+      elseif( WriteSetting(name,value == "1") ) then
         if name == "telnet" then 
           os.execute("/etc/init.d/S91telnet restart") 
         end
         if name == "vlan" then restart = 1 end
         if name == "nodms" then restart = 1 end
         if name == "nodvbt" then restart = 1 end
-        if name == "noswitch" then restart = 1 end
         if name == "strict" then restart = 1 end
-        nextloc = "wait.html?10"
       end
     end
-    if restart == 1 then os.execute("/etc/init.d/S99octo restartoctonet > /dev/null 2>&1 &") end
+    if restart == 1 then 
+      os.execute("/etc/init.d/S99octo restartoctonet > /dev/null 2>&1 &")
+      nextloc = "wait.html?10"
+    end
+    if restartdms == 1 then
+      os.execute("/etc/init.d/S92dms restart > /dev/null 2>&1 &")
+      nextloc = "wait.html?10"
+    end
     print(proto.." 303")
     print("Location: http://"..host.."/"..nextloc)
     print("")
@@ -111,44 +178,21 @@ else
   http_print(proto.." 200")
   http_print("Pragma: no-cache")
   http_print("Cache-Control: no-cache")
-  http_print("Content-Type: application/x-javascript")
+  http_print("Content-Type: application/json; charset=utf-8")
   http_print()
 
-  if ReadSetting("telnet") then
-    http_print("telnetEnabled = true;")
-  else
-    http_print("telnetEnabled = false;")
-  end
-
-  if ReadSetting("vlan") then
-    http_print("vlanEnabled = true;")
-  else
-    http_print("vlanEnabled = false;")
-  end
-    
-  if ReadSetting("nodms") then
-    http_print("nodmsEnabled = true;")
-  else
-    http_print("nodmsEnabled = false;")
-  end
-    
-  if ReadSetting("nodvbt") then
-    http_print("nodvbtEnabled = true;")
-  else
-    http_print("nodvbtEnabled = false;")
-  end
-    
-  if ReadSetting("noswitch") then
-    http_print("noswitchEnabled = true;")
-  else
-    http_print("noswitchEnabled = false;")
-  end
-
-  if ReadSetting("strict") then
-    http_print("strictEnabled = true;")
-  else
-    http_print("strictEnabled = false;")
-  end
+  http_print('{')
+  
+  http_print(' "BoxName":"' .. GetBoxName() .. '",')
+  http_print(' "isMaxS8":' .. CheckMaxS8() .. ',')
+  http_print(' "telnetEnabled":' .. ReadSetting('telnet') .. ',')
+  http_print(' "vlanEnabled":' .. ReadSetting('vlan') .. ',')
+  http_print(' "nodmsEnabled":' .. ReadSetting('nodms') .. ',')
+  http_print(' "nodvbtEnabled":' .. ReadSetting('nodvbt') .. ',')
+  http_print(' "MSMode":"' .. GetMSMode() .. '",')  
+  http_print(' "strictEnabled":' .. ReadSetting('strict'))
+  
+  http_print('}')
 
   
 end

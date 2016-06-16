@@ -36,6 +36,17 @@ function readattr(attr)
    return value
 end
 
+function GetBoxName()
+   local boxname = ""
+   local tmp = io.open("/config/boxname")
+   if tmp then
+      boxname = tmp:read("*l")
+      boxname = boxname:gsub("OctopusNet:","",1);
+      tmp:close()
+   end
+   return boxname
+end
+
 http_print("HTTP/1.1 200")
 http_print("Pragma: no-cache")
 http_print("Cache-Control: no-cache")
@@ -83,3 +94,4 @@ http_print(string.format("var fpgatype = \"%0X\";",dev0 / 65536))
 http_print(string.format("var fwdate = \"%s\";",fwdate))
 http_print(string.format("var host = \"%s\";",host))
 http_print(string.format("var suffix = \"%s\";",suffix))
+http_print(string.format("var boxname = \"%s\";",GetBoxName()))

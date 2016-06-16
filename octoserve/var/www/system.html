@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE HTML>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -6,65 +6,163 @@
 <link rel="stylesheet" type="text/css" href="/style.css">
 <script type="text/javascript" src="/menu.js"></script>
 <!--  Add included scripts here -->
-<script type="text/javascript" src="/systemsettings.lua"></script>
 <!-- Add page scripts here -->
 <script type="text/javascript">
 
+var NewSettings = null;
+var OldSettings = null;
 
+var xmlhttp = new XMLHttpRequest();
+var url = "/systemsettings.lua";
+
+xmlhttp.onreadystatechange=function()
+{
+    if (xmlhttp.readyState == 4 )
+    {
+      if( xmlhttp.status == 200 )
+         myFunction(xmlhttp.responseText);
+    }
+}
+
+function myFunction(response)
+{
+  var settings = JSON.parse(response);
+
+  if( settings.isMaxS8 )
+  {
+    document.getElementById("trMSMode").style.display = "table-row";
+    if( settings.MSMode == "none" )
+      document.getElementById("MSMode").selectedIndex = 0;
+    else if( settings.MSMode == "quattro" )
+      document.getElementById("MSMode").selectedIndex = 2;
+    else
+      document.getElementById("MSMode").selectedIndex = 1;
+  }
+
+  document.getElementById("BoxName").value  = settings.BoxName;
+
+  document.getElementById("QOSButton").checked  = settings.vlanEnabled;
+  document.getElementById("TelnetButton").checked  = settings.telnetEnabled;
+  document.getElementById("NODMSButton").checked  = settings.nodmsEnabled;
+  document.getElementById("NODVBTButton").checked  = settings.nodvbtEnabled;
+  document.getElementById("STRICTButton").checked  = settings.strictEnabled;
+
+  document.getElementById("QOSButton").disabled      = false;
+  document.getElementById("TelnetButton").disabled   = false;
+  document.getElementById("NODMSButton").disabled    = false;
+  document.getElementById("NODVBTButton").disabled   = false;
+  document.getElementById("STRICTButton").disabled   = false;
+  document.getElementById("BoxName").disabled        = false;
+  document.getElementById("MSMode").disabled         = false;
+
+  OldSettings = settings;
+  NewSettings = JSON.parse(response);
+}
 
 function SaveSettings()
 {
-  param = "";
-  param += "telnet=" + (telnetEnabled?"1":"0");
-  param += "&";
-  param += "vlan=" + (vlanEnabled?"1":"0");
-  param += "&";
-  param += "nodms=" + (nodmsEnabled?"1":"0");
-  param += "&";
-  param += "nodvbt=" + (nodvbtEnabled?"1":"0");
-  param += "&";
-  param += "noswitch=" + (noswitchEnabled?"1":"0");
-  param += "&";
-  param += "strict=" + (strictEnabled?"1":"0");
-  location.replace('/systemsettings.lua?'+param);  
+  if( NewSettings )
+  {
+    var param = "";
+    if( OldSettings.BoxName != NewSettings.BoxName )
+    {
+      if( param != "" ) param += "&";
+      param += "boxname=" + encodeURIComponent(NewSettings.BoxName);
+    }        
+    
+    if( OldSettings.telnetEnabled != NewSettings.telnetEnabled )
+    {
+      if( param != "" ) param += "&";
+      param += "telnet=" + (NewSettings.telnetEnabled?"1":"0");
+    }
+    
+    if( OldSettings.vlanEnabled != NewSettings.vlanEnabled )
+    {
+      if( param != "" ) param += "&";
+      param += "vlan=" + (NewSettings.vlanEnabled?"1":"0");
+    }
+    
+    if( OldSettings.nodmsEnabled != NewSettings.nodmsEnabled )
+    {
+      if( param != "" ) param += "&";
+      param += "nodms=" + (NewSettings.nodmsEnabled?"1":"0");
+    }
+    
+    if( OldSettings.nodvbtEnabled != NewSettings.nodvbtEnabled )
+    {
+      if( param != "" ) param += "&";
+      param += "nodvbt=" + (NewSettings.nodvbtEnabled?"1":"0");
+    }
+    
+    if( OldSettings.MSMode != NewSettings.MSMode )
+    {
+      if( param != "" ) param += "&";
+      param += "msmode=" + NewSettings.MSMode;
+    }
+    
+    if( OldSettings.strictEnabled != NewSettings.strictEnabled )
+    {
+      if( param != "" ) param += "&";
+      param += "strict=" + (NewSettings.strictEnabled?"1":"0");
+    }
+    
+    location.replace('/systemsettings.lua?'+param);
+  }
 }
 
 function ClearSettings()
 {
-  telnetEnabled = false;
-  vlanEnabled = false;
-  nodmsEnabled = false;
-  nodvbtEnabled = false;
-  noswitchEnabled = false;
-  strictEnabled = false;
-  SaveSettings();
+  if( NewSettings )
+  {
+    NewSettings.boxname = "";
+    NewSettings.telnetEnabled = false;
+    NewSettings.vlanEnabled = false;
+    NewSettings.nodmsEnabled = false;
+    NewSettings.nodvbtEnabled = false;
+    NewSettings.strictEnabled = false;
+    NewSettings.MSMode = "quad";
+    SaveSettings();
+  }
 }
 
 function OnLoad()
 {
-  document.getElementById("QOSButton").checked  = vlanEnabled;
-  document.getElementById("TelnetButton").checked  = telnetEnabled;
-  document.getElementById("NODMSButton").checked  = nodmsEnabled;
-  document.getElementById("NODVBTButton").checked  = nodvbtEnabled;
-  document.getElementById("NOSwitchButton").checked  = noswitchEnabled;
-  document.getElementById("STRICTButton").checked  = strictEnabled;
+   xmlhttp.open("GET", url, true);
+   xmlhttp.send();
 }
+
+function ChangeBoxName()
+{
+  if( NewSettings )
+  {
+    var s = document.getElementById("BoxName").value;
+    s = s.replace(/[^a-zA-Z0-9@ ()-\/]/g,"");
+    document.getElementById("BoxName").value = s;
+    NewSettings.BoxName = document.getElementById("BoxName").value;
+    document.getElementById("SetButton").disabled = false;
+  }
+}
+
+
 
 function Change()
 {
-  vlanEnabled = document.getElementById("QOSButton").checked;
-  telnetEnabled = document.getElementById("TelnetButton").checked;
-  nodmsEnabled = document.getElementById("NODMSButton").checked;
-  nodvbtEnabled = document.getElementById("NODVBTButton").checked;
-  noswitchEnabled = document.getElementById("NOSwitchButton").checked;
-  strictEnabled = document.getElementById("STRICTButton").checked;
-  document.getElementById("SetButton").disabled = false;
+  if( NewSettings )
+  {
+    NewSettings.MSMode = document.getElementById("MSMode").value;
+    NewSettings.vlanEnabled = document.getElementById("QOSButton").checked;
+    NewSettings.telnetEnabled = document.getElementById("TelnetButton").checked;
+    NewSettings.nodmsEnabled = document.getElementById("NODMSButton").checked;
+    NewSettings.nodvbtEnabled = document.getElementById("NODVBTButton").checked;
+    NewSettings.strictEnabled = document.getElementById("STRICTButton").checked;
+    document.getElementById("SetButton").disabled = false;
+  }
 }
 
 function SetPassword()
 {
-  pwd1 = document.getElementById("pwd1").value;
-  pwd2 = document.getElementById("pwd2").value;
+  var pwd1 = document.getElementById("pwd1").value;
+  var pwd2 = document.getElementById("pwd2").value;
   if( pwd1 != pwd2 )
   {
     document.getElementById("pwd1").value = "";
@@ -106,10 +204,18 @@ function ToggleHelp(id)
         <div>
           <table class="tableleft" align="center" cellspacing="2px">
             <tr>
-              <td>Layer 2 Quality of Service</td>
-              <td>
+              <td>Server name</td>
+              <td style="text-align:left" colspan="2">
                 <form action="">
-                   <input id="QOSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                   <input id="BoxName" type="text" value="" style="width: 300px" maxlength="20" 
+                          pattern="[a-zA-Z0-9@ ()-]" disabled="true" oninput="ChangeBoxName()" />
+                </form>
+              </td>
+            <tr>
+              <td>Layer 2 Quality of Service</td>
+              <td style="text-align:right">
+                <form action="">
+                   <input id="QOSButton" type="checkbox" value="Check" disabled="true" checked="false" onclick="Change()" />
                 </form>
               </td>
               <td>See note:
@@ -120,9 +226,9 @@ function ToggleHelp(id)
 
             <tr>
               <td>Telnet</td>
-              <td>
+              <td style="text-align:right">
                 <form action="">
-                   <input id="TelnetButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                   <input id="TelnetButton" type="checkbox" value="Check" disabled="true" checked="false" onclick="Change()" />
                 </form>
               </td>
               <td>Enable it at your own risk</td>
@@ -130,9 +236,9 @@ function ToggleHelp(id)
             
             <tr>
               <td>Disable DMS announcement</td>
-              <td>
+              <td style="text-align:right">
                 <form action="">
-                   <input id="NODMSButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                   <input id="NODMSButton" type="checkbox" value="Check" disabled="true" checked="false" onclick="Change()" />
                 </form>
               </td>
               <td></td>
@@ -140,9 +246,9 @@ function ToggleHelp(id)
 
             <tr>
               <td>Disable DVBT announcement</td>
-              <td>
+              <td style="text-align:right">
                 <form action="">
-                  <input id="NODVBTButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                  <input id="NODVBTButton" type="checkbox" value="Check" disabled="true" checked="false" onclick="Change()" />
                 </form>
               </td>
               <td></td>
@@ -150,9 +256,9 @@ function ToggleHelp(id)
             
             <tr>
               <td>Enforce strict SAT>IP</td>
-              <td>
+              <td style="text-align:right">
                 <form action="">
-                  <input id="STRICTButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                  <input id="STRICTButton" type="checkbox" value="Check" disabled="true" checked="false" onclick="Change()" />
                 </form>
               </td>
               <td>See note:
@@ -160,12 +266,16 @@ function ToggleHelp(id)
                 <a href="javascript:ToggleHelp('strict_hlpD')">Deutsch</a>
               </td>
             </tr>
-            
-            <tr>
-              <td>Disable multiswitch emulation</td>
-              <td>
+
+            <tr id="trMSMode" style="display:none">
+              <td>Multiswitch emulation</td>
+              <td style="text-align:right">
                 <form action="">
-                  <input id="NOSwitchButton" type="checkbox" value="Check" checked="false" onclick="Change()" />
+                <select id="MSMode" style="width: 70px" onchange="Change()" >
+                  <option value="none">Off</option>
+                  <option value="quad">Quad</option>
+                  <option value="quattro">Quattro</option>
+                </select>
                 </form>
               </td>
               <td>See note:
@@ -251,7 +361,13 @@ function ToggleHelp(id)
           <div style="position: relative; margin:20px; clear:both">
             <h3>Multiswitch emulation on OctopusNet S8</h3>
             Multiswitch emulation allows to connect directly a Quad/Quattro LNB to the 4 inputs on the S8.
-            Disabling configures the S8 to a standard 4 input system
+            Disabling configures the S8 to a standard 4 input system.
+            <br/>
+            Use quad setting for connection to a quad LNB or to 4 outputs from a multiswitch.
+            <br/>
+            Use quattro setting for connection to a quattro LNB or to the trunk outputs from a multiswitch. Ensure to connect the VL/VH/HL/HH cables correctly.
+            <p/>
+            With the quad/quattro settings only the reception of a single satellite is supported. For full flexibility an EN50607 LNB or switch is recommended.
           </div>
         </div>
         <div id="nosw_hlpD"  onclick="ToggleHelp('nosw_hlpD')"
@@ -259,7 +375,13 @@ function ToggleHelp(id)
           <div style="position: relative; margin:20px; clear:both">
             <h3>Multischalter-Emulation OctopusNet S8</h3>
             Multischalter-Emulation erlaubt den direkten Anschlu&szlig; eines Quad/Quattro LNB an die S8
-            Abschalten konfiguriert die S8 als ein Standard System mit 4 Eing&auml;ngen
+            Abschalten konfiguriert die S8 als ein Standardsystem mit 4 Eing&auml;ngen.
+            <br/>
+            Für einen Quad LNB oder für 4 Ausg&auml;nge von einem Multiswitch Quad Einstellung ausw&auml;hlen.
+            <br/>            
+            Für einen Quattro LNB oder für den Stammausgang eines Multiswitches Quattro Einstellung ausw&auml;hlen.
+            <p/>
+            In der Quad oder Quattro Einstellung wird nur der Empfang eines Satelliten unterst&uuml;tzt. Für volle Flexibilit&auml; wird der Einsatz eines EN50607 LNB bzw Switch empfohlen. 
           </div>
         </div>
         <div id="strict_hlpE"  onclick="ToggleHelp('strict_hlpE')"

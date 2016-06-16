@@ -6,7 +6,7 @@
   </specVersion>
   <device>
     <deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>
-    <friendlyName>OctopusNet DMS</friendlyName>
+    <friendlyName>##FRIENDLYNAME##</friendlyName>
     <manufacturer>Digital Devices GmbH</manufacturer>
     <manufacturerURL>http://www.digitaldevices.de</manufacturerURL>
     <modelDescription>OctopusNet</modelDescription>

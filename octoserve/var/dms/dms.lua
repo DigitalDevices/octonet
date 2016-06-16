@@ -80,15 +80,25 @@ function LoadFile(fname)
   return t
 end
 
+function GetBoxName()
+   local boxname = "OctopusNet"
+   local tmp = io.open("/config/boxname")
+   if tmp then
+      boxname = tmp:read("*l")
+      tmp:close()
+   end
+   return boxname
+end
+
 upnp:SetDebug(true)
 
 local port = 8080
--- local RootLocation = "http://10.0.4.31:8080/dms.xml"
 
 local uuid,sernbr,myip = upnp:SystemParameters("f0287290-e1e1-11e2-9a21-000000000000")
+local friendlyname = GetBoxName().." DMS"
 
 local Desc = LoadFile("dms.xml")
-Desc = string.gsub(Desc,"##(%a+)##",{ UUID = uuid, SERNBR = sernbr, HOST = myip })
+Desc = string.gsub(Desc,"##(%a+)##",{ UUID = uuid, SERNBR = sernbr, HOST = myip, FRIENDLYNAME = friendlyname })
 
 if DisableDLNA then
   Desc = string.gsub(Desc,"(%<dlna:.+DOC%>)","")

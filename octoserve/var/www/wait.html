@@ -24,7 +24,10 @@ function Wait()
 
 function OnLoad()
 {
+  var param = document.baseURI.match(/\d+$/);
+  
   WaitCounter = 5;
+  if( param ) WaitCounter = parseInt(param);
   document.getElementById("waitcounter").firstChild.nodeValue  = WaitCounter;
   window.setTimeout(Wait,1000);  
 }

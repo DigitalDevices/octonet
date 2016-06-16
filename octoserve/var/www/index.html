@@ -50,6 +50,7 @@ function OnLoad()
 {
   var infotable = document.getElementById("infotable");
   var tunertable = document.getElementById("tunertable");
+  
 
   AddRow(infotable, new Array("FW Date",FWVersion(fwdate)) );
   AddRow(infotable, new Array("MAC",Octoserve.MAC) );
@@ -106,6 +107,11 @@ function OnLoad()
                 document.write(" " + suffix);
               </script>
             </h1>
+            <h2 align="center">
+              <script type="text/javascript">
+                  document.write(boxname);
+              </script>
+            </h2>
           </td></tr>
 
           <tr>
