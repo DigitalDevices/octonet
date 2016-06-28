@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE HTML>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -79,8 +79,8 @@ function WriteMCTable()
             </td>
             <td>
               <form action="multicast.lua" method="get">
-                <input id="dlcurrent" type="submit" value="Download" ></input>
-                <input type="hidden" name="select" value="current" ></input>
+                <input id="dlcurrent" type="submit" value="Download" >
+                <input type="hidden" name="select" value="current" >
               </form>
             </td>
           </tr>
@@ -90,8 +90,8 @@ function WriteMCTable()
             </td>
             <td>
               <form action="multicast.lua" method="get">
-                <input id="dlm3u" type="submit" value="Download" ></input>
-                <input type="hidden" name="select" value="m3u" ></input>
+                <input id="dlm3u" type="submit" value="Download" >
+                <input type="hidden" name="select" value="m3u" >
               </form>
             </td>
           </tr>
@@ -106,8 +106,8 @@ function WriteMCTable()
                   <option value="kabelbw">Kabel BW</option>
                   <option value="unitymedia">Unity Media</option>
                 </select>
-                <input type="hidden" name="select" value="sample" ></input>
-                <input type="submit" value="Download" ></input>
+                <input type="hidden" name="select" value="sample" >
+                <input type="submit" value="Download" >
               </form>
             </td>
           </tr>
@@ -122,29 +122,30 @@ function WriteMCTable()
                   <option value="kabelbw">Kabel BW</option>
                   <option value="unitymedia">Unity Media</option>
                 </select>
-                <input type="hidden" name="select" value="copy" ></input>
-                <input type="submit" value="Select & Enable" ></input>
+                <input type="hidden" name="select" value="copy" >
+                <input type="submit" value="Select & Enable" >
               </form>
             </td>
           </tr>
           <tr>
             <td>&nbsp;</td>
           </tr>
-          </tr>
+          <tr>
             <td colspan="2">
               <form action="mcconfig.lua" method="post" enctype="multipart/form-data">
                 <input type="file" name="filename" value="*.csv" size="30" accept="text/csv">
                 <input type="submit" value="Upload & Enable">
               </form>
             </td>
+          </tr>
           <tr>
             <td>&nbsp;</td>
           </tr>
           <tr>
             <td colspan="2">
               <form action="mcconfig.lua" method="get">
-                <input type="submit" value="Disable" ></input>
-                <input type="hidden" name="select" value="disable" ></input>
+                <input type="submit" value="Disable" >
+                <input type="hidden" name="select" value="disable" >
               </form>
             </td>
           </tr>
