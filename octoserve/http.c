@@ -373,10 +373,10 @@ void send_json_tunerstatus(struct os_ssdp *ss)
 		sendstr(fd, "{\"Input\":\"%u\"", i);
 		sendstr(fd, ",\"Status\":\"%s\"", fe->state ? "Active" : "Inactive");
 		sendstr(fd, ",\"Lock\":%s", fe->lock ? "true" : "false");
-		sendstr(fd, ",\"Strength\":\"%d\"", fe->strength);
-		sendstr(fd, ",\"SNR\":\"%d\"", fe->snr);
-		sendstr(fd, ",\"Quality\":\"%u\"", fe->quality);
-		sendstr(fd, ",\"Level\":\"%u\"", fe->level);
+		sendstr(fd, ",\"Strength\":%d", fe->strength);
+		sendstr(fd, ",\"SNR\":%d", fe->snr);
+		sendstr(fd, ",\"Quality\":%u", fe->quality);
+		sendstr(fd, ",\"Level\":%u", fe->level);
 		sendstr(fd, "}");
 	}
 	sendstr(fd, "\r\n]}\r\n");
@@ -455,7 +455,7 @@ static void send_json_streamstatus(struct os_ssdp *ss)
 	clock_gettime(CLOCK_MONOTONIC, &tp);
 	gettimeofday(&tval, NULL);
 	sendlen(fd, httpjson, sizeof(httpjson) - 1);
-	sendstr(fd, "{\"Timestamp\":%u,\r\n", (uint32_t) (tp.tv_sec * 1000 + tp.tv_nsec / 1000000));
+	sendstr(fd, "{\"TimeStamp\":%u,\r\n", (uint32_t) (tp.tv_sec * 1000 + tp.tv_nsec / 1000000));
 	sendstr(fd, "\"StreamList\":[\r\n");
 	for (i = 0; i < MAX_STREAM; i++) {
 		uint32_t ctrl = ddreg(dd, 0x400 + i*0x20);
