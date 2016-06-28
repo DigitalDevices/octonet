@@ -202,6 +202,8 @@ struct dvbfe {
 	uint32_t level;
 	uint32_t lock;
 	uint32_t quality;
+	int32_t strength;
+	int32_t snr;
 	int first;
 
 	uint32_t tune;
@@ -458,7 +460,6 @@ struct octoserve {
 
 	int scif_type;
 	int has_feswitch;
-	int do_feswitch;
 	int strict_satip;
 
 	int dvbfe_num;

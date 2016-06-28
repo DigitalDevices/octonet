@@ -196,6 +196,10 @@ char httpjava[] =
 	"HTTP/1.0 200 OK\r\nConnection: close\r\nPragma: no-cache\r\n"
 	"Content-Type: application/x-javascript\r\n\r\n";
 
+char httpjson[] =
+	"HTTP/1.0 200 OK\r\nConnection: close\r\nPragma: no-cache\r\n"
+	"Content-Type: application/json\r\n\r\n";
+
 #define sendstr(_fd_,...) do {					\
 		len = snprintf(buf, sizeof(buf), __VA_ARGS__);	\
 		if (len <= 0 || len >= sizeof(buf))		\
@@ -219,7 +223,7 @@ void send_serverinfo(struct os_ssdp *ss)
 	sendstr(fd, "Octoserve.MAC = \"%02x:%02x:%02x:%02x:%02x:%02x\";\r\n",
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	sendstr(fd, "Octoserve.TunerList = new Array();\r\n");
-	for (i = 0; i < MAX_DVB_FE; i++) {
+	for (i = 0; i < os->dvbfe_num; i++) {
 		struct dvbfe *fe = &os->dvbfe[i];
 
 		if (fe->type) {
@@ -265,6 +269,73 @@ void send_serverinfo(struct os_ssdp *ss)
 	}
 }
 
+void send_json_serverinfo(struct os_ssdp *ss)
+{
+	struct octoserve *os = ss->os;
+	struct dvbfe *fe;
+	uint8_t buf[2048];
+	int i, j, fd = ss->csock, len;
+	uint8_t *mac = &ss->os->mac[0];
+
+	sendlen(fd, httpjson, sizeof(httpjson) - 1);
+	sendstr(fd, "{\r\n");
+	sendstr(fd, "\"Version\":" OCTOSERVE_VERSION ",\r\n");
+	sendstr(fd, "\"BootID\":%u,\r\n", ss->bootid);
+	sendstr(fd, "\"DeviceID\":%u,\r\n", ss->devid);
+	sendstr(fd, "\"MAC\":\"%02x:%02x:%02x:%02x:%02x:%02x\",\r\n",
+		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	sendstr(fd, "TunerList\":[\r\n");
+	for (i = 0; i < os->dvbfe_num; i++) {
+		struct dvbfe *fe = &os->dvbfe[i];
+
+		if (i)
+			sendstr(fd, ",\r\n");
+		sendstr(fd, "{\"Input\":\"%u\"", i);
+		if (fe->type) {
+			char types[80];
+			int pos;
+
+			types[0] = 0;
+			if (fe->type & 0xb00ee) {
+				strcat(types, "DVB");
+				pos = strlen(types);
+				if (fe->type & (1 << SYS_DVBS))
+					strcat(types, "/S");
+				if (fe->type & (1 << SYS_DVBS2))
+					strcat(types, "/S2");
+				if (fe->type & (1 << SYS_DVBC_ANNEX_A))
+					strcat(types, "/C");
+				if (fe->type & (1 << SYS_DVBC2))
+					strcat(types, "/C2");
+				if (fe->type & (1 << SYS_DVBT))
+					strcat(types, "/T");
+				if (fe->type & (1 << SYS_DVBT2))
+					strcat(types, "/T2");
+				strcat(types, " ");
+				types[pos] = '-';
+			}
+			if (fe->type & 0x700) {
+				strcat(types, "ISDB");
+				pos = strlen(types);
+				if (fe->type & (1 << SYS_ISDBT))
+					strcat(types, "/T");
+				if (fe->type & (1 << SYS_ISDBS))
+					strcat(types, "/S");
+				if (fe->type & (1 << SYS_ISDBC))
+					strcat(types, "/C");
+				types[pos] = '-';
+			}			
+			sendstr(fd, ",\"Present\":true", i);
+			sendstr(fd, ",\"Type\":0");
+			sendstr(fd, ",\"Desc\":\"%s\"", types);
+		} else {
+			sendstr(fd, "\"Present\":false", i);
+		}
+		sendstr(fd, "}");
+	}
+	sendstr(fd, "\r\n]\r\n}\r\n");
+}
+
 void send_tunerstatus(struct os_ssdp *ss)
 {
 	struct octoserve *os = ss->os;
@@ -274,7 +345,7 @@ void send_tunerstatus(struct os_ssdp *ss)
 	
 	sendlen(fd, httpjava, sizeof(httpjava) - 1);
 	sendstr(fd, "TunerList = new Array();\r\n");
-	for (i = 0; i < MAX_DVB_FE; i++) {
+	for (i = 0; i < os->dvbfe_num; i++) {
 		fe = &os->dvbfe[i];
 		sendstr(fd, "TunerList[%d] = new Object();\r\n", i);
 		sendstr(fd, "TunerList[%d].Active = %s;\r\n", i, fe->state ? "true" : "false");
@@ -284,6 +355,31 @@ void send_tunerstatus(struct os_ssdp *ss)
 		sendstr(fd, "TunerList[%d].Quality = %u;\r\n", i, fe->quality);
 		sendstr(fd, "TunerList[%d].Strength = %u;\r\n", i, fe->level);
 	}
+}
+
+void send_json_tunerstatus(struct os_ssdp *ss)
+{
+	struct octoserve *os = ss->os;
+	struct dvbfe *fe;
+	uint8_t buf[2048];
+	int len, i, fd = ss->csock;
+	
+	sendlen(fd, httpjson, sizeof(httpjson) - 1);
+	sendstr(fd, "{\"TunerList\":[\r\n");
+	for (i = 0; i < os->dvbfe_num; i++) {
+		if (i)
+			sendstr(fd, ",\r\n");
+		fe = &os->dvbfe[i];
+		sendstr(fd, "{\"Input\":\"%u\"", i);
+		sendstr(fd, ",\"Status\":\"%s\"", fe->state ? "Active" : "Inactive");
+		sendstr(fd, ",\"Lock\":%s", fe->lock ? "true" : "false");
+		sendstr(fd, ",\"Strength\":\"%d\"", fe->strength);
+		sendstr(fd, ",\"SNR\":\"%d\"", fe->snr);
+		sendstr(fd, ",\"Quality\":\"%u\"", fe->quality);
+		sendstr(fd, ",\"Level\":\"%u\"", fe->level);
+		sendstr(fd, "}");
+	}
+	sendstr(fd, "\r\n]}\r\n");
 }
 
 static uint32_t ddreg(int fd, uint32_t reg)
@@ -343,6 +439,51 @@ static void send_streamstatus(struct os_ssdp *ss)
 	close(dd);
 }
 
+static void send_json_streamstatus(struct os_ssdp *ss)
+{
+	struct octoserve *os = ss->os;
+	struct osstrm *oss;
+	uint8_t buf[2048];
+	int len, i, fd = ss->csock;
+	struct timeval tval;
+	struct timespec tp;
+	int dd;
+
+	dd = open("/dev/ddbridge/card0", O_RDWR); /* FIXME: replace with ioctls  */
+	if (dd < 0) 
+		return;
+	clock_gettime(CLOCK_MONOTONIC, &tp);
+	gettimeofday(&tval, NULL);
+	sendlen(fd, httpjson, sizeof(httpjson) - 1);
+	sendstr(fd, "{\"Timestamp\":%u,\r\n", (uint32_t) (tp.tv_sec * 1000 + tp.tv_nsec / 1000000));
+	sendstr(fd, "\"StreamList\":[\r\n");
+	for (i = 0; i < MAX_STREAM; i++) {
+		uint32_t ctrl = ddreg(dd, 0x400 + i*0x20);
+
+		if (i)
+			sendstr(fd, ",\r\n");
+		sendstr(fd, "{\"Status\":\"%s\"", (ctrl & 1) ? "Active" : "Inactive");
+		sendstr(fd, ",\"Input\":%u", (ctrl >> 8) & 7);
+		sendstr(fd, ",\"Packets\":%u", ddreg(dd, 0x41c + i*0x20));
+		sendstr(fd, ",\"Bytes\":%u", ddreg(dd, 0x418 + i*0x20));
+		if (ctrl & 1) {
+			uint32_t off = 0x2000 + i * 0x200;
+			uint8_t mem[64];
+
+			ddrmem(dd, mem, off, sizeof(mem));
+			off = 30;
+			if (mem[12] == 0x81)
+				off += 4;
+			sendstr(fd, ",\"Client\":\"%u.%u.%u.%u\"",
+				mem[off], mem[off + 1], mem[off + 2], mem[off + 3]); 
+		} else
+			sendstr(fd, ",\"Client\":\"\"");
+		sendstr(fd, "}");
+	}
+	sendstr(fd, "\r\n]\r\n}\r\n");
+	close(dd);
+}
+
 static void send_octoserve(struct os_ssdp *ss)
 {
 	struct octoserve *os = ss->os;
@@ -351,7 +492,7 @@ static void send_octoserve(struct os_ssdp *ss)
 	int len, i;
 	
 	send(ss->csock, httptxt, sizeof(httptxt), 0);
-	for (i = 0; i < MAX_DVB_FE; i++) {
+	for (i = 0; i < os->dvbfe_num; i++) {
 		fe = &os->dvbfe[i];
 		if (!fe->state)
 			continue;
@@ -389,11 +530,20 @@ void handle_http(struct os_ssdp *ss)
 				if (!strncasecmp("GET /octonet.xml", buf, 16)) {
 					send_xml(ss);
 					break;
+				} else if (!strncasecmp("GET /serverinfo.json", buf, 20)) {
+					send_json_serverinfo(ss);
+					break;
 				} else if (!strncasecmp("GET /serverinfo.js", buf, 18)) {
 					send_serverinfo(ss);
 					break;
+				} else if (!strncasecmp("GET /streamstatus.json", buf, 22)) {
+					send_json_streamstatus(ss);
+					break;
 				} else if (!strncasecmp("GET /streamstatus.js", buf, 20)) {
 					send_streamstatus(ss);
+					break;
+				} else if (!strncasecmp("GET /tunerstatus.json", buf, 21)) {
+					send_json_tunerstatus(ss);
 					break;
 				} else if (!strncasecmp("GET /tunerstatus.js", buf, 19)) {
 					send_tunerstatus(ss);

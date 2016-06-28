@@ -728,7 +728,7 @@ static int session_string(struct ossess *sess, char *msg, int mlen)
 	if (str->fe){
 		level = str->fe->level;
 		lock = str->fe->lock;
-		quality = str->fe->quality;
+		quality = (str->fe->quality * 3) / 20;
 		tuner = str->fe->nr;
 	}
 	p = &sess->p;

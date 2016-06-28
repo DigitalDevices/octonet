@@ -700,7 +700,7 @@ static int32_t dvbsq(uint32_t snr, uint32_t fec,
 		Quality = ((SignalToNoiseRel + 70) * BERQuality) / 100;
 	else
 		Quality = BERQuality;
-	return (Quality * 3) / 20;
+	return Quality;
 }
 
 
@@ -753,7 +753,7 @@ int32_t dvbs2q(int32_t snr, uint32_t fec, uint32_t mod,
 		Quality = ((SignalToNoiseRel + 30) * BERQuality) / 60;
 	else
 		Quality = 100;
-	return (Quality * 3) / 20;
+	return Quality;
 }
 
 static int32_t dvbcq(int32_t snr, uint32_t mod,
@@ -777,7 +777,7 @@ static int32_t dvbcq(int32_t snr, uint32_t mod,
 		Quality = ((SignalToNoiseRel + 70) * BERQuality) / 100;
 	else
 		Quality = BERQuality;
-	return (Quality * 3) / 20;
+	return Quality;
 }
 
 static int32_t dvbtq(int32_t snr, uint32_t mod, uint32_t fec,
@@ -825,7 +825,7 @@ static int32_t dvbtq(int32_t snr, uint32_t mod, uint32_t fec,
 	else
 		Quality = BERQuality;
 	
-	return (Quality * 3) / 20;
+	return Quality;
 }
 
 static int32_t dvbt2q(int32_t snr, uint32_t mod, uint32_t fec, uint32_t trans, uint32_t pilot,
@@ -915,18 +915,19 @@ static int32_t dvbt2q(int32_t snr, uint32_t mod, uint32_t fec, uint32_t trans, u
 	else
 		Quality = 100;
 	
-	return (Quality * 3) / 20;
+	return Quality;
 }
 
 static void calc_lq(struct dvbfe *fe)
 {
 	struct dtv_fe_stats st;
 	int64_t str, snr;
-	uint32_t mod, fec, ber_num, ber_den, trans, pilot = 0;
+	uint32_t mod, fec, ber_num, ber_den, trans, pilot = 0, quality = 0;
 	
 	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
 	str = st.stat[0].uvalue;
 	dbgprintf(DEBUG_DVB, "fe%d: str=%lld\n", fe->nr, str);
+	fe->strength = str;
 	str = (str * 48) / 10000 + 344;
 	if (str < 0)
 		str = 0;
@@ -937,6 +938,7 @@ static void calc_lq(struct dvbfe *fe)
 	// qual: 0-15 15=BER<2*10^-4 PER<10^-7
 	get_stat(fe->fd, DTV_STAT_CNR, &st);
 	snr = st.stat[0].uvalue;
+	fe->snr = snr;
 	get_property(fe->fd, DTV_INNER_FEC, &fec);
 	fe->param[PARAM_FEC] = fec + 1;
 	get_property(fe->fd, DTV_MODULATION, &mod);
@@ -952,27 +954,28 @@ static void calc_lq(struct dvbfe *fe)
 	dbgprintf(DEBUG_DVB, "fe%d: fec=%u mod=%u\n", fe->nr, fec, mod);
 	switch (fe->n_param[PARAM_MSYS] - 1) {
 	case SYS_DVBS:
-		fe->quality = dvbsq(snr, fec, ber_num, ber_den);
+		quality = dvbsq(snr, fec, ber_num, ber_den);
 		break;
 	case SYS_DVBS2:
-		fe->quality = dvbs2q(snr, fec, mod, ber_num, ber_den);
+		quality = dvbs2q(snr, fec, mod, ber_num, ber_den);
 		break;
 	case SYS_DVBC_ANNEX_A:
-		fe->quality = dvbcq(snr, mod, ber_num, ber_den);
+		quality = dvbcq(snr, mod, ber_num, ber_den);
 		break;
 	case SYS_DVBT:
-		fe->quality = dvbtq(snr, mod, fec, ber_num, ber_den);
+		quality = dvbtq(snr, mod, fec, ber_num, ber_den);
 		break;
 	case SYS_DVBT2:
 		get_property(fe->fd, DTV_TRANSMISSION_MODE, &trans);
 		dbgprintf(DEBUG_DVB, "fe%d: trans=%u pilot=%u\n", fe->nr, trans, pilot);
-		fe->quality = dvbt2q(snr, mod, fec, trans, pilot, ber_num, ber_den);
+		quality = dvbt2q(snr, mod, fec, trans, pilot, ber_num, ber_den);
 		break;
 	case SYS_DVBC2:
 		break;
 	default:
 		break;
 	}
+	fe->quality = quality;
 	dbgprintf(DEBUG_DVB, "fe%d: level=%u quality=%u\n", fe->nr, fe->level, fe->quality);
 }
 
@@ -1132,16 +1135,14 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int m
 	}
 	if (fe->input[3]) {
 		os->has_feswitch = 1;
-		if (!msmode) {
+		if (!os->scif_type && !msmode) {
 			if (fe->input[2] >= fe->input[1]) {
 				fe->type = 0;
 				return -1;
 			}
-		} else
-			os->do_feswitch = msmode;
+		}
 	}
-	
-	os->dvbfe_num++;
+      	os->dvbfe_num++;
 	pthread_mutex_init(&fe->mutex, 0);
 	return 0;
 }
@@ -1750,26 +1751,23 @@ void lnb_config(struct octoserve *os, char *name, char *val)
 int init_dvb(struct octoserve *os, int nodvbt, int msmode)
 {
 	int i, j;
+	uint32_t fmode;
 
 	pthread_mutex_init(&nsd_lock, 0);
 	pthread_mutex_init(&os->uni_lock, 0);
+	os->scif_type = 0;
+	parse_config(os, "scif", &scif_config);
 
 	scan_dvbfe(os, nodvbt, msmode);
 	scan_dvbca(os);
 
-	os->scif_type = 0;
-	parse_config(os, "scif", &scif_config);
-
-	if (os->has_feswitch) {
-		uint32_t fmode = 0;
-		
-		if (os->do_feswitch) {
-			fmode = msmode;
-			if (os->scif_type)
-				fmode = 0;//3;
-		}
+	if (os->scif_type)
+		fmode = 0;
+	else
+		fmode = msmode;
+	if (os->has_feswitch)
 		set_fmode(fmode);
-	}
+
 	set_lnb(os, 0, 0, 9750000, 10600000, 11700000);
 	parse_config(os, "LNB", &lnb_config);
 }
