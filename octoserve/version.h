@@ -1,5 +1,5 @@
 /*
-    (C) 2012-15 Digital Devices GmbH.
+    (C) 2012-16 Digital Devices GmbH.
 
     This file is part of the octoserve SAT>IP server.
 
@@ -19,5 +19,5 @@
 
 #ifndef _OCTOSERVE_VERSION_
 #define _OCTOSERVE_VERSION_
-#define OCTOSERVE_VERSION "1.0.67"
+#define OCTOSERVE_VERSION "1.0.68"
 #endif
