@@ -193,11 +193,15 @@ char httptxt[] =
 	"\r\n";
 
 char httpjava[] =
-	"HTTP/1.0 200 OK\r\nConnection: close\r\nPragma: no-cache\r\n"
+	"HTTP/1.0 200 OK\r\nConnection: close\r\n"
+	"Pragma: no-cache\r\n"
+	"Cache-Control: no-cache\r\n"
 	"Content-Type: application/x-javascript\r\n\r\n";
 
 char httpjson[] =
-	"HTTP/1.0 200 OK\r\nConnection: close\r\nPragma: no-cache\r\n"
+	"HTTP/1.0 200 OK\r\nConnection: close\r\n"
+	"Pragma: no-cache\r\n"
+	"Cache-Control: no-cache\r\n"
 	"Content-Type: application/json\r\n\r\n";
 
 #define sendstr(_fd_,...) do {					\
