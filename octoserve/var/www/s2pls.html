@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OctopusNet</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script type="text/javascript" src="/menu.js"></script>
+<!--  Add included scripts here -->
+<!-- Add page scripts here -->
+
+<script type="text/javascript">
+
+
+function RootToGold()
+{
+    var root = parseInt(document.getElementById("RootCode").value);
+    if( root >= 1 && root <= 262143 )
+    {
+       var g = 0;
+       var X = 1;
+       for( g = 0; g < 262144; g += 1)
+       {
+          if( X == root ) break;
+          X = ((( X ^ (X >> 7)) & 1) << 17) | (X >> 1);          
+       }
+    
+    
+       document.getElementById("GfR").firstChild.nodeValue  = g;
+    }
+    else
+       document.getElementById("GfR").firstChild.nodeValue  = "invalid";
+}
+
+function GoldToRoot()
+{
+    var gold = parseInt(document.getElementById("GoldCode").value);
+    if( gold >= 0 && gold <= 262142 )
+    {
+       var g = 0;
+       var X = 1;
+       for( g = 0; g < 262143; g += 1)
+       {
+          if( g == gold ) break;
+          X = ((( X ^ (X >> 7)) & 1) << 17) | (X >> 1);          
+       }
+    
+    
+       document.getElementById("RfG").firstChild.nodeValue  = X;
+    }
+    else
+       document.getElementById("RfG").firstChild.nodeValue  = "invalid";
+}
+
+
+
+</script>
+
+</head>
+<body onload="OnLoad()">
+
+<table class="maintable">
+  <colgroup>
+    <col style="width:182px"/>
+    <col style="width:728px"/>
+  </colgroup>
+  <tr><td class="maintd" colspan="2">
+    <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
+  </td></tr>
+  <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
+  <tr>
+    <td class="maintd"><script type="text/javascript">CreateMenu();</script></td>
+    <td class="content">
+      <div>
+        <!-- Begin Content -->
+           <h3 style="margin:auto;text-align:center">DVB-S2 PLS Code Converter</h3>
+           <p>
+           <table class="table" style="margin:auto">
+             <colgroup>
+               <col style="width:80px"/>
+               <col style="width:80px"/>
+               <col style="width:80px"/>
+               <col style="width:80px"/>
+             </colgroup>
+             <tr>
+               <td  style="text-align:right">
+                  Root:&nbsp;
+               </td>
+               <td>
+                  <form action="">
+                      <input id="RootCode" type="number" value="1" maxlength="6" style="width: 80px" oninput="RootToGold()" />
+                  </form>
+               </td>
+               <td>
+                  -> Gold:
+               </td>
+               <td id="GfR" style="text-align:left">
+                  0
+               </td>
+            </tr>
+             <tr>
+               <td  style="text-align:right">
+                  Gold:&nbsp;
+               </td>
+               <td>
+                  <form action="">
+                      <input id="GoldCode" type="number" value="0" maxlength="6" style="width: 80px" oninput="GoldToRoot()" />
+                  </form>
+               </td>
+               <td>
+                  -> Root:
+               </td>
+               <td id="RfG" style="text-align:left">
+                  1
+               </td>
+            </tr>
+        <!-- End Content -->
+      </div>
+    </td>
+  </tr>
+  <tr><td colspan="2">&nbsp;</td></tr>
+</table>
+
+</body>
+</html>

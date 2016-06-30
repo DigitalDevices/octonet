@@ -40,22 +40,22 @@ function Show(TunerList)
 {
   for( var i = 0; i < TunerList.length ; i++ )
   {
-    if( TunerList[i].Status != "Inactive" )
+    if( TunerList[i].Status == "Active" && TunerList[i].Lock )
     {
-      if( TunerList[i].Lock )
-      {
         document.getElementById("tdStatus"+i).firstChild.nodeValue  = "Locked";
         document.getElementById("tdStrength"+i).firstChild.nodeValue  = (TunerList[i].Strength/1000+108.75).toFixed(1)+" dBµV";
         document.getElementById("tdSNR"+i).firstChild.nodeValue  = (TunerList[i].SNR/1000).toFixed(1) + " dB";
         document.getElementById("tdQuality"+i).firstChild.nodeValue  = TunerList[i].Quality.toFixed(0) + "%";
-      }
-      else
-      {
+   }
+   else
+   {
+      if( TunerList[i].Status == "Active" )
         document.getElementById("tdStatus"+i).firstChild.nodeValue  = "No Signal";
-        document.getElementById("tdStrength"+i).firstChild.nodeValue  = "";
-        document.getElementById("tdSNR"+i).firstChild.nodeValue  = "";
-        document.getElementById("tdQuality"+i).firstChild.nodeValue  = "";
-      }
+      else
+        document.getElementById("tdStatus"+i).firstChild.nodeValue  = "";
+      document.getElementById("tdStrength"+i).firstChild.nodeValue  = "";
+      document.getElementById("tdSNR"+i).firstChild.nodeValue  = "";
+      document.getElementById("tdQuality"+i).firstChild.nodeValue  = "";
     }
     document.getElementById("trTuner"+i).style.display = "table-row";    
   }
@@ -76,10 +76,10 @@ function OnLoad()
 
 </head>
 <body onload="OnLoad()">
-<table class="maintable" align="center">
+<table class="maintable">
   <colgroup>
-    <col width="182px"/>
-    <col width="728px"/>
+    <col style="width:182px"/>
+    <col style="width:728px"/>
   </colgroup>
   <tr><td class="maintd" colspan="2">
     <a href="http://www.digitaldevices.de"><img src="/BannerDD.jpg" alt="DD" width="910" height="130" /></a>
@@ -90,8 +90,14 @@ function OnLoad()
     <td class="maintd">
       <div class="content">
         <!-- Begin Content -->
-        
-          <table id="tunerstatus" align="center">
+          <table id="tunerstatus" style="margin:auto">
+             <colgroup>
+               <col style="width:80px"/>
+               <col style="width:140px"/>
+               <col style="width:140px"/>
+               <col style="width:140px"/>
+               <col style="width:140px"/>
+             </colgroup>
              <tr>
                <th>Tuner</th>
                <th>Lock</th>
@@ -112,7 +118,6 @@ function OnLoad()
                 }
              </script>
           </table>
-        
         
         <!-- End Content -->
       </div>

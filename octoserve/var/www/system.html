@@ -336,11 +336,13 @@ function ToggleHelp(id)
             <h3>Layer 2 Quality of Service</h3>
             This is defined in the <b>IEEE 802.1Q</b> VLAN standard, and provides QoS in a local network.<br/>
             For it to work all components in the LAN must either be transparent to it or need to support it.
-            <li><b>hubs:</b> always transparent.</li>
-            <li><b>dumb switches:</b> usually transparent, better ones use it to prioritise the traffic.</li>
-            <li><b>smart switches:</b> depends on setting.</li>
-            <li><b>PCs and the like:</b> newer systems support it by default, for older systems check the LAN adapter settings.</li>
-            <li><b>WLAN access points:</b> depends on firmware and model. OpenWRT based devices usually work.</li>
+            <ul>
+             <li><b>hubs:</b> always transparent.</li>
+             <li><b>dumb switches:</b> usually transparent, better ones use it to prioritise the traffic.</li>
+             <li><b>smart switches:</b> depends on setting.</li>
+             <li><b>PCs and the like:</b> newer systems support it by default, for older systems check the LAN adapter settings.</li>
+             <li><b>WLAN access points:</b> depends on firmware and model. OpenWRT based devices usually work.</li>
+            </ul>
           </div>
         </div>
         <div id="qos_hlpD" onclick="ToggleHelp('qos_hlpD')" 
@@ -349,11 +351,13 @@ function ToggleHelp(id)
             <h3>Layer 2 Quality of Service</h3>
             Dies ist im <b>IEEE 802.1Q</b> VLAN Standard definiert und erlaubt QoS im lokalem Netz.<br/>
             Damit es funktioniert m&uuml;ssen alle Netzwerkkompenenten im LAN entweder transparent sein oder es unterst&uuml;tzen.
-            <li><b>Hubs:</b> sind immer transparent</li>
-            <li><b>Dumb Switches:</b> normalerweise transparent, bessere priorisieren damit den Datenverkehr</li>
-            <li><b>Smart Switches:</b> h&auml;ngt von den Einstellungen ab</li>
-            <li><b>PCs und dergleichen:</b> neue Systeme unterst&uuml;tzten es defaultmässig, für &auml;ltere in den Einstellungen der Netzwerkarte nachschauen</li>
-            <li><b>WLAN Accesspoints:</b> h&auml;ngt von Modell und deren Firmware ab. OpenWRT basierte Ger&auml;te unterst&uuml;tzen es normalerweise</li>
+            <ul>
+             <li><b>Hubs:</b> sind immer transparent</li>
+             <li><b>Dumb Switches:</b> normalerweise transparent, bessere priorisieren damit den Datenverkehr</li>
+             <li><b>Smart Switches:</b> h&auml;ngt von den Einstellungen ab</li>
+             <li><b>PCs und dergleichen:</b> neue Systeme unterst&uuml;tzten es defaultmässig, für &auml;ltere in den Einstellungen der Netzwerkarte nachschauen</li>
+             <li><b>WLAN Accesspoints:</b> h&auml;ngt von Modell und deren Firmware ab. OpenWRT basierte Ger&auml;te unterst&uuml;tzen es normalerweise</li>
+            </ul>
           </div>
         </div>
         <div id="nosw_hlpE"  onclick="ToggleHelp('nosw_hlpE')"
@@ -361,11 +365,12 @@ function ToggleHelp(id)
           <div style="position: relative; margin:20px; clear:both">
             <h3>Multiswitch emulation on OctopusNet S8</h3>
             Multiswitch emulation allows to connect directly a Quad/Quattro LNB to the 4 inputs on the S8.
-            Disabling configures the S8 to a standard 4 input system.
-            <br/>
-            Use quad setting for connection to a quad LNB or to 4 outputs from a multiswitch.
-            <br/>
-            Use quattro setting for connection to a quattro LNB or to the trunk outputs from a multiswitch. Ensure to connect the VL/VH/HL/HH cables correctly.
+            <p>
+            <ul>
+             <li>Disabling configures the S8 as a standard 4 tuner system.</li>
+             <li>Use quad setting for connection to a quad LNB or to 4 outputs from a multiswitch.</li>
+             <li>Use quattro setting for connection to a quattro LNB or to the trunk outputs from a multiswitch. Ensure to connect the VL/VH/HL/HH cables correctly.</li>
+            </ul>
             <p/>
             With the quad/quattro settings only the reception of a single satellite is supported. For full flexibility an EN50607 LNB or switch is recommended.
           </div>
@@ -375,13 +380,14 @@ function ToggleHelp(id)
           <div style="position: relative; margin:20px; clear:both">
             <h3>Multischalter-Emulation OctopusNet S8</h3>
             Multischalter-Emulation erlaubt den direkten Anschlu&szlig; eines Quad/Quattro LNB an die S8
-            Abschalten konfiguriert die S8 als ein Standardsystem mit 4 Eing&auml;ngen.
-            <br/>
-            Für einen Quad LNB oder für 4 Ausg&auml;nge von einem Multiswitch Quad Einstellung ausw&auml;hlen.
-            <br/>            
-            Für einen Quattro LNB oder für den Stammausgang eines Multiswitches Quattro Einstellung ausw&auml;hlen.
+            <p>
+            <ul>
+             <li>Abschalten konfiguriert die S8 als ein Standardsystem mit 4 Tunern.</li>
+             <li>Für einen Quad LNB oder für 4 Ausg&auml;nge von einem Multiswitch Quad Einstellung ausw&auml;hlen.</li>
+             <li>Für einen Quattro LNB oder f&uuml;r den Stammausgang eines Multiswitches Quattro Einstellung ausw&auml;hlen.</li>
+            </ul>
             <p/>
-            In der Quad oder Quattro Einstellung wird nur der Empfang eines Satelliten unterst&uuml;tzt. Für volle Flexibilit&auml; wird der Einsatz eines EN50607 LNB bzw Switch empfohlen. 
+            In der Quad oder Quattro Einstellung wird nur der Empfang eines Satelliten unterst&uuml;tzt. Für volle Flexibilit&auml;t wird der Einsatz eines EN50607 LNB bzw Switch empfohlen. 
           </div>
         </div>
         <div id="strict_hlpE"  onclick="ToggleHelp('strict_hlpE')"
