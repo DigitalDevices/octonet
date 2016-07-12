@@ -2784,8 +2784,12 @@ static int read_msmode(char *fn)
 	char mode[80];
 		
 	fd = open(fn, O_RDONLY);
-	if (fd < 0)
-		return 0;
+	if (fd < 0) {
+		if (fexists("/config/noswitch.enabled"))
+			return 0;
+		else
+			return 1;
+	}
 	len = read(fd, mode, 7);
 	if (len < 0)
 		return 0;
@@ -2864,10 +2868,7 @@ int main(int argc, char **argv)
 	}
 	if (fexists("/config/nodms.enabled"))
 		nodms = 1;
-	if (fexists("/config/noswitch.enabled"))
-		msmode = 0;
-	else
-		msmode = read_msmode("/config/msmode");
+	msmode = read_msmode("/config/msmode");
 	if (fexists("/config/nodvbt.enabled"))
 		nodvbt = 1;
 	if (fexists("/config/vlan.enabled")) {
