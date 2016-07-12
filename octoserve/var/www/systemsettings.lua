@@ -87,7 +87,7 @@ function GetMSMode()
    if tmp then
       msmode = tmp:read("*l")
       tmp:close()
-   elseif ReadSetting('noswitch') then
+   elseif ReadSetting('noswitch') == "true" then
       msmode = "none"
    end
    return msmode
