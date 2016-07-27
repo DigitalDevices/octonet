@@ -1,7 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- (c)2012 Digital Devices GmbH.  All rights reserved -->
-<!-- $Id: SCIFDataBase.xml 639 2015-12-18 13:24:21Z manfred $ -->
+<!-- $Id: SCIFDataBase.xml 645 2016-02-09 18:33:05Z manfred $ -->
 <SCIFDataBase xmlns="http://schemas.DigitalDevices.de/SCIFDataBase">
+  <OutdoorUnit Name="IDLU-32UL40-UNBOO-OPP" Manufacturer="Inverto" Type="LNB" Protocol="EN50607">
+    <UBSlot Frequency="1210" />
+    <UBSlot Frequency="1420" />
+    <UBSlot Frequency="1680" />
+    <UBSlot Frequency="2040" />
+    <UBSlot Frequency="984" />
+    <UBSlot Frequency="1020" />
+    <UBSlot Frequency="1056" />
+    <UBSlot Frequency="1092" />
+    <UBSlot Frequency="1128" />
+    <UBSlot Frequency="1164" />
+    <UBSlot Frequency="1256" />
+    <UBSlot Frequency="1292" />
+    <UBSlot Frequency="1328" />
+    <UBSlot Frequency="1364" />
+    <UBSlot Frequency="1458" />
+    <UBSlot Frequency="1494" />
+    <UBSlot Frequency="1530" />
+    <UBSlot Frequency="1566" />
+    <UBSlot Frequency="1602" />
+    <UBSlot Frequency="1638" />
+    <UBSlot Frequency="1716" />
+    <UBSlot Frequency="1752" />
+    <UBSlot Frequency="1788" />
+    <UBSlot Frequency="1824" />
+    <UBSlot Frequency="1860" />
+    <UBSlot Frequency="1896" />
+    <UBSlot Frequency="1932" />
+    <UBSlot Frequency="1968" />
+    <UBSlot Frequency="2004" />
+    <UBSlot Frequency="2076" />
+    <UBSlot Frequency="2112" />
+    <UBSlot Frequency="2147" />
+  </OutdoorUnit>
+    <OutdoorUnit Name="IDLU-24UL40-UNMOO-OPP" Manufacturer="Inverto" Type="LNB" Protocol="EN50607">
+    <UBSlot Frequency="1210" />
+    <UBSlot Frequency="1420" />
+    <UBSlot Frequency="1680" />
+    <UBSlot Frequency="2040" />
+    <UBSlot Frequency="1005" />
+    <UBSlot Frequency="1050" />
+    <UBSlot Frequency="1095" />
+    <UBSlot Frequency="1140" />
+    <UBSlot Frequency="1260" />
+    <UBSlot Frequency="1305" />
+    <UBSlot Frequency="1350" />
+    <UBSlot Frequency="1475" />
+    <UBSlot Frequency="1520" />
+    <UBSlot Frequency="1565" />
+    <UBSlot Frequency="1610" />
+    <UBSlot Frequency="1725" />
+    <UBSlot Frequency="1770" />
+    <UBSlot Frequency="1815" />
+    <UBSlot Frequency="1860" />
+    <UBSlot Frequency="1905" />
+    <UBSlot Frequency="1950" />
+    <UBSlot Frequency="1995" />
+    <UBSlot Frequency="2085" />
+    <UBSlot Frequency="2130" />
+  </OutdoorUnit>
   <OutdoorUnit Name="IDLP-40UNIDQ+S" Manufacturer="Inverto" Type="LNB">
     <UBSlot Frequency="1680"/>
     <UBSlot Frequency="1420"/>
@@ -47,40 +107,6 @@
     <UBSlot Frequency="2040"/>
   </OutdoorUnit>
   <OutdoorUnit Name="IDLU-UST110-CUO1O-32P" Manufacturer="Inverto" Type="Switch" Protocol="EN50607">
-    <UBSlot Frequency="1210"/>
-    <UBSlot Frequency="1420"/>
-    <UBSlot Frequency="1680"/>
-    <UBSlot Frequency="2040"/>
-    <UBSlot Frequency="984"/>
-    <UBSlot Frequency="1020"/>
-    <UBSlot Frequency="1056"/>
-    <UBSlot Frequency="1092"/>
-    <UBSlot Frequency="1128"/>
-    <UBSlot Frequency="1164"/>
-    <UBSlot Frequency="1256"/>
-    <UBSlot Frequency="1292"/>
-    <UBSlot Frequency="1328"/>
-    <UBSlot Frequency="1364"/>
-    <UBSlot Frequency="1458"/>
-    <UBSlot Frequency="1494"/>
-    <UBSlot Frequency="1530"/>
-    <UBSlot Frequency="1566"/>
-    <UBSlot Frequency="1602"/>
-    <UBSlot Frequency="1638"/>
-    <UBSlot Frequency="1716"/>
-    <UBSlot Frequency="1752"/>
-    <UBSlot Frequency="1788"/>
-    <UBSlot Frequency="1824"/>
-    <UBSlot Frequency="1860"/>
-    <UBSlot Frequency="1896"/>
-    <UBSlot Frequency="1932"/>
-    <UBSlot Frequency="1968"/>
-    <UBSlot Frequency="2004"/>
-    <UBSlot Frequency="2076"/>
-    <UBSlot Frequency="2112"/>
-    <UBSlot Frequency="2148"/>
-  </OutdoorUnit>
-  <OutdoorUnit Name="IDLU-32UL40-UNBOO-OPP" Manufacturer="Inverto" Type="LNB" Protocol="EN50607">
     <UBSlot Frequency="1210"/>
     <UBSlot Frequency="1420"/>
     <UBSlot Frequency="1680"/>
@@ -245,6 +271,26 @@
     <UBSlot Frequency="1994"/>
     <UBSlot Frequency="2096"/>
   </OutdoorUnit>
+    <OutdoorUnit Name="EXE 259" Manufacturer="Kathrein" Type="Switch">
+    <UBSlot Frequency="974" />
+    <UBSlot Frequency="1076" />
+    <UBSlot Frequency="1178" />
+    <UBSlot Frequency="1280" />
+    <UBSlot Frequency="1382" />
+    <UBSlot Frequency="1484" />
+    <UBSlot Frequency="1586" />
+    <UBSlot Frequency="1688" />
+  </OutdoorUnit>
+  <OutdoorUnit Name="EXU 159" Manufacturer="Kathrein" Type="Switch" PinProtected="true">
+    <UBSlot Frequency="974" />
+    <UBSlot Frequency="1076" />
+    <UBSlot Frequency="1178" />
+    <UBSlot Frequency="1382" />
+    <UBSlot Frequency="1484" />
+    <UBSlot Frequency="1586" />
+    <UBSlot Frequency="1688" />
+    <UBSlot Frequency="1790" />
+  </OutdoorUnit>
   <OutdoorUnit Name="DY 64 1810/2410" Manufacturer="Wisi" Type="Switch">
     <UBSlot Frequency="1178"/>
     <UBSlot Frequency="1280"/>
@@ -307,31 +353,117 @@
     <UBSlot Frequency="1680"/>
     <UBSlot Frequency="2040"/>
   </OutdoorUnit>
-  <OutdoorUnit Name="Dur-Line UK 124" Manufacturer="Dura-Sat" Type="LNB" Protocol="EN50607">
-    <UBSlot Frequency="1210"/>
-    <UBSlot Frequency="1420"/>
-    <UBSlot Frequency="1680"/>
-    <UBSlot Frequency="2040"/>
-    <UBSlot Frequency="1005"/>
-    <UBSlot Frequency="1050"/>
-    <UBSlot Frequency="1095"/>
-    <UBSlot Frequency="1140"/>
-    <UBSlot Frequency="1260"/>
-    <UBSlot Frequency="1305"/>
-    <UBSlot Frequency="1350"/>
-    <UBSlot Frequency="1475"/>
-    <UBSlot Frequency="1520"/>
-    <UBSlot Frequency="1565"/>
-    <UBSlot Frequency="1610"/>
-    <UBSlot Frequency="1725"/>
-    <UBSlot Frequency="1770"/>
-    <UBSlot Frequency="1815"/>
-    <UBSlot Frequency="1860"/>
-    <UBSlot Frequency="1905"/>
-    <UBSlot Frequency="1950"/>
-    <UBSlot Frequency="1995"/>
-    <UBSlot Frequency="2085"/>
-    <UBSlot Frequency="2130"/>
+    <OutdoorUnit Name="DRC 5-2-4L4" Manufacturer="Dura-Sat" Type="Switch" PinProtected="true">
+    <UBSlot Frequency="1280" />
+    <UBSlot Frequency="1382" />
+    <UBSlot Frequency="1484" />
+    <UBSlot Frequency="1586" />
+  </OutdoorUnit>
+  <OutdoorUnit Name="DCR 5-1-8L4" Manufacturer="Dura-Sat" Type="Switch" PinProtected="true">
+    <UBSlot Frequency="1280" />
+    <UBSlot Frequency="1382" />
+    <UBSlot Frequency="1484" />
+    <UBSlot Frequency="1586" />
+    <UBSlot Frequency="1688" />
+    <UBSlot Frequency="1790" />
+    <UBSlot Frequency="1892" />
+    <UBSlot Frequency="1994" />
+  </OutdoorUnit>
+  <OutdoorUnit Name="UK 124" Manufacturer="Dura-Sat" Type="LNB" Protocol="EN50607">
+    <UBSlot Frequency="1210" />
+    <UBSlot Frequency="1420" />
+    <UBSlot Frequency="1680" />
+    <UBSlot Frequency="2040" />
+    <UBSlot Frequency="1005" />
+    <UBSlot Frequency="1050" />
+    <UBSlot Frequency="1095" />
+    <UBSlot Frequency="1140" />
+    <UBSlot Frequency="1260" />
+    <UBSlot Frequency="1305" />
+    <UBSlot Frequency="1350" />
+    <UBSlot Frequency="1475" />
+    <UBSlot Frequency="1520" />
+    <UBSlot Frequency="1565" />
+    <UBSlot Frequency="1610" />
+    <UBSlot Frequency="1725" />
+    <UBSlot Frequency="1770" />
+    <UBSlot Frequency="1815" />
+    <UBSlot Frequency="1860" />
+    <UBSlot Frequency="1905" />
+    <UBSlot Frequency="1950" />
+    <UBSlot Frequency="1995" />
+    <UBSlot Frequency="2085" />
+    <UBSlot Frequency="2130" />
+  </OutdoorUnit>
+  <OutdoorUnit Name="DUR-Line DPC-32 K (32 UB-Unicable Output)" Manufacturer="Dura-Sat" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1210" />
+    <UBSlot Frequency="1420" />
+    <UBSlot Frequency="1680" />
+    <UBSlot Frequency="2040" />
+    <UBSlot Frequency="984" />
+    <UBSlot Frequency="1020" />
+    <UBSlot Frequency="1056" />
+    <UBSlot Frequency="1092" />
+    <UBSlot Frequency="1128" />
+    <UBSlot Frequency="1164" />
+    <UBSlot Frequency="1256" />
+    <UBSlot Frequency="1292" />
+    <UBSlot Frequency="1328" />
+    <UBSlot Frequency="1364" />
+    <UBSlot Frequency="1458" />
+    <UBSlot Frequency="1494" />
+    <UBSlot Frequency="1530" />
+    <UBSlot Frequency="1566" />
+    <UBSlot Frequency="1602" />
+    <UBSlot Frequency="1638" />
+    <UBSlot Frequency="1716" />
+    <UBSlot Frequency="1752" />
+    <UBSlot Frequency="1788" />
+    <UBSlot Frequency="1824" />
+    <UBSlot Frequency="1860" />
+    <UBSlot Frequency="1896" />
+    <UBSlot Frequency="1932" />
+    <UBSlot Frequency="1968" />
+    <UBSlot Frequency="2004" />
+    <UBSlot Frequency="2076" />
+    <UBSlot Frequency="2112" />
+    <UBSlot Frequency="2147" />
+  </OutdoorUnit>
+  <OutdoorUnit Name="DUR-Line DPC-32 K (16 UB-Unicable Output)" Manufacturer="Dura-Sat" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1210" />
+    <UBSlot Frequency="1420" />
+    <UBSlot Frequency="1680" />
+    <UBSlot Frequency="2040" />
+    <UBSlot Frequency="984" />
+    <UBSlot Frequency="1020" />
+    <UBSlot Frequency="1056" />
+    <UBSlot Frequency="1092" />
+    <UBSlot Frequency="1128" />
+    <UBSlot Frequency="1164" />
+    <UBSlot Frequency="1256" />
+    <UBSlot Frequency="1292" />
+    <UBSlot Frequency="1328" />
+    <UBSlot Frequency="1364" />
+    <UBSlot Frequency="1458" />
+    <UBSlot Frequency="1494" />
+  </OutdoorUnit>
+  <OutdoorUnit Name="DUR-Line DPC-32 K (16 UB-Legacy Output)" Manufacturer="Dura-Sat" Type="Switch" Protocol="EN50607">
+    <UBSlot Frequency="1530" />
+    <UBSlot Frequency="1566" />
+    <UBSlot Frequency="1602" />
+    <UBSlot Frequency="1638" />
+    <UBSlot Frequency="1716" />
+    <UBSlot Frequency="1752" />
+    <UBSlot Frequency="1788" />
+    <UBSlot Frequency="1824" />
+    <UBSlot Frequency="1860" />
+    <UBSlot Frequency="1896" />
+    <UBSlot Frequency="1932" />
+    <UBSlot Frequency="1968" />
+    <UBSlot Frequency="2004" />
+    <UBSlot Frequency="2076" />
+    <UBSlot Frequency="2112" />
+    <UBSlot Frequency="2147" />
   </OutdoorUnit>
   <OutdoorUnit Name="SMUC 58-NT/DC" Manufacturer="Resch" Type="Switch">
     <UBSlot Frequency="1284"/>
