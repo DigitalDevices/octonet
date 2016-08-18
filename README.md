@@ -13,18 +13,40 @@ On Debian/Ubuntu:
 * Ensure bash ist default shell (Debian/Ubuntu standard is dash)
 
 ```
-  >git clone -b internal https://github.com/DigitalDevices/internal_octonet.git <your directory>
-  >cd <your directory>
-  >git submodule update --init --remote
-  >cd dddvb
-  >git checkout internal
-  >cd ..
-  
-  >sh mk.patch
+  >git clone -b master https://github.com/DigitalDevices/octonet.git octonet
+  >git clone -b master https://github.com/DigitalDevices/dddvb.git dddvb
+  >cd octonet  
+  >./mk.patch
 ```
-  
+If needed replace branch (master) and repository path with your own.
+
 ###Building
+
+Complete build (needed once)
 ```
-   TBD
+  >./mk.all
 ```
-  
+
+Rebuild main firmware
+```
+  >./mk
+```
+
+###Installing
+
+* Create a subdirectory octonet on a local webserver, enable directory listing.
+
+```
+  >./cp buildroot/output-octonet/images/octonet.* <your webserver root>/octonet
+```
+
+* Configure your OctopusNet(s) to use your webserver as update server:
+```
+http://<OctopusNet IP>/updateserver.html
+```
+Initiate update from the OctopusNet 
+
+
+Note: for security reasons only private ip addresses (10.0.0.0/8, 172.16.0.0/12, 192.168,0.0/16) are accepted
+
+
