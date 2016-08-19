@@ -49,7 +49,7 @@ Rebuild main firmware
 
 On some servers a .htaccess file with:
 ```
-  >Options +Indexes
+Options +Indexes
 ```
 in the octonet directory might be necessary.
 
