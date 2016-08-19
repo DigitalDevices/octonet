@@ -44,7 +44,7 @@ Rebuild main firmware
 * Create a subdirectory octonet on a local webserver, enable directory listing.
 
 ```
-  >./cp buildroot/output-octonet/images/octonet.* <your webserver root>/octonet
+  >cp buildroot/output-octonet/images/octonet.* <your webserver root>/octonet
 ```
 
 On some servers a .htaccess file with:
