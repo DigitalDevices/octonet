@@ -59,6 +59,14 @@ if ddbridge then
   ddbridge:close()
   if devid == "0307dd01" then 
     fanstate = 1
+    ddbridge = io.open("/sys/class/ddbridge/ddbridge0/fanspeed1","r"); 
+    if ddbridge then
+      local fs = tonumber(ddbridge:read("*l"))
+      ddbridge:close()
+      if fs > 0 and fs < 17000 then 
+         fanstate = -2
+      end
+    end
   end 
 end
 

@@ -33,13 +33,25 @@ function ReadLine(file)
    if tmp then
       local values = {}
       local value
-      for value in string.gmatch(tmp,"(%d+)") do
+      for value in string.gmatch(tmp,"(%-?%d+)") do
          table.insert(values,tonumber(value))
       end
       return values
    else
       return nil
    end
+end
+
+function ReadFanSpeed()
+   local f = io.open("/sys/class/ddbridge/ddbridge0/fanspeed1","r"); 
+   if f then
+      local fs = tonumber(f:read("*l"))
+      f:close()
+      if fs > 0 and fs < 17000 then 
+         return fs
+      end
+   end
+   return nil
 end
 
 if method == "GET" then
@@ -64,6 +76,11 @@ if method == "GET" then
       data = data .. "\"NumSensors\":\""..NumSensors.."\",\n"
       data = data .. "\"Interval\":\""..Interval.."\",\n"
       data = data .. "\"FanState\":\""..FanState.."\",\n"
+      
+      local FanSpeed = ReadFanSpeed()
+      if FanSpeed then
+         data = data .. "\"FanSpeed\":\""..FanSpeed.."\",\n"
+      end
       
       data = data .. "\"SensorData\": [\n"
       local i,j

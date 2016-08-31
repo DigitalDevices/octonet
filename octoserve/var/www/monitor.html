@@ -68,7 +68,16 @@ function myFunction(response) {
        document.getElementById("TGraph").style.display = "none";
        document.getElementById("NoSensor").style.display = "block";
     }
-
+    if( Sensor.FanSpeed )
+    {
+       document.getElementById("FanStatus").firstChild.nodeValue  = "Fan: "+ Sensor.FanSpeed + " rpm";
+       document.getElementById("FanStatus").style.display = "inline";
+    }
+    if( Sensor.FanState >= 0 )
+    {
+       document.getElementById("FanStatus").firstChild.nodeValue  = "Fan: "+ ( Sensor.FanState > 0 ? "ON" : "OFF" );
+       document.getElementById("FanStatus").style.display = "inline";
+    }
 }
 
 function OnLoad()
@@ -81,7 +90,7 @@ function OnLoad()
 </head>
 <body onload="OnLoad()">
 
-<table class="maintable" align="center">
+<table class="maintable">
   <colgroup>
     <col width="182px"/>
     <col width="728px"/>
@@ -106,12 +115,35 @@ function OnLoad()
             </td>
          </table>
          -->
-        <h3 align="center">Frontend Temperature</h3>
-        <div id="NoSensor" align="center" style="display: none">
+        <table style="margin: auto; width: 100%; text-align: center">
+           <colgroup>
+             <col width="25%"/>
+             <col width="50%"/>
+             <col width="25%"/>
+           </colgroup>
+           <tr>
+            <td></td>
+            <td>
+               <p>
+               <h3 style="margin: auto; width: 100%; text-align: center">Frontend Temperature</h3>
+            </td>
+            <td>
+              <div id="FanStatus" style="display: none; margin: auto; width: 100%; margin-top: 0px; text-align: right; font-size:70%">
+                  Fan: 2000 rpm
+              </div>
+
+            </td>
+           </tr>
+        </table>
+        
+        
+        
+        <div id="NoSensor" style="display: none; margin: auto; width: 100%; text-align: center">
             <p>
             No temperature sensors available
         </div>
-        
+
+
 
         <div id="TGraph" align="center" style="display: block">
             <svg Id="svg" width="720px" height="330px">
