@@ -151,3 +151,92 @@ time_t mtime(time_t *t)
 	return ts.tv_sec;
 }
 
+
+
+
+struct nlreq {
+	struct nlmsghdr n;
+	struct rtmsg r;
+	char buf[1024];
+};
+
+int nlrequest(int fd, struct nlmsghdr *n, unsigned char *gw)
+{
+	char buf[1024];
+	int rtl, len = 0, c;
+	struct nlmsghdr *nlp;
+	struct sockaddr_nl snl;
+	struct iovec iov = { (void *) n, n->nlmsg_len };
+	struct msghdr msg = { (void *) &snl, sizeof(snl),
+			      &iov, 1, NULL, 0, 0 };
+	char *p	= (char *) buf;
+
+	memset(&snl, 0, sizeof(snl));
+	snl.nl_family = AF_NETLINK;
+	sendmsg(fd, &msg, 0);
+	while (1) {
+		iov.iov_base = p;
+		iov.iov_len = sizeof(buf) - len;
+		c = recvmsg(fd, &msg, 0);
+		if (c < 0)
+			return -1;
+		if (c == 0)
+			break;
+		nlp = (struct nlmsghdr *)p;
+		if (nlp->nlmsg_type == NLMSG_DONE)
+			break;
+		if (nlp->nlmsg_type == NLMSG_ERROR)
+			break;
+		p += c;
+		len += c;
+		break;
+	}
+	for (nlp = (struct nlmsghdr *) buf; NLMSG_OK(nlp, len); nlp = NLMSG_NEXT(nlp, len)) {
+		struct rtmsg *rtp = (struct rtmsg *) NLMSG_DATA(nlp);
+		struct rtattr *rtap = (struct rtattr *) RTM_RTA(rtp);
+		
+		for (rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap, rtl)) {
+			switch (rtap->rta_type) {
+			case RTA_GATEWAY:
+				memcpy(gw, RTA_DATA(rtap), 24);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+int get_route(unsigned char *ip)
+{
+	struct sockaddr_nl snl;
+	struct nlreq req;
+	struct nlmsghdr *n = &req.n;
+	struct rtattr *rta;
+	int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	
+	memset(&snl, 0, sizeof(snl));
+	snl.nl_family = AF_NETLINK;
+	snl.nl_pid = getpid();
+	bind(fd, (struct sockaddr *) &snl, sizeof(snl));
+
+	memset(&req, 0, sizeof(req));
+	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
+	req.n.nlmsg_type = RTM_GETROUTE;
+	req.n.nlmsg_flags = NLM_F_REQUEST;
+	req.r.rtm_family = AF_INET;
+	//req.r.rtm_flags |= RTM_F_LOOKUP_TABLE;
+	req.r.rtm_table = 0;
+	req.r.rtm_dst_len = 32;
+
+	rta = (struct rtattr*)(((char*)n) + NLMSG_ALIGN(n->nlmsg_len));
+	rta->rta_type = RTA_DST;
+	rta->rta_len = RTA_LENGTH(4);
+	memcpy(RTA_DATA(rta), ip, 4);
+	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + RTA_LENGTH(4);
+
+	nlrequest(fd, n, ip);
+	printf("IP/GW = %u.%u.%u.%u\n", ip[0], ip[1], ip[2], ip[3]);
+	close(fd);
+}
+

@@ -59,6 +59,7 @@
 #include <linux/sockios.h>
 #include <linux/filter.h>
 #include <time.h>
+#include <linux/rtnetlink.h>
 
 #include <libdvben50221/en50221_stdcam.h>
 
@@ -537,5 +538,6 @@ int sendlen(int sock, char *buf, int len);
 int sendstring(int sock, char *fmt, ...);
 
 time_t mtime(time_t *t);
+int get_route(unsigned char *ip);
 
 #endif

@@ -126,6 +126,9 @@ static int get_mac(char *ifname, struct sockaddr *sadr, uint8_t *mac)
 	struct arpreq arpreq;
 	int s;
 
+	if (sadr->sa_family == AF_INET) 
+		get_route(&((struct sockaddr_in *) sadr)->sin_addr);
+
 	s = socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
 		return -1;
