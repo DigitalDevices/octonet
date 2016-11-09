@@ -85,8 +85,11 @@ function GetMSMode()
    local msmode = "quad"
    local tmp = io.open("/config/msmode")
    if tmp then
-      msmode = tmp:read("*l")
+      local t = tmp:read("*l")
       tmp:close()
+      if t then
+         msmode = t
+      end
    elseif ReadSetting('noswitch') == "true" then
       msmode = "none"
    end
