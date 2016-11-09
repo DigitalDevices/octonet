@@ -91,7 +91,7 @@ if NumSensors == 0 then
 end
 
 while true do
-   sleep(1)  
+   sleep(5)  
    temps = ""
    for i = 0, NumSensors - 1, 1 do
       temp  = ReadTemp(Sensor[i])
