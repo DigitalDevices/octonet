@@ -1,0 +1,12 @@
+diff -rup ../../output-octonet.old/build/dvb-apps-3d43b280298c39a67d1d889e01e173f52c12da35/util/scan/Makefile dvb-apps-3d43b280298c39a67d1d889e01e173f52c12da35/util/scan/Makefile
+--- ../../output-octonet.old/build/dvb-apps-3d43b280298c39a67d1d889e01e173f52c12da35/util/scan/Makefile	2016-08-18 16:14:43.996732820 +0200
++++ dvb-apps-3d43b280298c39a67d1d889e01e173f52c12da35/util/scan/Makefile	2016-11-15 18:40:08.830614417 +0100
+@@ -25,6 +25,6 @@ $(binaries): $(objects)
+ $(objects): atsc_psip_section.c atsc_psip_section.h
+ 
+ atsc_psip_section.c atsc_psip_section.h:
+-	perl section_generate.pl atsc_psip_section.pl
++	perl section_generate.pl ./atsc_psip_section.pl
+ 
+ include ../../Make.rules
+Only in dvb-apps-3d43b280298c39a67d1d889e01e173f52c12da35/util/scan: Makefile~
