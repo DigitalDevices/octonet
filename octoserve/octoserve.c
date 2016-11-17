@@ -1426,20 +1426,22 @@ static int merge_pids(struct dvb_params *op, struct dvb_params *p)
 {
 	int i, r = 0;
 
+	dbgprintf(DEBUG_SYS, "merge_pids\n");
+	
 	if (p->set & (1UL << PARAM_PID)) 
-		for (i = 0 ; i < 1024 ; i++)
+		for (i = 0; i < 1024; i++)
 			if (op->pid[i] != p->pid[i]) {
 				r |= 1;
 				op->pid[i] = p->pid[i];
 			}
 	if (p->set & (1UL << PARAM_APID))
-		for (i = 0 ; i < 1024 ; i++)
-			if (!(op->pid[i] & p->pid[i])) {
+		for (i = 0; i < 1024; i++)
+			if ((~op->pid[i]) & p->pid[i]) {
 				r |= 2;
 				op->pid[i] |= p->pid[i];
 			}
 	if (p->set & (1UL << PARAM_DPID)) 
-		for (i = 0 ; i < 1024 ; i++)
+		for (i = 0; i < 1024; i++)
 			if (op->pid[i] & p->dpid[i]) {
 				r |= 4;
 				op->pid[i] &= ~p->dpid[i];
