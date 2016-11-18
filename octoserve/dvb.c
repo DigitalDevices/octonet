@@ -1108,16 +1108,6 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int m
 	if (!fe->type)
 		return -1;
 
-	if (fe->type & (1UL << SYS_DVBS2))
-		os->dvbs2num++;
-	if (fe->type & (1UL << SYS_DVBT2))
-		os->dvbt2num++;
-	else if (fe->type & (1UL << SYS_DVBT))
-		os->dvbtnum++;
-	if (fe->type & (1UL << SYS_DVBC2))
-		os->dvbc2num++;
-	else if (fe->type & (1UL << SYS_DVBC_ANNEX_A))
-		os->dvbcnum++;
 	fe->os = os;
 	fe->anum = a;
 	fe->fnum = f;
@@ -1142,7 +1132,19 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int m
 			}
 		}
 	}
-      	os->dvbfe_num++;
+
+	if (fe->type & (1UL << SYS_DVBS2))
+		os->dvbs2num++;
+	if (fe->type & (1UL << SYS_DVBT2))
+		os->dvbt2num++;
+	else if (fe->type & (1UL << SYS_DVBT))
+		os->dvbtnum++;
+	if (fe->type & (1UL << SYS_DVBC2))
+		os->dvbc2num++;
+	else if (fe->type & (1UL << SYS_DVBC_ANNEX_A))
+		os->dvbcnum++;
+
+	os->dvbfe_num++;
 	pthread_mutex_init(&fe->mutex, 0);
 	return 0;
 }
