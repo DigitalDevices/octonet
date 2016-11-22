@@ -53,6 +53,8 @@ local StartIndex = 1
 local count = interval
 local fanstate = -1
 
+sleep(30)
+
 local ddbridge = io.open("/sys/class/ddbridge/ddbridge0/devid0","r");
 if ddbridge then
   local devid = ddbridge:read("*l")
@@ -69,8 +71,6 @@ if ddbridge then
     end
   end 
 end
-
-sleep(30)
 
 for i = 0,4,1 do 
    temp = ReadTemp(i)
@@ -91,7 +91,7 @@ if NumSensors == 0 then
 end
 
 while true do
-   sleep(5)  
+   sleep(1)
    temps = ""
    for i = 0, NumSensors - 1, 1 do
       temp  = ReadTemp(Sensor[i])
