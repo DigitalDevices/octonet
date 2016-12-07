@@ -528,6 +528,29 @@ static int tune_terr2(struct dvbfe *fe)
 	return 0;
 }
 
+static int tune_isdbt(struct dvbfe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param[PARAM_FREQ] * 1000 },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param[PARAM_BW_HZ] },
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ISDBT);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	return 0;
+}
+
 static int tune(struct dvbfe *fe)
 {
 	int ret;
@@ -550,6 +573,9 @@ static int tune(struct dvbfe *fe)
 		break;
 	case SYS_DVBC2:
 		ret = tune_c2(fe);
+		break;
+	case SYS_ISDBT:
+		ret = tune_isdbt(fe);
 		break;
 	default:
 		break;
