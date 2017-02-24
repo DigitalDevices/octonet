@@ -24,7 +24,7 @@ function Wait()
 
 function OnLoad()
 {
-  var param = document.baseURI.match(/\d+$/);
+  var param = document.URL.match(/\d+$/);
   
   WaitCounter = 5;
   if( param ) WaitCounter = parseInt(param);
@@ -48,7 +48,7 @@ function OnLoad()
   </td></tr>
   <tr><td class="maintd" colspan="2">&nbsp;</td></tr>
   <tr>
-    <td class="maintd"></script></td>
+    <td class="maintd"></td>
     <td class="content">
       <div>
         <!-- Begin Content -->                
