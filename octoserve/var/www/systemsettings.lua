@@ -74,8 +74,9 @@ function GetBoxName()
    local boxname = ""
    local tmp = io.open("/config/boxname")
    if tmp then
+      local pat = "OctopusNet:";
       boxname = tmp:read("*l")
-      boxname = boxname:gsub("OctopusNet:","",1);
+      boxname = boxname:gsub(pat:gsub(".","%."),"",1);
       tmp:close()
    end
    return boxname
