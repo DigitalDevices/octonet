@@ -13,9 +13,15 @@ LINUX=../linux.octonet
 #fi
 
 cp $DDDVB/ddbridge/*.[ch] $LINUX/drivers/media/pci/ddbridge/
+cp $DDDVB/ddbridge/Kconfig $LINUX/drivers/media/pci/ddbridge/
+cp $DDDVB/ddbridge/Makefile.kernel $LINUX/drivers/media/pci/ddbridge/Makefile
 cp $DDDVB/dvb-core/*.[ch] $LINUX/drivers/media/dvb-core/
+cp $DDDVB/dvb-core/Kconfig $LINUX/drivers/media/dvb-core/
+cp $DDDVB/dvb-core/Makefile.kernel $LINUX/drivers/media/dvb-core/Makefile
 cp $DDDVB/include/linux/dvb/*.h $LINUX/include/uapi/linux/dvb/
 
+cp $DDDVB/frontends/Kconfig $LINUX/drivers/media/dvb-frontends/
+cp $DDDVB/frontends/Makefile.kernel $LINUX/drivers/media/dvb-frontends/Makefile
 cp $DDDVB/frontends/drxk*.[ch] $LINUX/drivers/media/dvb-frontends/
 cp $DDDVB/frontends/lnb*.[ch] $LINUX/drivers/media/dvb-frontends/
 cp $DDDVB/frontends/stv0367dd*.[ch] $LINUX/drivers/media/dvb-frontends/
