@@ -1071,7 +1071,7 @@ void handle_fe(struct dvbfe *fe)
 			} else {
 				max = 1;
 				nolock++;
-				if (nolock > 20)
+				if (nolock > 100)
 					fe->tune = 1;
 			}
 			break;
