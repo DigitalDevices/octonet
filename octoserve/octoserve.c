@@ -708,7 +708,7 @@ char *mtype2str [] = {"", "qpsk", "16qam", "32qam",
 		      "16apsk", "32apsk", "dqpsk", "4qamnr", NULL};
 char *pilot2str [] = {"", "on", "off", "auto", NULL};
 char *roll2str [] = {"", "0.35", "0.20", "0.25", NULL};
-char *fec2str [] = {"", "none", "12", "23", "34", "56", "78", "89", "35", "45", "910", "25", NULL};
+char *fec2str [] = {"", "none", "12", "23", "34", "45", "56", "67", "78", "89", "auto", "35", "910", "25", "14", "13", NULL};
 char *bw2str [] = {"", "8", "7", "6", "auto", "5", "10", "1.712", NULL };
 char *tmode2str [] = { "", "2k", "8k", "auto", "4k", "1k", "16k", "32k", "c1", "c3780", NULL};
 char *gi2str [] = { "", "132", "116", "18", "14", "auto", "1128", "19128", "19256", "pn420", "pn595", "pn945", NULL};
@@ -1113,7 +1113,7 @@ static int parse_url(struct oscon *con, int streamonly)
 				dbgprintf(DEBUG_SYS, "t2id=%d, ", p->param[PARAM_T2ID]);
 			} else if (!strncasecmp(url, "x_isi=", 6)) {
 				url += 6;
-				p->param[PARAM_ISI] = strtoul(url, &end, 10);
+				p->param[PARAM_ISI] = strtoul(url, &end, 0);
 				if (end == url)
 					break;
 				p->set |= (1UL << PARAM_ISI);

@@ -194,6 +194,9 @@ static int set_fe_input(struct dvbfe *fe, uint32_t fr,
 	int fd = fe->fd;
 	
 	dbgprintf(DEBUG_DVB, "ds = %u, input = %u\n", ds, input);
+
+	if (fe->set & (1UL << PARAM_FEC))
+		p[5].u.data = fe->param[PARAM_FEC] - 1;
 	
 	c.num = ARRAY_SIZE(p);
 	c.props = p;
