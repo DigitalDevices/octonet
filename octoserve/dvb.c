@@ -210,7 +210,8 @@ static int set_fe_input(struct dvbfe *fe, uint32_t fr,
 	if (fe->set & (1UL << PARAM_ISI))
 		set_property(fd, DTV_STREAM_ID, fe->param[PARAM_ISI]);
 	if (fe->set & (1UL << PARAM_PLS))
-		set_property(fd, DTV_PLS, fe->param[PARAM_PLS]);
+		set_property(fd, DTV_SCRAMBLING_SEQUENCE_INDEX,
+			     fe->param[PARAM_PLS]);
 	set_property(fd, DTV_TUNE, 0);
 	return 0;
 }
