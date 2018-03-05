@@ -1118,7 +1118,8 @@ static int parse_url(struct oscon *con, int streamonly)
 					break;
 				p->set |= (1UL << PARAM_ISI);
 				dbgprintf(DEBUG_SYS, "x_isi=%d, ", p->param[PARAM_ISI]);
-			} else if (!strncasecmp(url, "x_pls=", 6)) {
+			} else if (!strncasecmp(url, "x_pls=", 6) ||
+				   !strncasecmp(url, "x_ssi=", 6)) {
 				url += 6;
 				p->param[PARAM_PLS] = strtoul(url, &end, 0);
 				if (end == url)
