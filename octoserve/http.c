@@ -107,7 +107,7 @@ void send_http_file(int sock, char *fn)
 	uint8_t buf[1024];
 	int len, len2, fd;
 	char fn2[1024] = { 0 }, *d, **m;
-		
+
 	strcat(fn2, "/var/satip");
 	strcat(fn2, fn);
 	d = strrchr(fn, '.');
@@ -561,7 +561,8 @@ void handle_http(struct os_ssdp *ss)
 					while (buf[j] && buf[j] != '\r' && buf[j] != ' ')
 						j++;
 					buf[j] = 0;
-					if (i == j) {
+					if (i == j ||
+					    (NULL !=strstr(buf + i, ".."))) {
 						send_http_error(ss->csock, 404);
 						break;
 					}
