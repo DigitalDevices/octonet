@@ -2815,6 +2815,7 @@ static void awrite(char *fn, char *txt)
 
 	if (f)
 		fprintf(f, "%s", txt);
+	fclose(f);
 }
 
 int main(int argc, char **argv)
