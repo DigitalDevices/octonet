@@ -162,19 +162,34 @@ void send_xml(struct os_ssdp *ss)
 	uint8_t *mac = &os->mac[0];
 	int serial = (mac[5] | (mac[4] << 8) | (mac[3] << 16)) / 2;
 	char boxname[80];
-
+	int i;
+	
 	read_boxname(boxname);
 	len = 0;
-	if (os->dvbs2num)
-		len += sprintf(cap + len, ",DVBS2-%u", os->dvbs2num);
-	if (os->dvbtnum)
-		len += sprintf(cap + len, ",DVBT-%u", os->dvbtnum);
-	if (os->dvbt2num)
-		len += sprintf(cap + len, ",DVBT2-%u", os->dvbt2num);
-	if (os->dvbcnum)
-		len += sprintf(cap + len, ",DVBC-%u", os->dvbcnum);
-	if (os->dvbc2num)
-		len += sprintf(cap + len, ",DVBC2-%u", os->dvbc2num); 
+
+	for (i = 0; i < 5; i++)
+		switch ((i + os->first_ds) % 5) {
+		case 0:
+			if (os->dvbs2num)
+				len += sprintf(cap + len, ",DVBS2-%u", os->dvbs2num);
+			break;
+		case 1:
+			if (os->dvbtnum)
+				len += sprintf(cap + len, ",DVBT-%u", os->dvbtnum);
+			break;
+		case 2:
+			if (os->dvbt2num)
+				len += sprintf(cap + len, ",DVBT2-%u", os->dvbt2num);
+			break;
+		case 3:
+			if (os->dvbcnum)
+				len += sprintf(cap + len, ",DVBC-%u", os->dvbcnum);
+			break;
+		case 4:
+			if (os->dvbc2num)
+				len += sprintf(cap + len, ",DVBC2-%u", os->dvbc2num);
+			break;
+		}
 	len = snprintf(buf, sizeof(buf), xmldesc,
 		       ss->configid, boxname,
 		       serial, ss->uuid_str, cap + 1);

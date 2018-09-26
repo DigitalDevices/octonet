@@ -192,9 +192,8 @@ static int set_fe_input(struct dvbfe *fe, uint32_t fr,
 	struct dtv_properties c;
 	int ret;
 	int fd = fe->fd;
-	
-	dbgprintf(DEBUG_DVB, "ds = %u, input = %u\n", ds, input);
 
+	dbgprintf(DEBUG_DVB, "ds = %u, input = %u\n", ds, input);
 	if (fe->set & (1UL << PARAM_FEC))
 		p[5].u.data = fe->param[PARAM_FEC] - 1;
 	
@@ -1113,7 +1112,7 @@ int dvb_tune(struct dvbfe *fe, struct dvb_params *p)
 	return ret;
 }
 
-static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int msmode)
+static int init_fe(struct octoserve *os, int a, int f, int fd)
 {
 	struct dtv_properties dps;
 	struct dtv_property dp[10];
@@ -1134,9 +1133,11 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int m
 		dbgprintf(DEBUG_DVB, "delivery system %d\n", ds);
 		fe->type |= (1UL << ds);
 	}
-	if (nodvbt)
+	if (os->nodvbt)
 		fe->type &= ~((1UL << SYS_DVBT2) | (1UL << SYS_DVBT));
-
+	if (os->delsys_mask)
+		fe->type &= os->delsys_mask;
+	
 	if (!fe->type)
 		return -1;
 
@@ -1156,15 +1157,16 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int m
 		dbgprintf(DEBUG_DVB, "input prop %u = %u\n", i, fe->input[i]);
 	}
 	if (fe->input[3]) {
+		dbgprintf(DEBUG_DVB, "has_feswitch\n");
 		os->has_feswitch = 1;
-		if (!os->scif_type && !msmode) {
+		if (!os->scif_type && !os->msmode) {
 			if (fe->input[2] >= fe->input[1]) {
 				fe->type = 0;
 				return -1;
 			}
 		}
 	}
-
+	
 	if (fe->type & (1UL << SYS_DVBS2))
 		os->dvbs2num++;
 	if (fe->type & (1UL << SYS_DVBT2))
@@ -1181,7 +1183,7 @@ static int init_fe(struct octoserve *os, int a, int f, int fd, int nodvbt, int m
 	return 0;
 }
 
-static int scan_dvbfe(struct octoserve *os, int nodvbt, int msmode)
+static int scan_dvbfe(struct octoserve *os)
 {
 	int a, f, fd;
 	char fname[80];
@@ -1191,7 +1193,7 @@ static int scan_dvbfe(struct octoserve *os, int nodvbt, int msmode)
 			sprintf(fname, "/dev/dvb/adapter%d/frontend%d", a, f); 
 			fd = open(fname, O_RDWR);
 			if (fd >= 0) {
-				init_fe(os, a, f, fd, nodvbt, msmode);
+				init_fe(os, a, f, fd);
 				close(fd);
 			}
 		}
@@ -1782,7 +1784,7 @@ void lnb_config(struct octoserve *os, char *name, char *val)
 	}
 }
 
-int init_dvb(struct octoserve *os, int nodvbt, int msmode)
+int init_dvb(struct octoserve *os)
 {
 	int i, j;
 	uint32_t fmode;
@@ -1791,14 +1793,17 @@ int init_dvb(struct octoserve *os, int nodvbt, int msmode)
 	pthread_mutex_init(&os->uni_lock, 0);
 	os->scif_type = 0;
 	parse_config(os, "scif", &scif_config);
-
-	scan_dvbfe(os, nodvbt, msmode);
+		
+	scan_dvbfe(os);
 	scan_dvbca(os);
 
 	if (os->scif_type)
 		fmode = 0;
 	else
-		fmode = msmode;
+		fmode = os->msmode;
+	dbgprintf(DEBUG_DVB, "fmode = %u, msmode = %u hasfeswitch = %u\n",
+		  fmode, os->msmode, os->has_feswitch);
+
 	if (os->has_feswitch)
 		set_fmode(fmode);
 

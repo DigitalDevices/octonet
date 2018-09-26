@@ -501,6 +501,10 @@ struct octoserve {
 	int mld_sock;
 	int has_switch;
 	int strict;
+	uint32_t delsys_mask;
+	int msmode;
+	int nodvbt;
+	uint32_t first_ds;
 }; 
 
 int streamsock(const char *port, int family, struct sockaddr *sadr);
@@ -508,7 +512,7 @@ void sockname(struct sockaddr *sadr, char *name);
 int get_ifa(const char *ifname, int iffam, struct sockaddr *sadr);
 int init_ssdp(struct octoserve *os, struct os_ssdp *ss, uint32_t d, int nossdp, int nodms);
 int dvb_tune(struct dvbfe *fe, struct dvb_params *p);
-int init_dvb(struct octoserve *os, int nodvbt, int noswitch);
+int init_dvb(struct octoserve *os);
 int release_dvb(struct octoserve *os);
 void parse_config(struct octoserve *os, char *sec,
 		  void (*cb)(struct octoserve *, char *, char *));

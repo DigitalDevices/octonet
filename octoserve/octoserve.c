@@ -2692,7 +2692,82 @@ static void os_serve(struct octoserve *os)
 	killall_sessions(os);
 }
 
-static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt, int msmode)
+static int fexists(char *fn)
+{
+	struct stat b;
+
+	return (!stat(fn, &b));
+}
+
+static int read_num(char *fn, int *num)
+{
+	FILE *f;
+	
+	f = fopen(fn, "r");
+	if (!f)
+		return -1;
+	fscanf(f, "%i", num);
+	fclose(f);
+	return 0;
+}
+
+static void read_first_ds(struct octoserve *os)
+{
+	int num;
+	int res = read_num("/config/first_ds", &num);
+
+	if (res < 0) 
+		os->first_ds = 0;
+	else 
+		os->first_ds = num;
+	
+	printf("first_ds = %u\n", os->first_ds);
+}
+
+static void read_delsys_mask(struct octoserve *os)
+{
+	int fd, len;
+	char mask[80];
+		
+	os->delsys_mask = 0;
+	fd = open("/config/delsys_mask", O_RDONLY);
+	if (fd < 0) 
+		return;
+	len = read(fd, mask, 79);
+	if (len < 0)
+		return;
+	close (fd);
+	if (len)
+		os->delsys_mask = strtol(mask, NULL, 0);
+	printf("delsys_mask = %08x\n", os->delsys_mask);
+}
+
+static int read_msmode(char *fn)
+{
+	int fd, len;
+	char mode[80];
+		
+	fd = open(fn, O_RDONLY);
+	if (fd < 0) {
+		if (fexists("/config/noswitch.enabled"))
+			return 0;
+		else
+			return 1;
+	}
+	len = read(fd, mode, 7);
+	if (len < 0)
+		return 0;
+	close (fd);
+	if (len == 4 && !strncasecmp(mode, "none", 4))
+		return 0;
+	if (len == 4 && !strncasecmp(mode, "quad", 4))
+		return 1;
+	if (len == 7 && !strncasecmp(mode, "quattro", 7))
+		return 2;
+	return 0;
+}
+
+static struct octoserve *os_init(char *ifname, int nossdp, int nodms)
 {
 	struct octoserve *os;
 	struct os_ssdp *ss;
@@ -2706,13 +2781,17 @@ static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt
 	dbgprintf(DEBUG_SYS, "allocated octoserve struct, %d bytes\n", sizeof(*os));
 	memset(os, 0, sizeof(struct octoserve));
 
+	if (fexists("/config/nodvbt.enabled"))
+		os->nodvbt = 1;
+	os->msmode = read_msmode("/config/msmode");
+	read_first_ds(os);
+	read_delsys_mask(os);
 	pthread_mutexattr_init(&mta);
 	pthread_mutexattr_settype(&mta, PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(&os->lock, &mta);
 
 	os->ifname = ifname;
 	os->sessionid = random();
-
 	if (get_ifa(ifname, AF_INET, (struct sockaddr *) &os->ssdp.sadr) < 0) {
 		perror("no such interface:");
 		free(os);
@@ -2734,7 +2813,7 @@ static struct octoserve *os_init(char *ifname, int nossdp, int nodms, int nodvbt
 	if (os->has_switch)
 		switch_get_port(os->mac);
 
-	init_dvb(os, nodvbt, msmode);
+	init_dvb(os);
 
 	ss = &os->ssdp;
 	if (init_ssdp(os, &os->ssdp, debug, nossdp, nodms) < 0) {
@@ -2777,38 +2856,6 @@ static int set_termaction(void)
 	sigaction(SIGTERM, &term, NULL);
 }
 
-static int fexists(char *fn)
-{
-	struct stat b;
-
-	return (!stat(fn, &b));
-}
-
-static int read_msmode(char *fn)
-{
-	int fd, len;
-	char mode[80];
-		
-	fd = open(fn, O_RDONLY);
-	if (fd < 0) {
-		if (fexists("/config/noswitch.enabled"))
-			return 0;
-		else
-			return 1;
-	}
-	len = read(fd, mode, 7);
-	if (len < 0)
-		return 0;
-	close (fd);
-	if (len == 4 && !strncasecmp(mode, "none", 4))
-		return 0;
-	if (len == 4 && !strncasecmp(mode, "quad", 4))
-		return 1;
-	if (len == 7 && !strncasecmp(mode, "quattro", 7))
-		return 2;
-	return 0;
-}
-
 static void awrite(char *fn, char *txt)
 {
 	FILE *f = fopen(fn, "w");
@@ -2820,7 +2867,7 @@ static void awrite(char *fn, char *txt)
 
 int main(int argc, char **argv)
 {
-	int nodms = 0, nossdp = 0, nodvbt = 0, vlan = 0, msmode = 1;
+	int nodms = 0, nossdp = 0, vlan = 0;
 		
 	printf("Octoserve " OCTOSERVE_VERSION
 	       ", Copyright (C) 2012-15 Digital Devices GmbH\n"); 
@@ -2834,13 +2881,12 @@ int main(int argc, char **argv)
 			{"flags", required_argument, 0, 'f'},
 			{"nossdp", no_argument, 0, 'n'},
 			{"nodms", no_argument, 0, 'm'},
-			{"nodvbt", no_argument, 0, 't'},
 			{"conform", no_argument, 0, 'c'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"d:f:nmtsch",
+				"d:f:nmch",
 				long_options, &option_index);
 		if (c==-1)
  			break;
@@ -2858,9 +2904,6 @@ int main(int argc, char **argv)
 		case 'm':
 			nodms = 1;
 			break;
-		case 't':
-			nodvbt = 1;
-			break;
 		case 'c':
 			conform = 1;
 			break;
@@ -2875,17 +2918,14 @@ int main(int argc, char **argv)
 	}
 	if (fexists("/config/nodms.enabled"))
 		nodms = 1;
-	msmode = read_msmode("/config/msmode");
-	if (fexists("/config/nodvbt.enabled"))
-		nodvbt = 1;
 	if (fexists("/config/vlan.enabled")) {
 		awrite("/sys/class/ddbridge/ddbridge0/vlan", "1");
 		vlan = 1;
 	} else
 		awrite("/sys/class/ddbridge/ddbridge0/vlan", "0");
-	printf("nodms = %d, nodvbt = %d, vlan = %d\n", nodms, nodvbt, vlan);
+	printf("nodms = %d, vlan = %d\n", nodms, vlan);
 	
-	os = os_init("eth0", nossdp, nodms, nodvbt, msmode);
+	os = os_init("eth0", nossdp, nodms);
 	if (!os)
 		return -1;
 	set_termaction();
