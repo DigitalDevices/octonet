@@ -212,6 +212,8 @@ static int set_fe_input(struct dvbfe *fe, uint32_t fr,
 	if (fe->set & (1UL << PARAM_PLS))
 		set_property(fd, DTV_SCRAMBLING_SEQUENCE_INDEX,
 			     fe->param[PARAM_PLS]);
+	if (fe->set & (1UL << PARAM_MTYPE))
+		set_property(fd, DTV_MODULATION, fe->param[PARAM_MTYPE] - 1);
 	set_property(fd, DTV_TUNE, 0);
 	return 0;
 }
