@@ -66,6 +66,9 @@ function CheckMaxS8()
       if devid == "0007dd01" then
          isMaxS8 = "true"
       end
+      if devid == "0009dd01" then
+         isMaxS8 = "true"
+      end
    end
    return isMaxS8
 end
