@@ -329,12 +329,12 @@ static int set_en50607(struct dvbfe *fe, uint32_t freq, uint32_t sr,
 		  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
 }
 
-static int tune_sat(struct dvbfe *fe)
+static int tune_dvbs2(struct dvbfe *fe)
 {
 	uint32_t freq, hi = 0, src, lnb = 0, lnbc = 0, lofs;
 	fe_delivery_system_t ds = fe->param[PARAM_MSYS] - 1;
 	
-	dbgprintf(DEBUG_DVB, "tune_sat\n");
+	dbgprintf(DEBUG_DVB, "tune_dvbs2\n");
 	freq = fe->param[PARAM_FREQ];
 
 	if (fe->param[PARAM_SRC])
@@ -392,7 +392,7 @@ static int tune_sat(struct dvbfe *fe)
 	}
 }
 
-static int tune_c(struct dvbfe *fe)
+static int tune_dvbc(struct dvbfe *fe)
 {
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
@@ -420,24 +420,7 @@ static int tune_c(struct dvbfe *fe)
 	return 0;
 }
 
-static int tune_cable(struct dvbfe *fe)
-{
-	uint32_t freq;
-	struct dvb_frontend_parameters p = {
-		.frequency = fe->param[PARAM_FREQ] * 1000,
-		.u.qam.symbol_rate = fe->param[PARAM_SR] * 1000,
-		.u.qam.fec_inner = fe->param[PARAM_FEC] ? (fe->param[PARAM_FEC] - 1) : FEC_AUTO,
-		.u.qam.modulation = fe->param[PARAM_MTYPE] - 1,
-	};
-	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
-	if (ioctl(fe->fd, FE_SET_FRONTEND, &p) == -1) {
-		perror("FE_SET_FRONTEND error");
-		return -1;
-	}
-	return 0;
-}
-
-static int tune_terr(struct dvbfe *fe)
+static int tune_dvbt(struct dvbfe *fe)
 {
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
@@ -459,33 +442,8 @@ static int tune_terr(struct dvbfe *fe)
 	}
 	return 0;
 }
-#if 0
-static int tune_terr(struct dvbfe *fe)
-{
-	uint32_t freq;
-	enum fe_bandwidth bw;
-	struct dvb_frontend_parameters p = {
-		.frequency = fe->param[PARAM_FREQ] * 1000,
-		.inversion = INVERSION_AUTO,
-		.u.ofdm.code_rate_HP = FEC_AUTO,
-		.u.ofdm.code_rate_LP = FEC_AUTO,
-		.u.ofdm.constellation = fe->param[PARAM_MTYPE] - 1,
-		.u.ofdm.transmission_mode = TRANSMISSION_MODE_AUTO,
-		.u.ofdm.guard_interval = GUARD_INTERVAL_AUTO,
-		.u.ofdm.hierarchy_information = HIERARCHY_AUTO,
-		.u.ofdm.bandwidth = fe->param[PARAM_BW] ? 
-		                   (fe->param[PARAM_BW] - 1) : BANDWIDTH_AUTO,
-	};
-	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBT);
-	if (ioctl(fe->fd, FE_SET_FRONTEND, &p) == -1) {
-		perror("FE_SET_FRONTEND error");
-		return -1;
-	}
-	return 0;
-}
-#endif
 
-static int tune_c2(struct dvbfe *fe)
+static int tune_dvbc2(struct dvbfe *fe)
 {
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
@@ -509,7 +467,7 @@ static int tune_c2(struct dvbfe *fe)
 	return 0;
 }
 
-static int tune_terr2(struct dvbfe *fe)
+static int tune_dvbt2(struct dvbfe *fe)
 {
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
@@ -556,6 +514,76 @@ static int tune_isdbt(struct dvbfe *fe)
 	return 0;
 }
 
+static int tune_isdbc(struct dvbfe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param[PARAM_FREQ] * 1000 },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ISDBC);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	if (fe->set & (1UL << PARAM_ISI))
+		set_property(fe->fd, DTV_STREAM_ID, fe->param[PARAM_ISI]);
+	set_property(fe->fd, DTV_TUNE, 0);
+	return 0;
+}
+
+static int tune_j83b(struct dvbfe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param[PARAM_FREQ] * 1000 },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_B);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	set_property(fe->fd, DTV_TUNE, 0);
+	return 0;
+}
+
+static int tune_isdbs(struct dvbfe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param[PARAM_FREQ] },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ISDBS);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	if (fe->set & (1UL << PARAM_ISI))
+		set_property(fe->fd, DTV_STREAM_ID, fe->param[PARAM_ISI]);
+	set_property(fe->fd, DTV_TUNE, 0);
+	return 0;
+}
+
 static int tune(struct dvbfe *fe)
 {
 	int ret;
@@ -565,22 +593,32 @@ static int tune(struct dvbfe *fe)
 	switch (fe->n_param[PARAM_MSYS] - 1) {
 	case SYS_DVBS:
 	case SYS_DVBS2:
-		ret = tune_sat(fe);
+		ret = tune_dvbs2(fe);
 		break;
 	case SYS_DVBC_ANNEX_A:
-		ret = tune_c(fe);
+		ret = tune_dvbc(fe);
 		break;
 	case SYS_DVBT:
-		ret = tune_terr(fe);
+		ret = tune_dvbt(fe);
 		break;
 	case SYS_DVBT2:
-		ret = tune_terr2(fe);
+		ret = tune_dvbt2(fe);
 		break;
 	case SYS_DVBC2:
-		ret = tune_c2(fe);
+		ret = tune_dvbc2(fe);
 		break;
 	case SYS_ISDBT:
 		ret = tune_isdbt(fe);
+		break;
+	case SYS_DVBC_ANNEX_B:
+		ret = tune_j83b(fe);
+		break;
+	case SYS_DVBC_ANNEX_C:
+	case SYS_ISDBC:
+		ret = tune_isdbc(fe);
+		break;
+	case SYS_ISDBS:
+		ret = tune_isdbs(fe);
 		break;
 	default:
 		break;

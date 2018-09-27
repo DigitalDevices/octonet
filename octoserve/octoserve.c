@@ -699,7 +699,7 @@ static void send_option(struct oscon *con)
 #define PAR2STR(par) ((p->set & (1UL << PARAM_##par)) ? par##2str[p->param[PARAM_POL]] : "")
 
 char *pol2str[] = {"", "v", "h", "r", "l", NULL};
-char *msys2str [] = {"", "undef", "dvbc", "dvbcb", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
+char *msys2str [] = {"", "undef", "dvbc", "j83b", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
 		      "isdbt", "isdbs", "isdbc", "atsc", "atscmh", "dtmb", "cmmb", "dab",
 		      "dvbt2", "turbo", "dvbcc", "dvbc2", NULL};
 char *mtype2str [] = {"", "qpsk", "16qam", "32qam",
