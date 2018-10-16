@@ -360,10 +360,17 @@ static int tune_dvbs2(struct dvbfe *fe)
 	{
 		if (lofs)
 			hi = (freq > lofs) ? 1 : 0;
-		if (hi) 
-			freq -= fe->lof2[lnbc];
-		else
-			freq -= fe->lof1[lnbc];
+		if (lofs > 10000000) {
+			if (hi) 
+				freq -= fe->lof2[lnbc];
+			else
+				freq -= fe->lof1[lnbc];
+		} else {
+			if (hi) 
+				freq = fe->lof2[lnbc] - freq;
+			else
+				freq = fe->lof1[lnbc] - freq;
+		}
 	}
 	if (fe->first) {
 		fe->first = 0;
