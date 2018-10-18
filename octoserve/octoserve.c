@@ -705,7 +705,8 @@ char *msys2str [] = {"", "undef", "dvbc", "j83b", "dvbt", "dss", "dvbs", "dvbs2"
 char *mtype2str [] = {"", "qpsk", "16qam", "32qam",
 		      "64qam", "128qam", "256qam", 
 		      "autoqam", "8vsb", "16vsb", "8psk",
-		      "16apsk", "32apsk", "dqpsk", "4qamnr", NULL};
+		      "16apsk", "32apsk", "dqpsk", "4qamnr",
+		      "64apsk", "128apsk", "256apsk", NULL};
 char *pilot2str [] = {"", "on", "off", "auto", NULL};
 char *roll2str [] = {"", "0.35", "0.20", "0.25", NULL};
 char *fec2str [] = {"", "none", "12", "23", "34", "45", "56", "67", "78", "89", "auto", "35", "910", "25", "14", "13", NULL};
