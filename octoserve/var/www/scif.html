@@ -12,6 +12,29 @@
 <!-- Add page scripts here -->
 <script type="text/javascript">
 
+var xmlhttp = new XMLHttpRequest();
+var url = "/octoserve/tunerstatus.json";
+
+xmlhttp.onreadystatechange=function()
+{
+    if (xmlhttp.readyState == 4 )
+    {
+      if( xmlhttp.status == 200 )
+         myFunction(xmlhttp.responseText);
+    }
+}
+
+function myFunction(response)
+{
+   try 
+   {
+      var tl = JSON.parse(response);         
+      for(i= 0; i < tl.TunerList.length; i++ )
+        document.getElementById("trTuner"+i).style.display = "table-row";  
+   }
+   catch(err) {}
+}
+
 SCIFEnabled = false;
 SelectedManufacturer = 0;
 SelectedUnit = 0;
@@ -20,13 +43,13 @@ TunerList = new Array();
 function SetManufacturer(ManuIndex)
 {
   if( SCIFEnabled ) document.getElementById("SetButton").disabled  = false;
-  
+
   SelectedManufacturer = ManuIndex;
   document.Unit.Select.length = 0;
   for( j = 0; j < ManufacturerList[ManuIndex].UnitList.length; j++ )
   {
     document.Unit.Select.options[j] = new Option(ManufacturerList[ManuIndex].UnitList[j].Name,j, false, true);
-  }  
+  }
   SetUnit(ManufacturerList[ManuIndex].UnitList.length-1);
 
 }
@@ -36,7 +59,7 @@ function SetUnit(UnitIndex)
   if( SCIFEnabled ) document.getElementById("SetButton").disabled  = false;
 
   SelectedUnit = UnitIndex;
-  
+
   for( i = 0; i < TunerList.length; i++ )
   {
     TunerList[i].Select.length = 1;
@@ -53,7 +76,7 @@ function SetUnit(UnitIndex)
     {
       TunerList[i].Select.options[0].selected = true;
     }
-  }  
+  }
 }
 
 function SetSlot(Tuner,SlotIndex)
@@ -66,7 +89,7 @@ function SaveSettings()
   if( SCIFEnabled )
   {
     CurUnit = ManufacturerList[SelectedManufacturer].UnitList[SelectedUnit];
-    Protocol = CurUnit.Protocol == "EN50607" ? '2' : '1'; 	    
+    Protocol = CurUnit.Protocol == "EN50607" ? '2' : '1';
     param = 'Manufacturer='+SelectedManufacturer+'&Unit='+SelectedUnit+'&Type='+Protocol;
     for( i = 0; i < TunerList.length; i++ )
     {
@@ -75,16 +98,16 @@ function SaveSettings()
       if( SelectedFrequency > 0 )
         param += SelectedFrequency + ',' + CurUnit.Frequencies[SelectedFrequency-1];
       else
-        param += '0';    
+        param += '0';
     }
-    
+
     location.replace('/scifsettings.lua?'+param);
   }
   else
   {
     location.replace('/scifsettings.lua?reset');
   }
-  
+
 }
 
 function SetEnable()
@@ -97,23 +120,19 @@ function OnLoad()
 {
   SCIFEnabled = false;
 
-  TunerList[0] = document.Tuner1;
-  TunerList[1] = document.Tuner2;
-  TunerList[2] = document.Tuner3;
-  TunerList[3] = document.Tuner4;
-  TunerList[4] = document.Tuner5;
-  TunerList[5] = document.Tuner6;
-  TunerList[6] = document.Tuner7;
-  TunerList[7] = document.Tuner8;
+  for( i = 0; i < 12 ; i++ )
+  {
+    TunerList[i] = document.getElementById("formTuner"+i);
+  }
 
   document.Manufacturer.Select.length = 0;
   for( i = 0; i < ManufacturerList.length ; i++ )
-  {    
+  {
     ManuName = ManufacturerList[i].Name;
     if( ManuName == '' ) ManuName = "-----------------";
-    document.Manufacturer.Select.options[i] = new Option(ManuName,i, false, true);                
+    document.Manufacturer.Select.options[i] = new Option(ManuName,i, false, true);
   }
-  
+
   for( i = 0; i < Tuner.length; i++ )
   {
     if( Tuner[i].Slot > 0 ) SCIFEnabled = true;
@@ -141,6 +160,8 @@ function OnLoad()
   document.getElementById("EnableButton").checked  = SCIFEnabled;
   document.getElementById("SetButton").disabled  = true;
   
+   xmlhttp.open("GET", url, true);
+   xmlhttp.send();
 }
 
 </script>
@@ -169,7 +190,7 @@ function OnLoad()
               <td>&nbsp;</td>
               <td>
                 <form action="">
-                  <input id="EnableButton" type="checkbox" value="Check" checked="false" onclick="SetEnable()">                
+                  <input id="EnableButton" type="checkbox" value="Check" checked="false" onclick="SetEnable()">
                   Enable Unicable (EN 50494 / EN 50607)
                 </form>
               </td>
@@ -196,93 +217,22 @@ function OnLoad()
               </td>
             </tr>
 
-            <tr>
-              <td>Tuner 1</td>
-              <td>
-                <form name="Tuner1" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(1,document.Tuner1.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
-
-            <tr>
-              <td>Tuner 2</td>
-              <td>
-                <form name="Tuner2" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(2,document.Tuner2.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
-
-            <tr>
-              <td>Tuner 3</td>
-              <td>
-                <form name="Tuner3" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(3,document.Tuner3.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
-
-            <tr>
-              <td>Tuner 4</td>
-              <td>
-                <form name="Tuner4" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(4,document.Tuner4.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
-            
-            <tr>
-              <td>Tuner 5</td>
-              <td>
-                <form name="Tuner5" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(5,document.Tuner5.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
-
-            <tr>
-              <td>Tuner 6</td>
-              <td>
-                <form name="Tuner6" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(6,document.Tuner6.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
-
-            <tr>
-              <td>Tuner 7</td>
-              <td>
-                <form name="Tuner7" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(7,document.Tuner7.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
-
-            <tr>
-              <td>Tuner 8</td>
-              <td>
-                <form name="Tuner8" action="">
-                  <select name="Select" size="1"  style="width: 300px" onchange="SetSlot(8,document.Tuner8.Select.selectedIndex)">
-                    <option>----</option>
-                  </select>
-                </form>
-              </td>
-            </tr>
+            <script type="text/javascript">
+              for( var i = 0; i < 12 ; i++ )
+              {
+                // document.write('<tr id="trTuner'+i+'">');
+                document.write('<tr id="trTuner'+i+'" style="display:none">');
+                document.write('<td>Tuner ' + (i+1) + '</td>');
+                document.write('<td>');
+                document.write('<form name="Tuner'+(i+1)+'" id="formTuner'+i+'" action="">');
+                document.write('<select name="Select" size="1" style="width: 300px" onchange="SetSlot(1,document.Tuner' +(i+1)+'.Select.selectedIndex)">');
+                document.write('</option>----</option>');
+                document.write('</select>');
+                document.write('</form>');
+                document.write('</td>');
+                document.write('</tr>');
+              }
+            </script>
 
             <tr><td colspan="2" align="right">
               <div style="width: 300px">
@@ -293,7 +243,7 @@ function OnLoad()
               </div>
             </td></tr>
           </table>
-        
+
         <!-- End Content -->
       </div>
     </td>
