@@ -4,7 +4,7 @@
 MenuItems = new Array();
 
 MenuItems.push( { Text:"Home", Link:"index.html" } );
-MenuItems.push( { Text:"Browser TV", Link:"browsertv.html" } );
+//MenuItems.push( { Text:"Browser TV", Link:"browsertv.html" } );
 MenuItems.push( { Text:"EPG", Link:"epg.html" } );
 MenuItems.push( { Text:"Stream Status", Link:"streamstatus.html" } );
 MenuItems.push( { Text:"Tuner Status", Link:"tunerstatus.html" } );

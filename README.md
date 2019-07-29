@@ -6,7 +6,7 @@ On Debian/Ubuntu (as root or using sudo):
 
 ```
  >apt-get install build-essential bison flex gettext libncurses5-dev texinfo autoconf automake libtool
- >apt-get install libpng12-dev libglib2.0-dev libgtk2.0-dev gperf libxt-dev libxp-dev
+ >apt-get install libpng12-dev libglib2.0-dev libgtk2.0-dev gperf
  >apt-get install rsync git subversion mercurial
 ```
 
