@@ -73,10 +73,10 @@ static int eit_shortsize = 0;
 static int eit_extsize = 0;
 static int eit_events_deleted = 0;
 
-char *pol2str[] = {"v", "h", "r", "l"};
+char *pol2str[] = {"v", "h", "r", "l", NULL};
 char *msys2str [] = {"undef", "dvbc", "dvbcb", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
 		      "isdbt", "isdbs", "isdbc", "atsc", "atscmh", "dtmb", "cmmb", "dab",
-		      "dvbt2", "turbo", "dvbcc", "dvbc2"};
+		      "dvbt2", "turbo", "dvbcc", "dvbc2", NULL};
 char *mtype2str [] = {"qpsk", "16qam", "32qam",
 		      "64qam", "128qam", "256qam",
 		      "autoqam", "8vsb", "16vsb", "8psk",
@@ -1312,6 +1312,8 @@ void en300468_parse_string_to_utf8(char *dest, const unsigned int destlen,
 
 		if( utf8_cc < 0xA0 ) {
 			switch(utf8_cc) {
+				case 0x00:
+					break;
 				case 0x01 ... 0x7F:
 					dest[dest_pos++] = utf8_cc;
 					break;
@@ -2073,22 +2075,42 @@ void tpstring(struct tp_info *tpi, char *s, int slen)
 	int len;
 
 	switch (tpi->msys) {
-	case 1:
+		case 1:
 			if( tpi->freq_frac )
 				len = snprintf(s, slen,
 				               "freq=%u.%04u&msys=dvbc&sr=%u&mtype=%s",
 				               tpi->freq, tpi->freq_frac, tpi->sr, mtype2str[tpi->mod]);
 			else
 				len = snprintf(s, slen,
-                      "freq=%u&msys=dvbc&sr=%u&mtype=%s",
-                      pi->freq, tpi->sr, mtype2str[tpi->mod]);
+				              "freq=%u&msys=dvbc&sr=%u&mtype=%s",
+				              tpi->freq, tpi->sr, mtype2str[tpi->mod]);
 			break;
-	case 5:
-	case 6:
+		case 2:
+			if( tpi->freq_frac )
+				len = snprintf(s, slen,
+				               "freq=%u.%04u&msys=dvbt&bw=%s",
+				               tpi->freq, tpi->freq_frac, bw2str[tpi->bw]);
+			else
+				len = snprintf(s, slen,
+				              "freq=%u&msys=dvbt&bw=%s",
+				              tpi->freq, bw2str[tpi->bw]);
+			break;
+		case 5:
+		case 6:
 			len = snprintf(s, slen,
 			              "src=%u&freq=%u&pol=%s&msys=%s&sr=%u",
 			              tpi->src,tpi->freq, pol2str[tpi->pol&3],
 			              msys2str[tpi->msys], tpi->sr);
+			break;
+		case 16:
+			if( tpi->freq_frac )
+				len = snprintf(s, slen,
+				               "freq=%u.%04u&msys=dvbt2&bw=%s&plp=%u",
+				               tpi->freq, tpi->freq_frac, bw2str[tpi->bw], tpi->isi);
+			else
+				len = snprintf(s, slen,
+				              "freq=%u&msys=dvbt2&bw=%s&plp=%u",
+				              tpi->freq, bw2str[tpi->bw], tpi->isi);
 			break;
 	}
 }
@@ -2186,11 +2208,13 @@ void usage() {
 	printf("       symbolrate in kSymbols (required for DVB-S/S2 and DVB-C)\n");
 	printf("           DVB-S/S2 example: --sr=27500\n");
 	printf("           DVB-C example:    --sr=6900\n");
+	printf("    --bw=<bandwidth>, -b <bandwidth>\n");
+	printf("       bandwidth 1.712,5,6,7,8,10 (required for DVB-T/T2)\n");
 	printf("    --pol=<polarisation>, -p <polarisation>\n");
 	printf("       polarisation = v,h,r,l (required for DVB-S/S2)\n");
 	printf("           example: --pol=v\n");
 	printf("    --msys=<modulation system>, -m <modulation system>\n");
-	printf("       system = dvbs,dvbs2,dvbc (required)\n");
+	printf("       system = dvbs,dvbs2,dvbc,dvbt,dvbt2 (required)\n");
 	printf("           example: --msys=dvbs\n");
 	printf("    --mtype=<modulation type>, -t <modulation type>\n");
 	printf("       modulation type = 16qam,32qam,64qam,128qam,256qam (required for DVB-C)\n");
@@ -2265,6 +2289,8 @@ int main(int argc, char **argv)
 			{"sr", required_argument, 0, 's'},
 			{"src", required_argument, 0, 'S'},
 			{"pol", required_argument, 0, 'p'},
+			{"bw", required_argument, 0, 'b'},
+			{"plp", required_argument, 0, 'P'},
 			{"msys", required_argument, 0, 'm'},
 			{"mtype", required_argument, 0, 't'},
 			{"eit", no_argument, 0, 'e'},
@@ -2273,7 +2299,7 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
 		c = getopt_long(argc, argv,
-				"nf:s:S:p:m:t:e:x:?",
+				"nf:s:S:p:b:P:m:t:e:x:?",
 				long_options, &option_index);
 		if (c==-1)
 			break;
@@ -2330,13 +2356,30 @@ int main(int argc, char **argv)
 
 		case 'p':
 			i = 0;
-			while( i < 4 ) {
+			while( pol2str[i] ) {
 				if( strcmp(optarg,pol2str[i]) == 0 ) {
 					tpi.pol = i;
 					break;
 				}
 				i += 1;
 			}
+			break;
+
+		case 'b':
+			i = 0;
+			while( bw2str[i] ) {
+				if( strcmp(optarg,bw2str[i]) == 0 ) {
+					tpi.bw = i;
+					break;
+				}
+				i += 1;
+			}
+			break;
+
+		case 'P':
+			tpi.isi = strtoul(optarg, NULL, 10);
+			if( tpi.isi > 255 )
+				tpi.isi = 0;
 			break;
 
 		case 'm':
