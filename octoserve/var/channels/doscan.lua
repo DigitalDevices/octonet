@@ -189,6 +189,10 @@ if tl.SourceList then
                   Params = Params .. " --msys="..v
                elseif p == "sr" then
                   Params = Params .. " --sr="..v
+               elseif p == "bw" then
+                  Params = Params .. " --bw="..v
+               elseif p == "plp" then
+                  Params = Params .. " --plp="..v
                elseif p == "mtype" then
                   Params = Params .. " --mtype="..v
                end
