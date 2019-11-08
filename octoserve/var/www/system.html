@@ -241,7 +241,7 @@ function ChangeDelSys(delsys)
     {
       if( Element.checked )
       {
-        NewSettings.DelsysMask |= (1<<delsys);
+        NewSettings.DelsysMask |= ((1<<delsys) & SupportedDelsys);
         if( delsys == 16 )
         {
           NewSettings.DelsysMask |= (1<<3);
@@ -251,6 +251,10 @@ function ChangeDelSys(delsys)
         {
           NewSettings.DelsysMask |= (1<<5);
           document.getElementById(DelSysID[5]).checked = true;
+        }
+        if( delsys == 10 )
+        {
+          NewSettings.DelsysMask |= ((1<<18) & SupportedDelsys);
         }
       }
       else
@@ -265,6 +269,10 @@ function ChangeDelSys(delsys)
         {
           NewSettings.DelsysMask &= ~(1<<6);
           document.getElementById(DelSysID[6]).checked = false;
+        }
+        if( delsys == 10 )
+        {
+          NewSettings.DelsysMask &= ~(1<<18);
         }
       }
     }
@@ -435,11 +443,11 @@ function ToggleHelp(id)
                         DVB-C2
                       </td>
                       <td>
-                        <input id="SYS_ISDBC" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(19)"/>
+                        <input id="SYS_ISDBC" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(10)"/>
                         ISDB-C
                       </td>
                       <td>
-                        <input id="SYS_DVBC_ANNEX_B" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(2)"/>
+                        <input id="SYS_DVBC_ANNEX_B" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(4)"/>
                         J83.B
                       </td>
                     </tr>
