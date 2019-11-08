@@ -69,6 +69,9 @@ function CheckMaxS8()
       if devid == "0009dd01" then
          isMaxS8 = "true"
       end
+      if devid == "000bdd01" then
+         isMaxS8 = "true"
+      end
    end
    return isMaxS8
 end
@@ -159,13 +162,20 @@ if query ~= "" then
          end
          restart = 1;
          restartdms = 1;
+      elseif name == "delsysmask" then
+         if value ~= "0" then
+            WriteConfigFile("delsys_mask",value)
+            os.remove("/config/nodvbt.enabled")
+         else
+            os.remove("/config/delsys_mask")
+         end
+         restart = 1;
       elseif( WriteSetting(name,value == "1") ) then
         if name == "telnet" then 
           os.execute("/etc/init.d/S91telnet restart") 
         end
         if name == "vlan" then restart = 1 end
         if name == "nodms" then restart = 1 end
-        if name == "nodvbt" then restart = 1 end
         if name == "strict" then restart = 1 end
       end
     end
@@ -196,7 +206,6 @@ else
   http_print(' "telnetEnabled":' .. ReadSetting('telnet') .. ',')
   http_print(' "vlanEnabled":' .. ReadSetting('vlan') .. ',')
   http_print(' "nodmsEnabled":' .. ReadSetting('nodms') .. ',')
-  http_print(' "nodvbtEnabled":' .. ReadSetting('nodvbt') .. ',')
   http_print(' "MSMode":"' .. GetMSMode() .. '",')  
   http_print(' "strictEnabled":' .. ReadSetting('strict'))
   

@@ -6,11 +6,38 @@
 <link rel="stylesheet" type="text/css" href="/style.css">
 <script type="text/javascript" src="/menu.js"></script>
 <!--  Add included scripts here -->
+<script type="text/javascript">Octoserve = false;</script>
+<script type="text/javascript" src="/octoserve/serverinfo.js"></script>
+
 <!-- Add page scripts here -->
 <script type="text/javascript">
 
 var NewSettings = null;
 var OldSettings = null;
+
+var SupportedDelsys = 0;
+
+var DelSysID = new Array();
+DelSysID[ 0] = "SYS_UNDEFINED";
+DelSysID[ 1] = "SYS_DVBC_ANNEX_A";
+DelSysID[ 2] = "SYS_DVBC_ANNEX_B";
+DelSysID[ 3] = "SYS_DVBT";
+DelSysID[ 4] = "SYS_DSS";
+DelSysID[ 5] = "SYS_DVBS";
+DelSysID[ 6] = "SYS_DVBS2";
+DelSysID[ 7] = "SYS_DVBH";
+DelSysID[ 8] = "SYS_ISDBT";
+DelSysID[ 9] = "SYS_ISDBS";
+DelSysID[10] = "SYS_ISDBC";
+DelSysID[11] = "SYS_ATSC";
+DelSysID[12] = "SYS_ATSCMH";
+DelSysID[13] = "SYS_DTMB";
+DelSysID[14] = "SYS_CMMB";
+DelSysID[15] = "SYS_DAB";
+DelSysID[16] = "SYS_DVBT2";
+DelSysID[17] = "SYS_TURBO";
+DelSysID[18] = "SYS_DVBC_ANNEX_C";
+DelSysID[19] = "SYS_DVBC2";
 
 var xmlhttp = new XMLHttpRequest();
 var url = "/systemsettings.lua";
@@ -44,19 +71,19 @@ function myFunction(response)
   document.getElementById("QOSButton").checked  = settings.vlanEnabled;
   document.getElementById("TelnetButton").checked  = settings.telnetEnabled;
   document.getElementById("NODMSButton").checked  = settings.nodmsEnabled;
-  document.getElementById("NODVBTButton").checked  = settings.nodvbtEnabled;
   document.getElementById("STRICTButton").checked  = settings.strictEnabled;
 
   document.getElementById("QOSButton").disabled      = false;
   document.getElementById("TelnetButton").disabled   = false;
   document.getElementById("NODMSButton").disabled    = false;
-  document.getElementById("NODVBTButton").disabled   = false;
   document.getElementById("STRICTButton").disabled   = false;
   document.getElementById("BoxName").disabled        = false;
   document.getElementById("MSMode").disabled         = false;
 
   OldSettings = settings;
   NewSettings = JSON.parse(response);
+  if( Octoserve )
+    NewSettings.DelsysMask = Octoserve.DelsysMask;
 }
 
 function SaveSettings()
@@ -68,47 +95,52 @@ function SaveSettings()
     {
       if( param != "" ) param += "&";
       param += "boxname=" + encodeURIComponent(NewSettings.BoxName);
-    }        
-    
+    }
+
     if( OldSettings.telnetEnabled != NewSettings.telnetEnabled )
     {
       if( param != "" ) param += "&";
       param += "telnet=" + (NewSettings.telnetEnabled?"1":"0");
     }
-    
+
     if( OldSettings.vlanEnabled != NewSettings.vlanEnabled )
     {
       if( param != "" ) param += "&";
       param += "vlan=" + (NewSettings.vlanEnabled?"1":"0");
     }
-    
+
     if( OldSettings.nodmsEnabled != NewSettings.nodmsEnabled )
     {
       if( param != "" ) param += "&";
       param += "nodms=" + (NewSettings.nodmsEnabled?"1":"0");
     }
-    
-    if( OldSettings.nodvbtEnabled != NewSettings.nodvbtEnabled )
-    {
-      if( param != "" ) param += "&";
-      param += "nodvbt=" + (NewSettings.nodvbtEnabled?"1":"0");
-    }
-    
+
     if( OldSettings.MSMode != NewSettings.MSMode )
     {
       if( param != "" ) param += "&";
       param += "msmode=" + NewSettings.MSMode;
     }
-    
+
     if( OldSettings.strictEnabled != NewSettings.strictEnabled )
     {
       if( param != "" ) param += "&";
       param += "strict=" + (NewSettings.strictEnabled?"1":"0");
     }
-    
+
+    if( Octoserve )
+    {
+      var DelsysMask = NewSettings.DelsysMask;
+      if( DelsysMask != Octoserve.DelsysMask )
+      {
+        if( DelsysMask == SupportedDelsys ) DelsysMask = 0;
+        if( param != "" ) param += "&";
+        param += "delsysmask=" + DelsysMask;
+      }
+    }
+
     document.getElementById("SetButton").disabled = true;
     if( param != "" )
-    {    
+    {
       location.replace('/systemsettings.lua?'+param);
     }
   }
@@ -125,14 +157,51 @@ function ClearSettings()
     NewSettings.nodvbtEnabled = false;
     NewSettings.strictEnabled = false;
     NewSettings.MSMode = "quad";
+    NewSettings.DelsysMask = 0;
     SaveSettings();
+  }
+}
+
+function ShowDelsys()
+{
+  if( Octoserve )
+  {
+    SupportedDelsys = 0;
+    for(var i = 0; i < Octoserve.TunerList.length; i++ )
+    {
+      if( Octoserve.TunerList[i] )
+      {
+        SupportedDelsys = SupportedDelsys | Octoserve.TunerList[i].Type;
+      }
+    }
+
+    for(var i = 0; i < DelSysID.length; i++ )
+    {
+      var Element = document.getElementById(DelSysID[i]);
+      if( Element )
+      {
+        if( SupportedDelsys & (1<<i) )
+        {
+          Element.disabled = false;
+          Element.checked = (( Octoserve.DelsysMask & (1<<i)) != 0) || (Octoserve.DelsysMask == 0);
+          Element.parentElement.style.visibility = "visible";
+        }
+        else
+        {
+          Element.disabled = true;
+          Element.checked = false;
+          Element.parentElement.style.visibility = "hidden";
+        }
+      }
+    }
   }
 }
 
 function OnLoad()
 {
-   xmlhttp.open("GET", url, true);
-   xmlhttp.send();
+  xmlhttp.open("GET", url, true);
+  xmlhttp.send();
+  ShowDelsys();
 }
 
 function ChangeBoxName()
@@ -147,8 +216,6 @@ function ChangeBoxName()
   }
 }
 
-
-
 function Change()
 {
   if( NewSettings )
@@ -157,8 +224,50 @@ function Change()
     NewSettings.vlanEnabled = document.getElementById("QOSButton").checked;
     NewSettings.telnetEnabled = document.getElementById("TelnetButton").checked;
     NewSettings.nodmsEnabled = document.getElementById("NODMSButton").checked;
-    NewSettings.nodvbtEnabled = document.getElementById("NODVBTButton").checked;
     NewSettings.strictEnabled = document.getElementById("STRICTButton").checked;
+    document.getElementById("SetButton").disabled = false;
+  }
+}
+
+function ChangeDelSys(delsys)
+{
+  if( NewSettings )
+  {
+    if( NewSettings.DelsysMask == 0 )
+      NewSettings.DelsysMask = SupportedDelsys;
+
+    var Element = document.getElementById(DelSysID[delsys]);
+    if( Element )
+    {
+      if( Element.checked )
+      {
+        NewSettings.DelsysMask |= (1<<delsys);
+        if( delsys == 16 )
+        {
+          NewSettings.DelsysMask |= (1<<3);
+          document.getElementById(DelSysID[3]).checked = true;
+        }
+        if( delsys == 6 )
+        {
+          NewSettings.DelsysMask |= (1<<5);
+          document.getElementById(DelSysID[5]).checked = true;
+        }
+      }
+      else
+      {
+        NewSettings.DelsysMask &= ~(1<<delsys);
+        if( delsys == 3 )
+        {
+          NewSettings.DelsysMask &= ~(1<<16);
+          document.getElementById(DelSysID[16]).checked = false;
+        }
+        if( delsys == 5 )
+        {
+          NewSettings.DelsysMask &= ~(1<<6);
+          document.getElementById(DelSysID[6]).checked = false;
+        }
+      }
+    }
     document.getElementById("SetButton").disabled = false;
   }
 }
@@ -175,7 +284,7 @@ function SetPassword()
     return 0;
   }
   document.getElementById("PwdError").style = "color:#FFFFFF";
-  location.replace('/setpasswd.lua?'+pwd1);  
+  location.replace('/setpasswd.lua?'+pwd1);
 }
 
 function ToggleHelp(id)
@@ -184,7 +293,7 @@ function ToggleHelp(id)
   if( el.style.display == "none")
     el.style.display = "block";
   else
-    el.style.display = "none";    
+    el.style.display = "none";
 }
 
 </script>
@@ -211,7 +320,7 @@ function ToggleHelp(id)
               <td>Server name</td>
               <td style="text-align:left" colspan="2">
                 <form action="">
-                   <input id="BoxName" type="text" value="" style="width: 300px" maxlength="20" 
+                   <input id="BoxName" type="text" value="" style="width: 300px" maxlength="20"
                           pattern="[a-zA-Z0-9@ ()-]" disabled="true" oninput="ChangeBoxName()" />
                 </form>
               </td>
@@ -237,7 +346,7 @@ function ToggleHelp(id)
               </td>
               <td>Enable it at your own risk</td>
             </tr>
-            
+
             <tr>
               <td>Disable DMS announcement</td>
               <td style="text-align:right">
@@ -249,17 +358,7 @@ function ToggleHelp(id)
             </tr>
 
             <tr>
-              <td>Disable DVBT announcement</td>
-              <td style="text-align:right">
-                <form action="">
-                  <input id="NODVBTButton" type="checkbox" value="Check" disabled="true" checked="false" onclick="Change()" />
-                </form>
-              </td>
-              <td></td>
-            </tr>
-            
-            <tr>
-              <td>Enforce strict SAT>IP</td>
+              <td>Enforce strict SAT&gt;IP</td>
               <td style="text-align:right">
                 <form action="">
                   <input id="STRICTButton" type="checkbox" value="Check" disabled="true" checked="false" onclick="Change()" />
@@ -287,7 +386,68 @@ function ToggleHelp(id)
                 <a href="javascript:ToggleHelp('nosw_hlpD')">Deutsch</a>
               </td>
             </tr>
-            
+
+            <tr>
+              <td colspan="3" >
+                <form action="">
+                  <table id="delsystable" cellpadding="2px" align="center" width="100%">
+                    <colgroup>
+                      <col width="25%">
+                      <col width="25%">
+                      <col width="25%">
+                      <col width="25%">
+                    </colgroup>
+                    <tr>
+                      <td>
+                        <input id="SYS_DVBS" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(5)"/>
+                        DVB-S
+                      </td>
+                      <td>
+                        <input id="SYS_DVBS2" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(6)"/>
+                        DVB-S2/S2X
+                      </td>
+                      <td>
+                        <input id="SYS_ISDBS" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(9)"/>
+                        ISDB-S
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <input id="SYS_DVBT" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(3)"/>
+                        DVB-T
+                      </td>
+                      <td>
+                        <input id="SYS_DVBT2" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(16)"/>
+                        DVB-T2
+                      </td>
+                      <td>
+                        <input id="SYS_ISDBT" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(8)"/>
+                        ISDB-T
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <input id="SYS_DVBC_ANNEX_A" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(1)"/>
+                        DVB-C
+                      </td>
+                      <td>
+                        <input id="SYS_DVBC2" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(19)"/>
+                        DVB-C2
+                      </td>
+                      <td>
+                        <input id="SYS_ISDBC" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(19)"/>
+                        ISDB-C
+                      </td>
+                      <td>
+                        <input id="SYS_DVBC_ANNEX_B" type="checkbox" disabled="true" checked="false" onclick="ChangeDelSys(2)"/>
+                        J83.B
+                      </td>
+                    </tr>
+                  </table>
+                </form>
+              </td>
+            </tr>
+
             <tr>
               <td colspan="2" align="right">
                 <div style="width: 300px">
@@ -335,7 +495,7 @@ function ToggleHelp(id)
          </form>
         </div>
         <div id="qos_hlpE"  onclick="ToggleHelp('qos_hlpE')"
-             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;">
           <div style="position: relative; margin:20px; clear:both">
             <h3>Layer 2 Quality of Service</h3>
             This is defined in the <b>IEEE 802.1Q</b> VLAN standard, and provides QoS in a local network.<br/>
@@ -349,8 +509,8 @@ function ToggleHelp(id)
             </ul>
           </div>
         </div>
-        <div id="qos_hlpD" onclick="ToggleHelp('qos_hlpD')" 
-             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+        <div id="qos_hlpD" onclick="ToggleHelp('qos_hlpD')"
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;">
           <div style="position: relative; margin:20px; clear:both">
             <h3>Layer 2 Quality of Service</h3>
             Dies ist im <b>IEEE 802.1Q</b> VLAN Standard definiert und erlaubt QoS im lokalem Netz.<br/>
@@ -365,7 +525,7 @@ function ToggleHelp(id)
           </div>
         </div>
         <div id="nosw_hlpE"  onclick="ToggleHelp('nosw_hlpE')"
-             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;">
           <div style="position: relative; margin:20px; clear:both">
             <h3>Multiswitch emulation on OctopusNet S8</h3>
             Multiswitch emulation allows to connect directly a Quad/Quattro LNB to the 4 inputs on the S8.
@@ -380,7 +540,7 @@ function ToggleHelp(id)
           </div>
         </div>
         <div id="nosw_hlpD"  onclick="ToggleHelp('nosw_hlpD')"
-             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;">
           <div style="position: relative; margin:20px; clear:both">
             <h3>Multischalter-Emulation OctopusNet S8</h3>
             Multischalter-Emulation erlaubt den direkten Anschlu&szlig; eines Quad/Quattro LNB an die S8
@@ -391,33 +551,33 @@ function ToggleHelp(id)
              <li>Für einen Quattro LNB oder f&uuml;r den Stammausgang eines Multiswitches Quattro Einstellung ausw&auml;hlen.</li>
             </ul>
             <p/>
-            In der Quad oder Quattro Einstellung wird nur der Empfang eines Satelliten unterst&uuml;tzt. Für volle Flexibilit&auml;t wird der Einsatz eines EN50607 LNB bzw Switch empfohlen. 
+            In der Quad oder Quattro Einstellung wird nur der Empfang eines Satelliten unterst&uuml;tzt. Für volle Flexibilit&auml;t wird der Einsatz eines EN50607 LNB bzw Switch empfohlen.
           </div>
         </div>
         <div id="strict_hlpE"  onclick="ToggleHelp('strict_hlpE')"
-             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;">
           <div style="position: relative; margin:20px; clear:both">
-            <h3>Enforce strict SAT>IP</h3>
+            <h3>Enforce strict SAT&gt;IP</h3>
             <p/>
-            The SAT>IP specification allows a second client to receive a stream created by another client.
+            The SAT&gt;IP specification allows a second client to receive a stream created by another client.
             The OctopusNet allows to modify some parameters (like PIDs) on this second stream. The original stream is not affected by this.
             <p/>
-            Enforce strict SAT>IP disables this enhancment.
+            Enforce strict SAT&gt;IP disables this enhancment.
             <br/>
-            Do this for testing clients to ensure they are compatible with other SAT>IP servers
+            Do this for testing clients to ensure they are compatible with other SAT&gt;IP servers
           </div>
         </div>
         <div id="strict_hlpD"  onclick="ToggleHelp('strict_hlpD')"
-             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;"> 
+             style="display: none; position: absolute; width: 660px; left: 30px; top:30px; z-index: 2; border: 1px solid #000000; background: #FFFFE0;">
           <div style="position: relative; margin:20px; clear:both">
-            <h3>Erzwinge striktes SAT>IP</h3>
+            <h3>Erzwinge striktes SAT&gt;IP</h3>
             <p/>
-            Die SAT>IP Spezifikation erlaubt einem zweiten Client das Empfangen eines von einem anderen Client angelegten Stream. Die OctopusNet erlaubt 
+            Die SAT&gt;IP Spezifikation erlaubt einem zweiten Client das Empfangen eines von einem anderen Client angelegten Stream. Die OctopusNet erlaubt
             die &Auml;nderung einiger Parameter (z.B. PIDs) für diesen Stream. Der orginale Stream wird dadurch nicht beeinflusst.
             <p/>
-            Das Erzwingen von strikten SAT>IP schaltet diese Erweiterung ab.
+            Das Erzwingen von strikten SAT&gt;IP schaltet diese Erweiterung ab.
             <br/>
-            Beim Testen von Clients ist es sinnvoll diesen Parameter zu setzen um die Kompatibilit&auml;t mit anderen SAT>IP Servern sicherzustellen.
+            Beim Testen von Clients ist es sinnvoll diesen Parameter zu setzen um die Kompatibilit&auml;t mit anderen SAT&gt;IP Servern sicherzustellen.
           </div>
         </div>
         <!-- End Content -->
@@ -428,6 +588,4 @@ function ToggleHelp(id)
 </table>
 
 </body>
-</html>
-
 </html>
