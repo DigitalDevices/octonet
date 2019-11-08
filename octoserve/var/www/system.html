@@ -193,6 +193,14 @@ function ShowDelsys()
           Element.parentElement.style.visibility = "hidden";
         }
       }
+      else
+      {
+        SupportedDelsys &= ~(1<<i);
+      }
+    }
+    for(var i = DelSysID.length; i < 32; i++ )
+    {
+      SupportedDelsys &= ~(1<<i);
     }
   }
 }
@@ -252,10 +260,6 @@ function ChangeDelSys(delsys)
           NewSettings.DelsysMask |= (1<<5);
           document.getElementById(DelSysID[5]).checked = true;
         }
-        if( delsys == 10 )
-        {
-          NewSettings.DelsysMask |= ((1<<18) & SupportedDelsys);
-        }
       }
       else
       {
@@ -269,10 +273,6 @@ function ChangeDelSys(delsys)
         {
           NewSettings.DelsysMask &= ~(1<<6);
           document.getElementById(DelSysID[6]).checked = false;
-        }
-        if( delsys == 10 )
-        {
-          NewSettings.DelsysMask &= ~(1<<18);
         }
       }
     }
