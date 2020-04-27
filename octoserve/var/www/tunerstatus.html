@@ -52,7 +52,7 @@ function Show(TunerList)
       if( TunerList[i].Status == "Active" )
         document.getElementById("tdStatus"+i).firstChild.nodeValue  = "No Signal";
       else
-        document.getElementById("tdStatus"+i).firstChild.nodeValue  = "";
+        document.getElementById("tdStatus"+i).firstChild.nodeValue  = "IDLE";
       document.getElementById("tdStrength"+i).firstChild.nodeValue  = "";
       document.getElementById("tdSNR"+i).firstChild.nodeValue  = "";
       document.getElementById("tdQuality"+i).firstChild.nodeValue  = "";
