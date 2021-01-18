@@ -1180,6 +1180,7 @@ static int init_fe(struct octoserve *os, int a, int f, int fd)
 	}
 	if (os->nodvbt)
 		fe->type &= ~((1UL << SYS_DVBT2) | (1UL << SYS_DVBT));
+	fe->type_orig = fe->type;
 	if (os->delsys_mask)
 		fe->type &= os->delsys_mask;
 	
