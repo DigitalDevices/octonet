@@ -13,6 +13,7 @@ define OCTONET_INSTALL_TARGET_CMDS
         $(INSTALL) -m 0755 -D $(@D)/octokey $(TARGET_DIR)/usr/bin/octokey
         $(INSTALL) -m 0755 -D $(@D)/octonet $(TARGET_DIR)/usr/bin/octonet
         $(INSTALL) -m 0755 -D $(@D)/ddtest $(TARGET_DIR)/usr/bin/ddtest
+        $(INSTALL) -m 0755 -D $(@D)/ddupdate $(TARGET_DIR)/usr/bin/ddupdate
 endef
 
 $(eval $(generic-package))
