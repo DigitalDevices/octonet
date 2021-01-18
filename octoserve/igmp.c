@@ -55,7 +55,7 @@ void proc_igmp(struct octoserve *os, uint8_t *b, int l, uint8_t *macheader)
 //0x0000:  0100 5e07 0101 089e 01b2 03c9 0800 46c0
 //0x0010:  0020 0000 4000 0102 3159 c0a8 020e ef07
 //0x0020:  0101 9404 0000 1600 f9f6 ef07 0101
-	dump(b, l);
+	//dump(b, l);
 	sprintf(sd, "%03d.%03d.%03d.%03d -> %03d.%03d.%03d.%03d", 
 		b[12], b[13], b[14], b[15],
 		b[16], b[17], b[18], b[19]);
