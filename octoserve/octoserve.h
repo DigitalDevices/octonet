@@ -183,6 +183,7 @@ struct dvbfe {
 	int fd;
 	int dmx;
 	uint32_t type;
+	uint32_t type_orig;
 	int anum;
 	int fnum;
 	int state;
