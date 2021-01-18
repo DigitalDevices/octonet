@@ -44,14 +44,14 @@ void dump(const uint8_t *b, int l)
 	for (j = 0; j < l; j += 16, b += 16) { 
 		for (i = 0; i < 16; i++)
 			if (i + j < l)
-				printf("%02x ", b[i]);
+				fprintf(stderr, "%02x ", b[i]);
 			else
-				printf("   ");
-		printf(" | ");
+				fprintf(stderr, "   ");
+		fprintf(stderr, " | ");
 		for (i = 0; i < 16; i++)
 			if (i + j < l)
-				putchar((b[i] > 31 && b[i] < 127) ? b[i] : '.');
-		printf("\n");
+				fputc((b[i] > 31 && b[i] < 127) ? b[i] : '.', stderr);
+		fprintf(stderr, "\n");
 	}
 }
 
@@ -214,7 +214,7 @@ void send_error(struct oscon *con, int err)
 		if (rerr->number == err)
 			break;
 	if (!rerr->number) {
-		printf("Internal Error: invalid error number %d\n", err);
+		dbgprintf(DEBUG_NET, "Internal Error: invalid error number %d\n", err);
 		return;
 	}
 	len=sprintf(buf, 
@@ -246,7 +246,7 @@ static struct dvbca *alloc_ca_num(struct osstrm *str, int num)
 	pthread_mutex_lock(&os->lock);
 	ca = &os->dvbca[num];
 	if (ca->state == 0) {
-		printf("alloced ca %d\n", num);
+		dbgprintf(DEBUG_CI, "alloced ca %d\n", num);
 		pthread_mutex_lock(&ca->mutex);
 		memset(ca->pmt, 0, sizeof(ca->pmt));
 		ca->state = 1;
@@ -266,12 +266,12 @@ static struct dvbca *alloc_ca(struct osstrm *str)
 	struct dvbca *ca;
 	uint32_t i;
 
-	printf("alloc ca\n");
+	dbgprintf(DEBUG_CI, "alloc ca\n");
 	pthread_mutex_lock(&os->lock);
 	for (i = 0; i < os->dvbca_num; i++) {
 		ca = &os->dvbca[i];
 		if (ca->state == 0) {
-			printf("alloced ca %d\n", i);
+			dbgprintf(DEBUG_CI, "alloced ca %d\n", i);
 			pthread_mutex_lock(&ca->mutex);
 			memset(ca->pmt, 0, sizeof(ca->pmt));
 			ca->state = 1;
@@ -524,21 +524,22 @@ static void check_mccs(struct ossess *sess)
 			sess->mcc_tag++;
 			send_igmp_query(sess->os, sess->trans.mcip, 10);
 			sess->mcc_time = t;
-			printf("%u: mcc_state 1 done, tag = %d\n", t, sess->mcc_tag);
+			dbgprintf(DEBUG_IGMP, "%u: mcc_state 1 done, tag = %d\n", t, sess->mcc_tag);
 		}
 		break;
 	case 2:
 		if (tdiff >= 1) {
 			sess->mcc_state = 3;
 			send_igmp_query(sess->os, sess->trans.mcip, 10);
-			printf("%u: mcc_state 2 done, tag = %d\n", t, sess->mcc_tag);
+			dbgprintf(DEBUG_IGMP, "%u: mcc_state 2 done, tag = %d\n", t, sess->mcc_tag);
 		}
 		break;
 	case 3:
 		if (tdiff >= 2) {
 			sess->mcc_state = 0;
 			sess->mcc_time = t;
-			printf("%u: mcc_state 3 done, tag = %d\n", t, sess->mcc_tag);
+			dbgprintf(DEBUG_IGMP,
+				  "%u: mcc_state 3 done, tag = %d\n", t, sess->mcc_tag);
 			update = 1;
 		}
 		break;
@@ -666,7 +667,7 @@ static struct oscon *alloc_con(struct octoserve *os)
 
 int die(char *msg)
 {
-	printf("%s\n", msg);
+	dbgprintf(DEBUG_SYS, "%s\n", msg);
 	exit(-1);
 }
 
@@ -1389,7 +1390,9 @@ static int setup_nsp(struct ostrans *trans, struct dvb_ns_params *nsp)
 	memset(nsp, 0, sizeof(struct dvb_ns_params));
 	memcpy(nsp->dmac, trans->cmac, 6);
 	memcpy(nsp->smac, trans->smac, 6);
+#ifndef MAC_ODD
 	nsp->smac[5] |= 1;
+#endif
 	nsp->sport = trans->sport;
 	nsp->sport2 = trans->sport2;
 	nsp->dport = trans->cport;
@@ -1624,7 +1627,7 @@ static int stop_session(struct ossess *sess)
 		return 0;
 	sess->playing &= ~1;
 	if (!session_is_playing(sess)) {
-		printf("stopping session %d\n", sess->nr);
+		dbgprintf(DEBUG_RTSP, "stopping session %d\n", sess->nr);
 		if (sess->nsfd >= 0)
 			ioctl(sess->nsfd, NS_STOP);
 	}
@@ -1635,7 +1638,7 @@ static int stop_session(struct ossess *sess)
 static int start_session(struct ossess *sess)
 {
 	if (!session_is_playing(sess)) {
-		dbgprintf(DEBUG_SYS, "start session %d\n", sess->nr);
+		dbgprintf(DEBUG_RTSP, "start session %d\n", sess->nr);
 		if (sess->stream->ca) {
 			uint8_t canum = sess->stream->ca->nr - 1;
 			if (sess->nsfd >= 0)
@@ -1715,10 +1718,10 @@ void mc_check(struct ossess *sess, int update)
 		next = mcc->mcc.le_next;
 		if (((sess->mcc_state == 0) && (sess->mcc_tag != mcc->tag)) ||
 		    (((os->igmp_mode & 1) == 0) && (os->igmp_tag - mcc->gtag) > 1)) {
-			printf("removed client at %u.%u.%u.%u\n", 
-			       mcc->ip[0], mcc->ip[1], mcc->ip[2], mcc->ip[3]);
-			printf("mcc_tags: %d %d\n", sess->mcc_tag, mcc->tag);
-			printf("gtags: %d %d\n", os->igmp_tag, mcc->gtag);
+			dbgprintf(DEBUG_IGMP, "removed client at %u.%u.%u.%u\n", 
+				  mcc->ip[0], mcc->ip[1], mcc->ip[2], mcc->ip[3]);
+			dbgprintf(DEBUG_IGMP, "mcc_tags: %d %d\n", sess->mcc_tag, mcc->tag);
+			dbgprintf(DEBUG_IGMP, "gtags: %d %d\n", os->igmp_tag, mcc->gtag);
 			LIST_REMOVE(mcc, mcc);
 			free(mcc);
 		}
@@ -1770,18 +1773,19 @@ void mc_join(struct octoserve *os, uint8_t *ip, uint8_t *mac, uint8_t *group)
 		goto out;
 
 	session_mc_timeout(sess);
-	printf("matched session %d to join %u.%u.%u.%u\n", 
-	       sess->nr, ip[0], ip[1], ip[2], ip[3]);
+	dbgprintf(DEBUG_IGMP, "matched session %d to join %u.%u.%u.%u\n", 
+		  sess->nr, ip[0], ip[1], ip[2], ip[3]);
 	for (mcc = sess->mccs.lh_first; mcc; mcc = mcc->mcc.le_next) 
 		if (!memcmp(ip, mcc->ip, 4)) {
 			mcc->tag = sess->mcc_tag;
 			mcc->gtag = os->igmp_tag;
-			printf("already in list, tag = %08x, gtag = %08x\n", mcc->tag, mcc->gtag);
+			dbgprintf(DEBUG_IGMP,
+				  "already in list, tag = %08x, gtag = %08x\n", mcc->tag, mcc->gtag);
 			goto out;
 		}
 	newmcc = malloc(sizeof(struct osmcc));
 	if (!newmcc) {
-		printf("Could not allocate new multicast client entry\n");
+		dbgprintf(DEBUG_IGMP, "Could not allocate new multicast client entry\n");
 		goto out;
 	}
 	memset(newmcc, 0, sizeof(struct osmcc));
@@ -1797,7 +1801,7 @@ void mc_join(struct octoserve *os, uint8_t *ip, uint8_t *mac, uint8_t *group)
 			port = switch_get_port(newmcc->mac);
 		else 
 			port = 0;
-		printf("New client at port %02x\n", port);
+		dbgprintf(DEBUG_IGMP, "New client at port %02x\n", port);
 		if (port >= 0) {
 			newmcc->port_vec = port;
 			sess->mcc_port_vec |= port;
@@ -1827,10 +1831,10 @@ void mc_leave(struct octoserve *os, uint8_t *ip, uint8_t *group)
 	if ((sess = match_session(os, group)) == NULL)	
 		goto out;
 	
-	printf("matched session %d to leave %u.%u.%u.%u\n", 
-	       sess->nr, ip[0], ip[1], ip[2], ip[3]);
+	dbgprintf(DEBUG_IGMP, "matched session %d to leave %u.%u.%u.%u\n", 
+		  sess->nr, ip[0], ip[1], ip[2], ip[3]);
 	mc_query(sess);
-
+	
 	for (mcc = sess->mccs.lh_first; mcc; mcc = next) {
 		next = mcc->mcc.le_next;
 		if (!memcmp(ip, mcc->ip, 4)) {
@@ -1889,7 +1893,7 @@ static int parse_transport(struct oscon *con, char *line)
 	for (arg = line; *arg == ' '; arg++);
 
 	do {
-		printf("arg:%s\n", arg);
+		dbgprintf(DEBUG_RTSP, "arg:%s\n", arg);
 		if (!strncasecmp(arg, "RTP/AVP/UDP", 11)) {
 			t->rtp = 1;
 			end = arg + 11;
@@ -1984,7 +1988,7 @@ static int parse_x_octonet(struct oscon *con, char *line)
 				if (port < 7)
 					con->x_ports |= 1 << (port - 1);
 			} while (*(arg++) == ',');
-			printf("x_ports = %02x\n", con->x_ports);
+			dbgprintf(DEBUG_SWITCH, "x_ports = %02x\n", con->x_ports);
 		} else
 			return -1;
 		arg = end;
@@ -2231,7 +2235,7 @@ static int proc_line(struct oscon *con)
 				} 
 				if (con->x_octonet_parsed) {
 					con->session->port_vec = con->x_ports;
-					printf("port_vec = %02x\n", con->session->port_vec);
+					dbgprintf(DEBUG_SWITCH, "port_vec = %02x\n", con->session->port_vec);
 				}
 				res = play_session(con);
 				if (res < 0) 
@@ -2545,7 +2549,7 @@ static int alloc_igmp_raw_socket(struct octoserve *os)
 
 	n  = setsockopt(s, SOL_SOCKET, SO_ATTACH_FILTER, &sfprog, sizeof(sfprog));
 	if (n < 0) {
-		printf("could not set filter\n");
+		dbgprintf(DEBUG_NET, "could not set filter\n");
 	}
 	
 #if 0
@@ -2651,7 +2655,7 @@ static void os_serve(struct octoserve *os)
 		}
 		if (FD_ISSET(os->mld_sock, &fds)) {
 			n = recvfrom(os->mld_sock, buf, sizeof(buf), 0, &cadr, &clen);
-			printf("n = %d\n", n);
+			//printf("n = %d\n", n);
 			if (n > 0)
 				;//dump(buf, n);
 		}
@@ -2722,7 +2726,7 @@ static void read_first_ds(struct octoserve *os)
 	else 
 		os->first_ds = num;
 	
-	printf("first_ds = %u\n", os->first_ds);
+	dbgprintf(DEBUG_SYS, "first_ds = %u\n", os->first_ds);
 }
 
 static void read_delsys_mask(struct octoserve *os)
@@ -2740,7 +2744,7 @@ static void read_delsys_mask(struct octoserve *os)
 	close (fd);
 	if (len)
 		os->delsys_mask = strtol(mask, NULL, 0);
-	printf("delsys_mask = %08x\n", os->delsys_mask);
+	dbgprintf(DEBUG_SYS, "delsys_mask = %08x\n", os->delsys_mask);
 }
 
 static int read_msmode(char *fn)
@@ -2814,6 +2818,7 @@ static struct octoserve *os_init(char *ifname, int nossdp, int nodms)
 	if (os->has_switch)
 		switch_get_port(os->mac);
 
+	switch_set_entry(os->mac, 0x20, 0x08);
 	init_dvb(os);
 
 	ss = &os->ssdp;
@@ -2836,7 +2841,7 @@ struct octoserve *os;
 
 void term_action(int sig)
 {
-	printf("EXIT\n");
+	dbgprintf(DEBUG_SYS, "EXIT\n");
 	os->exit = 1;
 }
 
@@ -2915,7 +2920,7 @@ int main(int argc, char **argv)
 		}
 	}
 	if (optind < argc) {
-		printf("Warning: unused arguments\n");
+		dbgprintf(DEBUG_SYS, "Warning: unused arguments\n");
 	}
 	if (fexists("/config/nodms.enabled"))
 		nodms = 1;
@@ -2924,7 +2929,7 @@ int main(int argc, char **argv)
 		vlan = 1;
 	} else
 		awrite("/sys/class/ddbridge/ddbridge0/vlan", "0");
-	printf("nodms = %d, vlan = %d\n", nodms, vlan);
+	dbgprintf(DEBUG_SYS, "nodms = %d, vlan = %d\n", nodms, vlan);
 	
 	os = os_init("eth0", nossdp, nodms);
 	if (!os)
@@ -2933,9 +2938,9 @@ int main(int argc, char **argv)
 
 	os->has_switch = switch_test();
 	if (os->has_switch)
-		printf("Switch detected\n");
+		dbgprintf(DEBUG_SYS, "Switch detected\n");
 	else
-		printf("No switch detected\n");
+		dbgprintf(DEBUG_SYS, "No switch detected\n");
 	
 	os_serve(os);
 	if (!nossdp)
