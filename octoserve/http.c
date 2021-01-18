@@ -241,6 +241,7 @@ void send_serverinfo(struct os_ssdp *ss)
 	sendstr(fd, "Octoserve.DeviceID = %u;\r\n", ss->devid);
 	sendstr(fd, "Octoserve.MAC = \"%02x:%02x:%02x:%02x:%02x:%02x\";\r\n",
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	sendstr(fd, "Octoserve.DelsysMask = %u;\r\n", os->delsys_mask);
 	sendstr(fd, "Octoserve.TunerList = new Array();\r\n");
 	for (i = 0; i < os->dvbfe_num; i++) {
 		struct dvbfe *fe = &os->dvbfe[i];
@@ -280,7 +281,7 @@ void send_serverinfo(struct os_ssdp *ss)
 				types[pos] = '-';
 			}			
 			sendstr(fd, "Octoserve.TunerList[%d] = new Object();\r\n", i);
-			sendstr(fd, "Octoserve.TunerList[%d].Type = 0;\r\n", i);
+			sendstr(fd, "Octoserve.TunerList[%d].Type = %u;\r\n", i, fe->type_orig);
 			sendstr(fd, "Octoserve.TunerList[%d].Desc = \"%s\";\r\n", i, types);
 		} else {
 			sendstr(fd, "Octoserve.TunerList[%d] = false;\r\n", i);
@@ -345,7 +346,7 @@ void send_json_serverinfo(struct os_ssdp *ss)
 				types[pos] = '-';
 			}			
 			sendstr(fd, ",\"Present\":true", i);
-			sendstr(fd, ",\"Type\":0");
+			sendstr(fd, ",\"Type\":%u", fe->type);
 			sendstr(fd, ",\"Desc\":\"%s\"", types);
 		} else {
 			sendstr(fd, "\"Present\":false", i);
