@@ -985,7 +985,8 @@ static int pmt_cb(struct sfilter *sf)
 				s->ttx = epid;
 			else if (hasdesc(0x59, buf + c + 5, eslen))
 			        s->sub = epid;
-			else if (hasdesc(0x6a, buf + c + 5, eslen)) {
+			else if (hasdesc(0x6a, buf + c + 5, eslen) ||
+				 hasdesc(0x7a, buf + c + 5, eslen)) {
 				if (s->anum < MAX_ANUM)
 					s->apid[s->anum++] = epid;
 			}
