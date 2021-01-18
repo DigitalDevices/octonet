@@ -1254,11 +1254,10 @@ static int ai_callback(void *arg, uint8_t slot_id, uint16_t session_number,
 {
 	struct dvbca *ca = arg;
 
-	dbgprintf(DEBUG_DVB, "Application type: %02x\n", application_type);
-	dbgprintf(DEBUG_DVB, "Application manufacturer: %04x\n", application_manufacturer);
-	dbgprintf(DEBUG_DVB, "Manufacturer code: %04x\n", manufacturer_code);
-	dbgprintf(DEBUG_DVB, "Menu string: %.*s\n", menu_string_length, menu_string);
-
+	dbgprintf(DEBUG_CI, "Application type: %02x\n", application_type);
+	dbgprintf(DEBUG_CI, "Application manufacturer: %04x\n", application_manufacturer);
+	dbgprintf(DEBUG_CI, "Manufacturer code: %04x\n", manufacturer_code);
+	dbgprintf(DEBUG_CI, "Menu string: %.*s\n", menu_string_length, menu_string);
 	return 0;
 }
 
@@ -1268,11 +1267,29 @@ static int ca_info_callback(void *arg, uint8_t slot_id, uint16_t snum,
 	struct dvbca *ca = arg;
 	uint32_t i;
 	
-	dbgprintf(DEBUG_DVB, "CAM supports the following ca system ids:\n");
+	dbgprintf(DEBUG_CI, "CAM supports the following ca system ids:\n");
 	for (i = 0; i < id_count; i++) {
-		dbgprintf(DEBUG_DVB, "  0x%04x\n", ids[i]);
+		dbgprintf(DEBUG_CI, "  0x%04x\n", ids[i]);
 	}
+	ca->sentpmt = 0;
 	ca->resource_ready = 1;
+	return 0;
+}
+
+static int ca_pmt_reply_callback(void *arg, uint8_t slot_id, uint16_t snum, 
+				 struct en50221_app_pmt_reply *reply,
+				 uint32_t reply_size)
+{
+	struct dvbca *ca = arg;
+	uint32_t i;
+	
+	if (!reply->CA_enable_flag || reply->CA_enable != 1) {
+		dbgprintf(DEBUG_CI,
+			  "Descrambling not possible:"
+			  "ca_enable_flag: %d, ca_enable: 0x%02x", reply->CA_enable_flag, reply->CA_enable);
+		return 0;
+	}
+	dbgprintf(DEBUG_CI, "Descrambling OK\n");
 	return 0;
 }
 
@@ -1285,7 +1302,7 @@ static int handle_pmt(struct dvbca *ca, uint8_t *buf, int size)
 	struct section_ext *section_ext = section_ext_decode(section, 0);
 	struct mpeg_pmt_section *pmt = mpeg_pmt_section_codec(section_ext);
 
-	dbgprintf(DEBUG_DVB, "handle pmt\n");
+	dbgprintf(DEBUG_CI, "handle pmt\n");
 	if (section_ext->version_number == ca->ca_pmt_version &&
 		ca->pmt == ca->pmt_old)
 		return;
@@ -1301,15 +1318,15 @@ static int handle_pmt(struct dvbca *ca, uint8_t *buf, int size)
 			//return;
 		}
 		ca->sentpmt = 1;
-		dbgprintf(DEBUG_DVB, "set ca_pmt\n");
+		dbgprintf(DEBUG_CI, "set ca_pmt\n");
 	
 		if ((size = en50221_ca_format_pmt(pmt, capmt, sizeof(capmt), ca->moveca, listmgmt,
 						  CA_PMT_CMD_ID_OK_DESCRAMBLING)) < 0) {
-			dbgprintf(DEBUG_DVB, "Failed to format PMT\n");
+			dbgprintf(DEBUG_CI, "Failed to format PMT\n");
 			return -1;
 		}
 		if (en50221_app_ca_pmt(ca->stdcam->ca_resource, ca->stdcam->ca_session_number, capmt, size)) {
-			dbgprintf(DEBUG_DVB, "Failed to send PMT\n");
+			dbgprintf(DEBUG_CI, "Failed to send PMT\n");
 			return -1;
 		}
 	}
@@ -1333,7 +1350,7 @@ static void handle_tdt(struct dvbca *ca)
 	len = getsec(ca->input, 0x14, 0, 0x70, sec); 
 	if (len < 0)
 		return;
-	dbgprintf(DEBUG_DVB, "got tdt\n");
+	dbgprintf(DEBUG_CI, "got tdt\n");
 
 	section = section_codec(sec, len);
 	if (section == NULL)
@@ -1343,11 +1360,12 @@ static void handle_tdt(struct dvbca *ca)
 		return;
 	dvb_time = dvbdate_to_unixtime(tdt->utc_time);
 
-	dbgprintf(DEBUG_DVB, "set dvbtime\n");
+	dbgprintf(DEBUG_CI, "set dvbtime\n");
 	if (ca->stdcam->dvbtime)
 		ca->stdcam->dvbtime(ca->stdcam, dvb_time);
 }
 
+#if 1
 static int handle_pmts(struct dvbca *ca)
 {
 	int listmgmt = CA_LIST_MANAGEMENT_ONLY;
@@ -1359,10 +1377,78 @@ static int handle_pmts(struct dvbca *ca)
 
 	if (!ca->resource_ready)
 		return 0;
-	dbgprintf(DEBUG_DVB, "handle pmts\n");
 	for (i = num = 0; i < MAX_PMT; i++) 
 		if (ca->pmt[i])
 			num++;
+	dbgprintf(DEBUG_CI, "ci %u.%u: handle %u pmts\n", ca->anum, ca->fnum, num);
+	for (i = 0; i < num; i++) {
+		len = getsec(ca->input, ca->pmt[i] & 0xffff, ca->pmt[i] >> 16, 2, sec); 
+		if (len < 0)
+			return 0;
+		section = section_codec(sec, len);
+		section_ext = section_ext_decode(section, 0);
+		pmt = mpeg_pmt_section_codec(section_ext);
+
+		ca->ca_pmt_version[i] = section_ext->version_number;
+		if (ca->sentpmt) {
+			return 0;
+			listmgmt = CA_LIST_MANAGEMENT_UPDATE;
+		} else {
+			listmgmt = CA_LIST_MANAGEMENT_ONLY;
+#if 1
+			if (num > 1) {
+				listmgmt = CA_LIST_MANAGEMENT_MORE;
+				if (i == 0)
+					listmgmt = CA_LIST_MANAGEMENT_FIRST;
+				if (i == num - 1)
+					listmgmt = CA_LIST_MANAGEMENT_LAST;
+			}
+#else
+			if (i > 0)
+				listmgmt = CA_LIST_MANAGEMENT_ADD;
+#endif			
+		}
+		dbgprintf(DEBUG_CI, "set ca_pmt %d = %u as %s\n",
+			  i, ca->pmt[i] & 0xffff,
+			  (listmgmt == CA_LIST_MANAGEMENT_ONLY) ? "only" :
+			  (listmgmt == CA_LIST_MANAGEMENT_ADD) ? "add" :
+			  (listmgmt == CA_LIST_MANAGEMENT_FIRST) ? "first" :
+			  (listmgmt == CA_LIST_MANAGEMENT_LAST) ? "last" :
+			  "more");
+		
+		if ((size = en50221_ca_format_pmt(pmt, capmt, sizeof(capmt), ca->moveca, listmgmt,
+						  CA_PMT_CMD_ID_OK_DESCRAMBLING)) < 0) {
+			dbgprintf(DEBUG_CI, "Failed to format PMT\n");
+			return -1;
+		}
+		dbgprintf(DEBUG_CI, "ci %u.%u: CA_PMT\n", ca->anum, ca->fnum, num);
+		dump(capmt, size);
+		if (en50221_app_ca_pmt(ca->stdcam->ca_resource, ca->stdcam->ca_session_number, capmt, size)) {
+			dbgprintf(DEBUG_CI, "Failed to send PMT\n");
+			return -1;
+		}
+	}
+	if (num)
+		ca->sentpmt = 1;
+	return 0;
+}
+
+#else
+static int handle_pmts(struct dvbca *ca)
+{
+	int listmgmt = CA_LIST_MANAGEMENT_ONLY;
+        uint8_t sec[4096], capmt[MAX_PMT][4096];
+	struct section *section;
+	struct section_ext *section_ext;
+	struct mpeg_pmt_section *pmt;
+	int i, size[MAX_PMT], num, len;
+
+	if (!ca->resource_ready)
+		return 0;
+	for (i = num = 0; i < MAX_PMT; i++) 
+		if (ca->pmt[i])
+			num++;
+	dbgprintf(DEBUG_CI, "handle %u pmts\n", num);
 	for (i = 0; i < num; i++) {
 		len = getsec(ca->input, ca->pmt[i] & 0xffff, ca->pmt[i] >> 16, 2, sec); 
 		if (len < 0)
@@ -1373,10 +1459,11 @@ static int handle_pmts(struct dvbca *ca)
 
 		ca->ca_pmt_version[i] = section_ext->version_number;
 		if (ca->sentpmt) {
-			//return 0;
+			return 0;
 			listmgmt = CA_LIST_MANAGEMENT_UPDATE;
 		} else {
 			listmgmt = CA_LIST_MANAGEMENT_ONLY;
+#if 0
 			if (num > 1) {
 				listmgmt = CA_LIST_MANAGEMENT_MORE;
 				if (i == 0)
@@ -1384,25 +1471,40 @@ static int handle_pmts(struct dvbca *ca)
 				if (i == num - 1)
 					listmgmt = CA_LIST_MANAGEMENT_LAST;
 			}
+#else
+			if (i > 0)
+				listmgmt = CA_LIST_MANAGEMENT_ADD;
+#endif			
 		}
-		dbgprintf(DEBUG_DVB, "set ca_pmt\n");
-	
-		if ((size = en50221_ca_format_pmt(pmt, capmt, sizeof(capmt), ca->moveca, listmgmt,
+		dbgprintf(DEBUG_CI, "set ca_pmt %d = %u as %s\n",
+			  i, ca->pmt[i] & 0xffff,
+			  (listmgmt == CA_LIST_MANAGEMENT_ONLY) ? "only" :
+			  (listmgmt == CA_LIST_MANAGEMENT_ADD) ? "add" :
+			  (listmgmt == CA_LIST_MANAGEMENT_FIRST) ? "first" :
+			  (listmgmt == CA_LIST_MANAGEMENT_LAST) ? "last" :
+			  "more");
+		
+		if ((size[i] = en50221_ca_format_pmt(pmt, capmt[i], sizeof(capmt[i]), ca->moveca, listmgmt,
 						  CA_PMT_CMD_ID_OK_DESCRAMBLING)) < 0) {
-			dbgprintf(DEBUG_DVB, "Failed to format PMT\n");
+			dbgprintf(DEBUG_CI, "Failed to format PMT\n");
 			return -1;
 		}
-		dump(capmt, size);
-		if (en50221_app_ca_pmt(ca->stdcam->ca_resource, ca->stdcam->ca_session_number, capmt, size)) {
-			dbgprintf(DEBUG_DVB, "Failed to send PMT\n");
+		dump(capmt[i], size[i]);
+	}
+
+	for (i = 0; i < num; i++) {
+		if (en50221_app_ca_pmt(ca->stdcam->ca_resource, ca->stdcam->ca_session_number, capmt[i], size[i])) {
+			dbgprintf(DEBUG_CI, "Failed to send PMT\n");
 			return -1;
 		}
+		dbgprintf(DEBUG_CI, "ca_pmt %d sent\n", i);
 	}
 	if (num)
 		ca->sentpmt = 1;
 	return 0;
 }
 
+#endif
 static void proc_csock_msg(struct dvbca *ca, uint8_t *buf, int len)
 {
 	if (*buf == '\r') {
@@ -1529,8 +1631,15 @@ static void handle_ci(struct dvbca *ca)
 			continue;
 		}
 		if (ca->setpmt) {
-			dbgprintf(DEBUG_DVB, "got new PMT %08x\n", ca->pmt_new); 
+			dbgprintf(DEBUG_CI, "got new PMT %04x %04x %04x ...\n",
+				  ca->pmt_new[0],
+				  ca->pmt_new[1],
+				  ca->pmt_new[2]); 
 			memcpy(ca->pmt, ca->pmt_new, sizeof(ca->pmt));
+			dbgprintf(DEBUG_CI, "copied: %04x %04x %04x ...\n",
+				  ca->pmt[0],
+				  ca->pmt[1],
+				  ca->pmt[2]); 
 			memset(ca->pmt_old, 0, sizeof(ca->pmt_old));
 			for (i = 0; i < MAX_PMT; i++)
 				ca->ca_pmt_version[i] = -1;
@@ -1560,10 +1669,10 @@ static void handle_ci(struct dvbca *ca)
 
 int set_pmt(struct dvbca *ca, uint32_t *pmt)
 {
-	dbgprintf(DEBUG_DVB, "set_pmt %08x %08x %08x\n", pmt[0], pmt[1], pmt[2]);
+	dbgprintf(DEBUG_CI, "set_pmt %08x %08x %08x\n", pmt[0], pmt[1], pmt[2]);
 	pthread_mutex_lock(&ca->mutex);
-	ca->setpmt = 1;
 	memcpy(ca->pmt_new, pmt, sizeof(ca->pmt_new));
+	ca->setpmt = 1;
 	pthread_mutex_unlock(&ca->mutex);
 	return 0;
 }
@@ -1654,19 +1763,19 @@ static int init_ca_stack(struct dvbca *ca)
 {
 	ca->tl = en50221_tl_create(1, 16);
 	if (ca->tl == NULL) {
-		dbgprintf(DEBUG_DVB, "Failed to create transport layer\n");
+		dbgprintf(DEBUG_CI, "Failed to create transport layer\n");
 		return -1;
 	}
 	ca->sl = en50221_sl_create(ca->tl, 16);
 	if (ca->sl == NULL) {
-		dbgprintf(DEBUG_DVB, "Failed to create session layer\n");
+		dbgprintf(DEBUG_CI, "Failed to create session layer\n");
 		en50221_tl_destroy(ca->tl);
 		return -1;
 	}
 
 	ca->stdcam = en50221_stdcam_llci_create(ca->fd, 0, ca->tl, ca->sl);
 	if (!ca->stdcam) {
-		dbgprintf(DEBUG_DVB, "Failed to create stdcam\n");
+		dbgprintf(DEBUG_CI, "Failed to create stdcam\n");
 		en50221_sl_destroy(ca->sl);
 		en50221_tl_destroy(ca->tl);
 		return -1;
@@ -1676,6 +1785,7 @@ static int init_ca_stack(struct dvbca *ca)
 	}
 	if (ca->stdcam->ca_resource) {
 		en50221_app_ca_register_info_callback(ca->stdcam->ca_resource, ca_info_callback, ca);
+		en50221_app_ca_register_pmt_reply_callback(ca->stdcam->ca_resource, ca_pmt_reply_callback, ca);
 	}
 	if (ca->stdcam->mmi_resource) {
 		en50221_app_mmi_register_close_callback(ca->stdcam->mmi_resource, mmi_close_callback, ca);
@@ -1685,7 +1795,7 @@ static int init_ca_stack(struct dvbca *ca)
 		en50221_app_mmi_register_menu_callback(ca->stdcam->mmi_resource, mmi_menu_callback, ca);
 		en50221_app_mmi_register_list_callback(ca->stdcam->mmi_resource, mmi_menu_callback, ca);
 	} else {
-		dbgprintf(DEBUG_DVB,
+		dbgprintf(DEBUG_CI,
 			  "CAM Menus are not supported by this interface hardware\n");
 	}
 	return 0;
@@ -1727,7 +1837,7 @@ static int scan_dvbca(struct octoserve *os)
 			}
 		}
 	}
-	dbgprintf(DEBUG_DVB, "Found %d CA interfaces\n", os->dvbca_num);
+	dbgprintf(DEBUG_CI, "Found %d CA interfaces\n", os->dvbca_num);
 }
 
 void scif_config(struct octoserve *os, char *name, char *val)
