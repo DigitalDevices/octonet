@@ -105,6 +105,27 @@ int mdio_close(int fd)
 	close(fd);
 }
 
+int switch_set_entry(uint8_t mac[6], uint8_t vec, uint8_t type)
+{
+	int fd = mdio_open();
+
+	dbgprintf(DEBUG_SWITCH, "switch_set_entry %02x:%02x:%02x:%02x:%02x:%02x = %02x %02x\n", 
+		  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], vec, type);
+	if (fd < 0) 
+		return -1;
+	if (vec)
+		mdio_writereg(fd, 0x1b, 0x0c, (vec << 4) | type);
+	else
+		mdio_writereg(fd, 0x1b, 0x0c, 0);
+	mdio_writereg(fd, 0x1b, 0x0d, ((uint16_t) mac[0] << 8) | mac[1]);
+	mdio_writereg(fd, 0x1b, 0x0e, ((uint16_t) mac[2] << 8) | mac[3]);
+	mdio_writereg(fd, 0x1b, 0x0f, ((uint16_t) mac[4] << 8) | mac[5]);
+	mdio_writereg(fd, 0x1b, 0x0b, 0xb000);
+	mdio_wait_switch(fd, 0x1b, 0x0b);
+	mdio_close(fd);	
+	return 0;
+}
+
 int switch_get_port(uint8_t mac[6])
 {
 	int fd = mdio_open();
@@ -148,6 +169,7 @@ int switch_get_port(uint8_t mac[6])
 	}
 	return -1;
 }
+
 
 int switch_set_multicast(uint8_t mac[6], uint8_t vec)
 {
