@@ -38,6 +38,8 @@ cp $DDDVB/frontends/mxl5xx.[ch] $LINUX/drivers/media/dvb-frontends/
 cp $DDDVB/frontends/mxl5xx_regs.h $LINUX/drivers/media/dvb-frontends/
 cp $DDDVB/frontends/mxl5xx_defs.h $LINUX/drivers/media/dvb-frontends/
 
+cp $DDDVB/include/*.h $LINUX/drivers/media/dvb-core/
+
 #cp $DDDVB/apps/ddtest.c package/octonet/octonet/
 #cp $DDDVB/apps/ddflash.c package/octonet/octonet/
 #cp $DDDVB/apps/octonet/octonet.c package/octonet/octonet/
