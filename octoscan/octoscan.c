@@ -2086,7 +2086,7 @@ void tpstring(struct tp_info *tpi, char *s, int slen)
 				              "freq=%u&msys=dvbc&sr=%u&mtype=%s",
 				              tpi->freq, tpi->sr, mtype2str[tpi->mod]);
 			break;
-		case 2:
+		case 3:
 			if( tpi->freq_frac )
 				len = snprintf(s, slen,
 				               "freq=%u.%04u&msys=dvbt&bw=%s",
