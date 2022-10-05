@@ -358,7 +358,7 @@ static int tune_dvbs2(struct dvbfe *fe)
 			freq = lofs - freq;
 	} else 
 #endif
-	{
+	if (freq > 3000000) {
 		if (lofs)
 			hi = (freq > lofs) ? 1 : 0;
 		if (lofs > 10000000) {
