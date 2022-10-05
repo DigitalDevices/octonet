@@ -233,6 +233,10 @@ void check_igmp(struct octoserve *os)
 	tdiff = mtime(&t) - os->igmp_time;
 	switch (os->igmp_mode) {
 	case 0:
+		if (os->no_query) {
+			os->igmp_mode = 3;
+			break;
+		}
 		if (tdiff > 124) {
 			os->igmp_timeout = 10;
 			dbgprintf(DEBUG_IGMP,

@@ -2929,7 +2929,9 @@ int main(int argc, char **argv)
 		vlan = 1;
 	} else
 		awrite("/sys/class/ddbridge/ddbridge0/vlan", "0");
-	dbgprintf(DEBUG_SYS, "nodms = %d, vlan = %d\n", nodms, vlan);
+	if (fexists("/config/strict.enabled"))
+		conform = 1;
+	dbgprintf(DEBUG_SYS, "nodms = %d, vlan = %d, conform = %d\n", nodms, vlan, conform);
 	
 	os = os_init("eth0", nossdp, nodms);
 	if (!os)
@@ -2942,6 +2944,8 @@ int main(int argc, char **argv)
 	else
 		dbgprintf(DEBUG_SYS, "No switch detected\n");
 	
+	if (fexists("/config/noquery.enabled"))
+		os->no_query = 1;
 	os_serve(os);
 	if (!nossdp)
 		pthread_join(os->ssdp.pt, NULL);

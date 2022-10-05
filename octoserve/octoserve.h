@@ -507,6 +507,7 @@ struct octoserve {
 	int msmode;
 	int nodvbt;
 	uint32_t first_ds;
+	int no_query;
 }; 
 
 int streamsock(const char *port, int family, struct sockaddr *sadr);
