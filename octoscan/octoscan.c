@@ -74,7 +74,7 @@ static int eit_extsize = 0;
 static int eit_events_deleted = 0;
 
 char *pol2str[] = {"v", "h", "r", "l", NULL};
-char *msys2str [] = {"undef", "dvbc", "dvbcb", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
+char *msys2str [] = {"undef", "dvbc", "j83b", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
 		      "isdbt", "isdbs", "isdbc", "atsc", "atscmh", "dtmb", "cmmb", "dab",
 		      "dvbt2", "turbo", "dvbcc", "dvbc2", NULL};
 char *mtype2str [] = {"qpsk", "16qam", "32qam",
