@@ -266,6 +266,8 @@ void check_igmp(struct octoserve *os)
 		if (tdiff < 255)
 			return;
 		/* yes, so we will have to query from now on */
+		dbgprintf(DEBUG_IGMP, "%u: IGMP timeout, tag = %u, tdiff = %u, enabling querying\n",
+			  t, os->igmp_tag, tdiff);
 		os->igmp_mode = 0;
 		os->igmp_time = t - 94;
 		os->igmp_robust = 1;
