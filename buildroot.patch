@@ -150,3 +150,17 @@ diff -uNr buildroot-2014.05/toolchain/toolchain-external/Config.in buildroot-201
  config BR2_TOOLCHAIN_EXTERNAL_HEADERS_3_14
  	bool "3.14.x"
  	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_14
+diff -uNr buildroot-2015.02/package/i2c-tools/i2c-tools.mk buildroot-2014.05/package/i2c-tools/i2c-tools.mk
+--- buildroot-2015.02/package/i2c-tools/i2c-tools.mk	2015-03-01 22:26:12.000000000 +0100
++++ buildroot-2014.05/package/i2c-tools/i2c-tools.mk	2026-04-11 20:09:59.753573430 +0200
+@@ -5,8 +5,8 @@
+ ################################################################################
+ 
+ I2C_TOOLS_VERSION = 3.1.1
+-I2C_TOOLS_SOURCE = i2c-tools-$(I2C_TOOLS_VERSION).tar.bz2
+-I2C_TOOLS_SITE = http://dl.lm-sensors.org/i2c-tools/releases
++I2C_TOOLS_SOURCE = i2c-tools-$(I2C_TOOLS_VERSION).tar.gz
++I2C_TOOLS_SITE = http://www.kernel.org/pub/software/utils/i2c-tools
+ I2C_TOOLS_LICENSE = GPLv2+, GPLv2 (py-smbus)
+ I2C_TOOLS_LICENSE_FILES = COPYING
+ 
