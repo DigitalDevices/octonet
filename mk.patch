@@ -8,11 +8,11 @@ if [ ! -e linux.octonet ]; then
 fi
 
 if [ ! -e buildroot ]; then
-  if [ ! -e buildroot-2015.02-rc2.tar.bz2 ]; then
-     wget http://buildroot.uclibc.org/downloads/buildroot-2015.02-rc2.tar.bz2
+  if [ ! -e buildroot-2015.02.tar.bz2 ]; then
+     wget --no-check-certificate http://buildroot.org/downloads/buildroot-2015.02.tar.bz2
   fi
-  tar xf buildroot-2015.02-rc2.tar.bz2
-  mv buildroot-2015.02-rc2 buildroot
+  tar xf buildroot-2015.02.tar.bz2
+  mv buildroot-2015.02 buildroot
 #  cp dvb-apps-0002-Fix-broken-bitops-on-arm.patch buildroot/package/dvb-apps/
 #  cp busybox-0001-Fix-zcip-arp-compare.patch buildroot/package/busybox/
 #  cp lzop-0001-ACC.patch buildroot/package/lzop/
@@ -22,27 +22,27 @@ if [ ! -e buildroot ]; then
 fi
 
 if [ ! -e ../dddvb ]; then
-   git clone -b "0.9.20" "https://github.com/DigitalDevices/dddvb.git" ../dddvb
+   git clone -b "0.9.38" "https://github.com/DigitalDevices/dddvb.git" ../dddvb
 fi
 
-DDDVB=../dddvb
-LINUX=linux.octonet
+#DDDVB=../dddvb
+#LINUX=linux.octonet
 
-cp $DDDVB/ddbridge/*.[ch] $LINUX/drivers/media/pci/ddbridge/
-cp $DDDVB/dvb-core/*.[ch] $LINUX/drivers/media/dvb-core/
-cp $DDDVB/include/linux/dvb/*.h $LINUX/include/uapi/linux/dvb/
+#cp $DDDVB/ddbridge/*.[ch] $LINUX/drivers/media/pci/ddbridge/
+#cp $DDDVB/dvb-core/*.[ch] $LINUX/drivers/media/dvb-core/
+#cp $DDDVB/include/linux/dvb/*.h $LINUX/include/uapi/linux/dvb/
 
-cp $DDDVB/frontends/drxk*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/lnb*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv0367dd*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv090x*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv6110*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/tda18*dd*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/cxd2099.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/cxd2843.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv6111.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv0910*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/mxl5xx*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/drxk*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/lnb*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/stv0367dd*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/stv090x*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/stv6110*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/tda18*dd*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/cxd2099.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/cxd2843.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/stv6111.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/stv0910*.[ch] $LINUX/drivers/media/dvb-frontends/
+#cp $DDDVB/frontends/mxl5xx*.[ch] $LINUX/drivers/media/dvb-frontends/
 
 
 if [ ! -e u-boot ]; then

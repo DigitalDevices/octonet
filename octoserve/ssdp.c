@@ -637,11 +637,11 @@ int init_ssdp(struct octoserve *os, struct os_ssdp *ss, uint32_t d, int nossdp, 
 	struct ifreq ifr;
 	uint32_t id;
 	int stat;
-	char *dms = "Linux/3.17.7 DLNADOC/1.50 UPnP/1.0 OctopusNet-DMS/1.0";
+	char *dms = "Linux/3.17.8 DLNADOC/1.50 UPnP/1.0 OctopusNet-DMS/1.0";
 
 	debug = d;
 	ss->os = os;
-	ss->server = "Linux/3.17.7 UPnP/1.1 OctopusNet/" OCTOSERVE_VERSION;
+	ss->server = "Linux/3.17.8 UPnP/1.1 OctopusNet/" OCTOSERVE_VERSION;
 	stat = read_id("device", &id);
 	if (stat < 0) {
 		ss->devid = 5;
