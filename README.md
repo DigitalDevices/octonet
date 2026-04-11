@@ -1,8 +1,8 @@
 # OctopusNet
 
-
 ###Prepare for Building
-On Debian/Ubuntu (as root or using sudo):
+On Debian/Ubuntu 16.04.7 (as root or using sudo):
+
 
 ```
  >apt-get install build-essential bison flex gettext libncurses5-dev texinfo autoconf automake libtool
