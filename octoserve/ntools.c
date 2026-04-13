@@ -135,9 +135,10 @@ int sendstring(int sock, char *fmt, ...)
 	va_start(args, fmt);
 	len = vsnprintf(buf, sizeof(buf), fmt, args);
 	if (len <= 0 || len >= sizeof(buf))
-		return;
-	sendlen(sock, buf, len);
+		return -1;
+	len = sendlen(sock, buf, len);
 	va_end(args);
+	return len;
 }
 
 time_t mtime(time_t *t)

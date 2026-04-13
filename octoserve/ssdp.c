@@ -492,12 +492,14 @@ static int ssdpsock(const char *ifnam, int family, struct sockaddr *sadr)
 	return sock;
 }
 
+#if 0
 static void add_fd(int fd, int *mfd, fd_set *fds)
 {
 	FD_SET(fd, fds);
 	if (fd > *mfd)
 		*mfd = fd;
 }
+#endif
 
 static void ssdp_loop(struct octoserve *os)
 {

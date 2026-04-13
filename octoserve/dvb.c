@@ -19,12 +19,26 @@
 
 #include "octoserve.h"
 
+#ifndef DTV_INPUT
+#define DTV_INPUT                       71
+#endif
+
+#ifndef DTV_DELIVERY_SYSTEM
+#error wq
+#endif
+
 extern uint32_t debug;
 
 #define MMI_STATE_CLOSED 0
 #define MMI_STATE_OPEN 1
 #define MMI_STATE_ENQ 2
 #define MMI_STATE_MENU 3
+
+#define DTV_SCRAMBLING_SEQUENCE_INDEX 70
+#define DTV_INPUT                     71
+#define SYS_DVBC2                    19
+#define SYS_ATSC3                    20
+#define SYS_ISDBS3                   21
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -133,7 +147,7 @@ static int set_property(int fd, uint32_t cmd, uint32_t data)
 	p.u.data = data;
 	ret = ioctl(fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
-		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		fprintf(stderr, "FE_SET_PROPERTY cmd 0x%08x returned %d\n", cmd, ret);
 		return -1;
 	}
 	return 0;
@@ -175,6 +189,11 @@ static int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)
 	}
 	memcpy(stats, &p.u.st, sizeof(struct dtv_fe_stats));
 	return 0;
+}
+
+static int set_property_input(int fd, uint32_t input)
+{
+	return set_property(fd, DTV_INPUT, input);
 }
 
 static int set_fe_input(struct dvbfe *fe, uint32_t fr,
@@ -568,6 +587,49 @@ static int tune_j83b(struct dvbfe *fe)
 	return 0;
 }
 
+static int tune_atsc(struct dvbfe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param[PARAM_FREQ] * 1000 },
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ATSC);
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	return 0;
+}
+
+static int tune_atsc3(struct dvbfe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param[PARAM_FREQ] * 1000 },
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ATSC3);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	return 0;
+}
+
 static int tune_isdbs(struct dvbfe *fe)
 {
 	struct dtv_property p[] = {
@@ -606,6 +668,13 @@ static int tune(struct dvbfe *fe)
 	case SYS_DVBC_ANNEX_A:
 		ret = tune_dvbc(fe);
 		break;
+	case SYS_DVBC_ANNEX_B:
+		ret = tune_j83b(fe);
+		break;
+	case SYS_DVBC_ANNEX_C:
+	case SYS_ISDBC:
+		ret = tune_isdbc(fe);
+		break;
 	case SYS_DVBT:
 		ret = tune_dvbt(fe);
 		break;
@@ -618,15 +687,14 @@ static int tune(struct dvbfe *fe)
 	case SYS_ISDBT:
 		ret = tune_isdbt(fe);
 		break;
-	case SYS_DVBC_ANNEX_B:
-		ret = tune_j83b(fe);
-		break;
-	case SYS_DVBC_ANNEX_C:
-	case SYS_ISDBC:
-		ret = tune_isdbc(fe);
-		break;
 	case SYS_ISDBS:
 		ret = tune_isdbs(fe);
+		break;
+	case SYS_ATSC:
+		ret = tune_atsc(fe);
+		break;
+	case SYS_ATSC3:
+		ret = tune_atsc3(fe);
 		break;
 	default:
 		break;
@@ -974,23 +1042,24 @@ static int32_t dvbt2q(int32_t snr, uint32_t mod, uint32_t fec, uint32_t trans, u
 		}
 	}
 
-	if (snc) {
-		SignalToNoiseRel = snr - snc;
+	SignalToNoiseRel = snr/100 - snc;
 #if 0  //FIXME
+	if (snc) {
 		if (PilotPattern >= DVBT2_PP3 &&
 		    PilotPattern <= DVBT2_PP4 )
 			SignalToNoiseRel += 5;
 		else if
 			( PilotPattern >= DVBT2_PP5 && PilotPattern <= DVBT2_PP8 )
 			SignalToNoiseRel += 10;
-#endif
 	}
+#endif
 	if( SignalToNoiseRel < -30 )
 		Quality = 0;
 	else if (SignalToNoiseRel < 30 )
 		Quality = ((SignalToNoiseRel + 30) * BERQuality)/60;
 	else
 		Quality = 100;
+	//dbgprintf(DEBUG_DVB, "trans=%u snc=%u snr=%d  snrr=%u\n", trans, snc, snr, SignalToNoiseRel);
 	
 	return Quality;
 }
@@ -1422,7 +1491,7 @@ static int handle_pmts(struct dvbca *ca)
 			dbgprintf(DEBUG_CI, "Failed to format PMT\n");
 			return -1;
 		}
-		dbgprintf(DEBUG_CI, "ci %u.%u: CA_PMT\n", ca->anum, ca->fnum, num);
+		dbgprintf(DEBUG_CI, "ci %u.%u: CA_PMT %u\n", ca->anum, ca->fnum, i);
 		dump(capmt, size);
 		if (en50221_app_ca_pmt(ca->stdcam->ca_resource, ca->stdcam->ca_session_number, capmt, size)) {
 			dbgprintf(DEBUG_CI, "Failed to send PMT\n");
@@ -1556,7 +1625,7 @@ static int proc_csock(struct dvbca *ca)
 	int len, i, res;
 	
 	if (ca->stdcam == NULL)
-		return;
+		return -1;
 	while ((len = recv(ca->sock, buf, 1, 0)) >= 0) {
 		if (len == 0) 
 			goto release;

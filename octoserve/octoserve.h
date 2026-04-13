@@ -19,7 +19,9 @@
 
 #ifndef _OCTOSERVE_H_
 #define _OCTOSERVE_H_
+#define _GNU_SOURCE
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -30,6 +32,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/queue.h>
+#include <sys/sendfile.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -532,8 +535,10 @@ void mc_del(struct ossess *sess);
 void send_igmp_query(struct octoserve *os, uint8_t *group, uint8_t timeout);
 void check_igmp(struct octoserve *os);
 
+int switch_set_multicast(uint8_t mac[6], uint8_t vec);
 int switch_test(void);
-int swich_get_port(uint8_t mac[6]);
+int switch_get_port(uint8_t mac[6]);
+int switch_set_entry(uint8_t mac[6], uint8_t vec, uint8_t type);
 
 int sectest(void);
 void handle_fe(struct dvbfe *fe);
@@ -546,5 +551,7 @@ int sendstring(int sock, char *fmt, ...);
 
 time_t mtime(time_t *t);
 int get_route(unsigned char *ip);
+
+void add_fd(int fd, int *mfd, fd_set *fds);
 
 #endif

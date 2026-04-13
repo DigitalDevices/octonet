@@ -629,7 +629,8 @@ int init_http(struct octoserve *os)
 	http->sock = streamsock("8888", AF_INET, &http->sadr);
 	if (listen(http->sock, 10) < 0) {
 		printf("http listen error");
-		return;
+		return -1;
 	}
 	pthread_create(&os->http.pt, NULL, (void *) handle_http, os);
+	return 0;
 }

@@ -127,7 +127,7 @@ static int get_mac(char *ifname, struct sockaddr *sadr, uint8_t *mac)
 	int s;
 
 	if (sadr->sa_family == AF_INET) 
-		get_route(&((struct sockaddr_in *) sadr)->sin_addr);
+		get_route((char *) &((struct sockaddr_in *) sadr)->sin_addr);
 
 	s = socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
@@ -176,7 +176,7 @@ static int ip2mac(uint8_t *ip, uint8_t *mac)
 	return 0;
 }
 
-static void add_fd(int fd, int *mfd, fd_set *fds)
+void add_fd(int fd, int *mfd, fd_set *fds)
 {
 	FD_SET(fd, fds);
 	if (fd > *mfd)
@@ -702,7 +702,7 @@ static void send_option(struct oscon *con)
 char *pol2str[] = {"", "v", "h", "r", "l", NULL};
 char *msys2str [] = {"", "undef", "dvbc", "j83b", "dvbt", "dss", "dvbs", "dvbs2", "dvbh",
 		      "isdbt", "isdbs", "isdbc", "atsc", "atscmh", "dtmb", "cmmb", "dab",
-		      "dvbt2", "turbo", "dvbcc", "dvbc2", NULL};
+		      "dvbt2", "turbo", "dvbcc", "dvbc2", "atsc3", NULL};
 char *mtype2str [] = {"", "qpsk", "16qam", "32qam",
 		      "64qam", "128qam", "256qam", 
 		      "autoqam", "8vsb", "16vsb", "8psk",
@@ -1215,7 +1215,7 @@ static int parse_url(struct oscon *con, int streamonly)
 				url += 5;
 				memset(p->pid, 0, 0x400);
 				do {
-					pid = strtoul(url, &end, 10);
+					pid = strtoul(url, &end, 0);
 					if (url == end) {
 						if (!strncasecmp(url, "all", 3)) {
 							memset(p->pid, 0xff, 0x400);
@@ -2828,7 +2828,7 @@ static struct octoserve *os_init(char *ifname, int nossdp, int nodms)
 		return NULL;
 	}
 #if 0
-	if (init_httpos, debug) < 0) {
+	if (init_http(os, debug) < 0) {
 		release_dvb(os);
 		free(os);
 		return NULL;
