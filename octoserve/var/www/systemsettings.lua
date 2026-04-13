@@ -181,7 +181,7 @@ if query ~= "" then
     end
     os.execute("/bin/sync >/dev/null 2>&1");
     if restart == 1 then 
-      os.execute("/etc/init.d/S99octo restartoctonet > /dev/null 2>&1 &")
+      os.execute("/etc/init.d/S99octo restartoctoserve > /dev/null 2>&1 &")
       nextloc = "wait.html?10"
     end
     if restartdms == 1 then

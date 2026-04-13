@@ -47,7 +47,7 @@ if( query == "sjiwjsiowjs" ) then
   os.execute("reboot")
 elseif( query == "restart_octo" ) then
   Rebooting = "true";
-  os.execute("/etc/init.d/S99octo restartoctonet")
+  os.execute("/etc/init.d/S99octo restartoctoserve")
 elseif( query == "restart_dms" ) then
   Rebooting = "true";
   os.execute("/etc/init.d/S92dms restart")

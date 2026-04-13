@@ -95,7 +95,7 @@ if DoUpdate then
         local csum2 = io.open(string.format("/config/%s",ShaFile)):read()
         csum1 = string.match(csum1,"(%x+)")
         csum2 = string.match(csum2,"(%x+)")
-        if csum1 == csum2 then
+	 if csum1 == csum2 then
           os.execute("lua /etc/switch/swsetup.lua gb yb");
           os.rename("/config/tmpimage",string.format("/config/%s",NewImage))
           os.remove(string.format("/config/%s",CurImage))
@@ -103,7 +103,7 @@ if DoUpdate then
           os.remove("/boot/uImage")
           os.execute("echo VerifyDone >/tmp/updatestatus")
         else
-          print("Error")
+         print("Error")
           os.remove("/config/tmpimage")
           os.remove(string.format("/config/%s",ShaFile))
           os.execute("echo VerifyError >/tmp/updatestatus")

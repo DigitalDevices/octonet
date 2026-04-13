@@ -3,6 +3,7 @@
 mc = {}
 
 local DebugFlag = true
+local socket = require("socket")
 
 function mc.CheckSignal()
   local tmp = io.open("/tmp/mc.signal")
