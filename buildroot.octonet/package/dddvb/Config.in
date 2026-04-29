@@ -1,0 +1,5 @@
+config BR2_PACKAGE_DDDVB
+bool "dddvb"
+        default y
+        help
+                http://www.digitaldevices.com
