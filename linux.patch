@@ -1,537 +1,540 @@
-diff -Naur linux-3.17.8/arch/arm/mach-at91/at91sam9g45_devices.c linux.octonet/arch/arm/mach-at91/at91sam9g45_devices.c
---- linux-3.17.8/arch/arm/mach-at91/at91sam9g45_devices.c	2015-01-08 19:28:01.000000000 +0100
-+++ linux.octonet/arch/arm/mach-at91/at91sam9g45_devices.c	2026-04-29 12:16:32.257921703 +0200
-@@ -304,7 +304,7 @@
- 	},
- };
- 
--static struct platform_device at91sam9g45_eth_device = {
-+struct platform_device at91sam9g45_eth_device = {
- 	.name		= "macb",
- 	.id		= -1,
- 	.dev		= {
-diff -Naur linux-3.17.8/arch/arm/mach-at91/board-octonet.c linux.octonet/arch/arm/mach-at91/board-octonet.c
---- linux-3.17.8/arch/arm/mach-at91/board-octonet.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux.octonet/arch/arm/mach-at91/board-octonet.c	2026-04-29 12:16:32.257921703 +0200
-@@ -0,0 +1,472 @@
-+/*
-+ *  Board-specific setup code for the AT91SAM9M10G45 Evaluation Kit family
-+ *
-+ *  Covers: * AT91SAM9G45-EKES  board
-+ *          * AT91SAM9M10G45-EK board
-+ *
-+ *  Copyright (C) 2009 Atmel Corporation.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ */
+diff -Naur linux-3.17.8/arch/arm/boot/dts/at91-octonet.dts linux.octonet.ok/arch/arm/boot/dts/at91-octonet.dts
+--- linux-3.17.8/arch/arm/boot/dts/at91-octonet.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux.octonet.ok/arch/arm/boot/dts/at91-octonet.dts	2026-04-29 21:29:53.270867704 +0200
+@@ -0,0 +1,299 @@
++/dts-v1/;
++#include "at91sam9g45.dtsi"
 +
-+#include <linux/types.h>
-+#include <linux/gpio.h>
-+#include <linux/init.h>
-+#include <linux/mm.h>
-+#include <linux/module.h>
-+#include <linux/platform_device.h>
-+#include <linux/spi/spi.h>
-+#include <linux/fb.h>
-+#include <linux/gpio_keys.h>
-+#include <linux/input.h>
-+#include <linux/leds.h>
-+#include <linux/atmel-mci.h>
-+#include <linux/delay.h>
-+#include <linux/netdevice.h>
-+#include <linux/phy.h>
-+#include <linux/interrupt.h>
-+#include <linux/input.h>
-+#include <net/dsa.h>
-+
-+#include <linux/platform_data/at91_adc.h>
-+
-+#include <mach/hardware.h>
-+#include <video/atmel_lcdc.h>
-+#include <media/soc_camera.h>
-+#include <media/atmel-isi.h>
-+
-+#include <asm/setup.h>
-+#include <asm/mach-types.h>
-+#include <asm/irq.h>
-+
-+#include <asm/mach/arch.h>
-+#include <asm/mach/map.h>
-+#include <asm/mach/irq.h>
-+
-+#include <mach/at91sam9_smc.h>
-+#include <mach/system_rev.h>
-+
-+#include "at91_aic.h"
-+#include "at91_shdwc.h"
-+#include "board.h"
-+#include "sam9_smc.h"
-+#include "generic.h"
-+#include "gpio.h"
-+
-+#include <linux/clk.h>
-+#include "clock.h"
-+
-+#define SCKCR (0xd50)
-+
-+static void set_alarm(void)
-+{
-+	void __iomem *r = ioremap(0xfffff000, 0x1000);
-+
-+	if (!r)
-+		return;
-+	writel(0x02, r + 0xdcc); /* reset ALARM clock state */
-+	iounmap(r);
-+}
-+
-+static void set_slowclock(void)
-+{
-+	void __iomem *r = ioremap(0xfffff000, 0x1000);
-+
-+	if (!r)
-+		return;
-+	//writel(0x02, r + 0xdcc); /* reset ALARM clock state */
-+        if (readl(r + SCKCR) == 1) {
-+                writel(0x03, r + SCKCR);
-+                mdelay(1400);
-+                writel(0x0b, r + SCKCR);
-+                mdelay(1);
-+                writel(0x0a, r + SCKCR);
-+        }
-+	iounmap(r);
-+}
++/ {
++	model = "Digital Devices OctopusNet";
++        compatible = "digitaldevices,octonet", "atmel,at91sam9m10g45", "atmel,at91sam9g45", "atmel,at91sam9";
 +
 +
-+static void __init octonet_init_early(void)
-+{
-+	/* Initialize processor: 12.000 MHz crystal */
-+	at91_initialize(12000000);
++	aliases {
++		serial0 = &dbgu_serial;
++	};
 +
-+	set_alarm();
-+}
++	chosen {
++		stdout-path = "serial0:115200n8";
++		bootargs = "console=ttyS0,115200 earlyprintk ubi.mtd=ubi root=ubi0:rootfs rootfstype=ubifs rw";
++	};
 +
-+/*
-+ * USB HS Host port (common to OHCI & EHCI)
-+ */
-+static struct at91_usbh_data __initdata ek_usbh_hs_data = {
-+	.ports		= 2,
-+	.vbus_pin	= {-1, -1},
-+	.vbus_pin_active_low = {1, 1},
-+	.overcurrent_pin= {-EINVAL, -EINVAL},
++	memory {
++		reg = <0x70000000 0x4000000>;
++	};
++
++        clocks {
++                #address-cells = <1>;
++                #size-cells = <1>;
++                ranges;
++
++                main_clock: clock@0 {
++                        compatible = "atmel,osc", "fixed-clock";
++                        clock-frequency = <12000000>;
++                };
++                slow_xtal: slow_xtal {
++                    compatible = "fixed-clock";
++                    #clock-cells = <0>;
++                    clock-frequency = <32768>;
++                };
++
++                main_xtal: main_xtal {
++                    compatible = "fixed-clock";
++                    #clock-cells = <0>;
++                    clock-frequency = <12000000>; /* 12MHz main clock */
++                };
++
++        };
++
++
++	ahb {
++		/* USB Host */
++		ohci@00700000 { status = "okay"; num-ports = <2>; };
++		ehci@00800000 { status = "okay"; num-ports = <2>; };
++
++		apb {
++                         pmc: pmc@fffffc00 {
++                             atmel,osc-bypass; /* Nur falls kein Quarz, sondern Oszillator */
++            
++                             slow_osc: slow_osc {
++                                 compatible = "atmel,at91sam9x5-clk-slow-osc";
++                                 #clock-cells = <0>;
++                                 clocks = <&slow_xtal>;       /* Referenz auf deinen Eintrag */
++                                 atmel,startup = <1400000>;   /* Ersetzt dein mdelay(1400) */
++                                 status = "okay";
++                             };
++                             slow_clk: slow_clk {
++                                 compatible = "atmel,at91sam9x5-clk-slow";
++                                 #clock-cells = <0>;
++                                 clocks = <&slow_osc>;
++                                 status = "okay";
++                             };
++            
++                             main_osc: main_osc {
++                                 atmel,startup = <12000>;
++                                 clocks = <&main_xtal>;
++                             };
++                         };
++			/* Serielle Konsole - nutzt Label dbgu_serial */
++        		dbgu_serial: serial@ffffee00 {
++                                compatible = "atmel,at91sam9260-usart";
++                                reg = <0xffffee00 0x200>;
++                                interrupts = <1 4 7>;
++                                pinctrl-names = "default";
++                                pinctrl-0 = < >; 
++                                /*  pinctrl-0 = <&pinctrl_dbgu_custom>; */
++				status = "okay";
++		        };
++
++			rtc: rtc@fffffdb0 {
++				compatible = "atmel,at91rm9200-rtc";
++				reg = <0xfffffdb0 0x10>;
++				interrupts = <1 4 7>;
++				status = "okay";
++			};
++
++			/* Ethernet (macb0) */
++/*			macb0: ethernet@fffbc000 {
++                                clock-frequency = <2500000>; 
++				phy-mode = "mii";
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_macb0_mii_custom>;
++				status = "okay";
++                                fixed-link = <0 1 100 0 0>;
++                                fixed_phy: ethernet-phy@1f {
++                                    reg = <0x1f>;
++                                };
++
++                                mdio0: mdio {
++                                         compatible = "atmel,macb-mdio"; 
++                                         #address-cells = <1>;
++                                         #size-cells = <0>;
++                                         status = "okay";
++                                };
++                                switch0: switch@0 {
++                                    compatible = "marvell,mv88e6085";
++                                    reg = <16>;
++                                };
++			};*/
++                        macb0: ethernet@fffbc000 {
++                                clock-frequency = <2500000>;
++                                phy-mode = "mii";
++                                pinctrl-names = "default";
++                                pinctrl-0 = <&pinctrl_macb0_mii_custom>;
++                                status = "okay";
++    
++                                /* Wichtig für 3.17: Das phy-handle beruhigt den Treiber */
++                                phy-handle = <&switch_phy>;
++                                fixed-link = <0 1 100 0 0>;
++
++                                mdio0: mdio {
++                                    #address-cells = <1>;
++                                    #size-cells = <0>;
++                                    status = "okay";
++
++                                    /* 1. Der Dummy-PHY (Adresse 31/0x1f), damit 'no PHY found' verschwindet */
++                                    fixed_phy: ethernet-phy@1f {
++                                        reg = <0x1f>;
++                                    };
++
++                                    /* 2. Der Switch-Chip (Adresse 16/0x10), den DSA sucht */
++                                    switch_phy: ethernet-phy@10 {
++                                        compatible = "marvell,mv88e6085";
++                                        reg = <16>;
++                                    };
++                                };
++                            };
++
++			/* --- VOLLSTÄNDIGE PINCTRL INITIALISIERUNG --- */
++			pinctrl@fffff200 {
++				#address-cells = <1>;
++				#size-cells = <1>;
++                                compatible = "atmel,at91sam9g45-pinctrl", "atmel,at91rm9200-pinctrl", "simple-bus";
++				ranges = <0xfffff200 0xfffff200 0xa00>;
++				atmel,mux-mask = <
++					0xffffffff 0xffc003ff  /* pioA */
++					0xffffffff 0x800f8f00  /* pioB */
++					0xffffffff 0x00000e00  /* pioC */
++		                        0xffffffff 0xff0c1381  /* pioD */
++		                        0xffffffff 0x81ffff81  /* pioE */
++				>;
++
++				/* Die GPIO-Bänke müssen Kinder von pinctrl sein */
++                                pck0 {
++                                        pinctrl_pck0_custom: pck0-0 {
++                                        atmel,pins = <
++                                        1 31 0x2 0x0   /* PB31, Periph B (PCK0), Kein Pull-Up */
++                                        >;
++                                     };
++                                };
++
++				macb {
++					pinctrl_macb0_mii_custom: macb_octo-0 {
++						atmel,pins = <
++                                                    0 10 0x0 0x0 0 11 0x0 0x0 0 12 0x0 0x0 0 13 0x0 0x0
++                                                    0 14 0x0 0x0 0 15 0x0 0x0 0 16 0x0 0x0 0 17 0x0 0x0
++                                                    0 18 0x0 0x0 0 19 0x0 0x0 
++                                                    0 21 0x0 0x0 /* PA21: MDIO (Peripheral A) - HIER NEU */
++                                                    0 22 0x0 0x0 /* PA22: MDC  (Peripheral A) - HIER NEU */
++                                                    0 27 0x1 0x0 0 28 0x1 0x0 0 29 0x1 0x0 0 30 0x1 0x0 0 31 0x1 0x0 
++                                                    1 11 0x0 0x0 1 12 0x0 0x0
++						>;
++					};
++				};
++
++				nand {
++					pinctrl_nand_custom: nand-0 {
++						atmel,pins = <2 8 0x0 0x0 2 14 0x0 0x0>;
++					};
++				};
++
++				keys {
++					pinctrl_octonet_keys: octonet_keys-0 {
++						atmel,pins = <2 12 0x0 0x1 2 15 0x0 0x10>;
++					};
++				};
++			}; /* Ende pinctrl */
++		}; /* Ende apb */
++
++                ebi: ebi@10000000 {
++                    compatible = "atmel,at91sam9g45-ebi", "simple-bus";
++                    #address-cells = <2>; /* <Chipselect Offset> */
++                    #size-cells = <1>;
++                    reg = <0x10000000 0x80>; /* Register des EBI-Controllers selbst */
++   		    atmel,matrix = <&matrix>;  
++                    /* Übersetzung: CS1 (0x30000000) auf CPU-Adresse mappen */
++                    ranges = <1 0x0 0x30000000 0x10000000>; 
++                    clocks = <&mck>; 
++                    status = "okay";
++
++                    octonet_dvb@1,0 {
++                        compatible = "digitaldevices,octonet-dvb";
++                        reg = <1 0x0 0x10000>; /* CS1, Offset 0, 64k Länge */
++                        atmel,smc-setup-read = <0>;
++                        atmel,smc-setup-write = <0>;
++                        atmel,smc-pulse-read = <4>;
++                        atmel,smc-pulse-write = <4>;
++                        atmel,smc-cycle-read = <7>;
++                        atmel,smc-cycle-write = <7>;
++                        atmel,smc-bus-width = <8>;
++                        atmel,smc-tdf-cycles = <3>;
++                        interrupt-parent = <&pioC>;
++                        interrupts = <15 3>; /* PC15 Level both edges */
++                        clocks = <&pck0>;
++                        clock-names = "pck0";
++                    };
++                };
++
++                matrix: matrix@ffffea00 {
++                    compatible = "atmel,at91sam9g45-matrix", "syscon";
++                    reg = <0xffffea00 0x200>;
++                };
++
++		nand@40000000 {
++			status = "okay";
++			pinctrl-names = "default";
++			pinctrl-0 = <&pinctrl_nand_custom>;
++			nand-bus-width = <8>;
++			nand-ecc-mode = "soft";
++			atmel,nand-has-pmecc = <0>;
++			nand-ecc-step-size = <512>;
++			nand-ecc-strength = <8>;
++			atmel,rb-gpio = <&pioC 8 0>;
++			cs-gpios = <&pioC 14 0>;
++			atmel,smc-setup-read = <0>;
++			atmel,smc-setup-write = <0>;
++			atmel,smc-pulse-read = <4>;
++			atmel,smc-pulse-write = <4>;
++			atmel,smc-cycle-read = <7>;
++			atmel,smc-cycle-write = <7>;
++			boot@0 { label = "boot"; reg = <0x0 0x100000>; };
++			linux@100000 { label = "linux"; reg = <0x100000 0x1f00000>; };
++			ubi@2000000 { label = "ubi"; reg = <0x2000000 0x0>; };
++		};
++	};
++        dsa@0 {
++            compatible = "marvell,dsa";
++            #address-cells = <2>;
++            #size-cells = <0>;
++
++            /* Link zum Ethernet-Controller (Host) */
++            dsa,ethernet = <&macb0>;
++            /* Link zum MDIO-Bus, an dem der Switch hängt */
++            dsa,mii-bus = <&mdio0>; 
++
++            switch@0 {
++                #address-cells = <1>;
++                #size-cells = <0>;
++                /* Die MDIO-Adresse des Switches (hier 0). 
++                   Der zweite Wert (0) ist die Switch-ID im Baum. */
++                reg = <16 0>; 
++
++                ports {
++                    #address-cells = <1>;
++                    #size-cells = <0>;
++
++                    port@0 { reg = <0>; label = "lan1"; };
++                    port@1 { reg = <1>; label = "lan2"; };
++                    port@2 { reg = <2>; label = "lan3"; };
++                    port@3 { reg = <3>; label = "lan4"; };
++                    port@4 { reg = <4>; label = "lan5"; };
++                    port@5 { reg = <5>; label = "cpu";  };
++                };
++            };
++        };
++
++	gpio_keys {
++		compatible = "gpio-keys";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_octonet_keys>;
++		power {
++			label = "power";
++			gpios = <&pioC 12 1>;
++			linux,code = <116>;
++			gpio-key,wakeup;
++		};
++	};
 +};
-+
-+
-+/*
-+ * USB HS Device port
-+ */
-+static struct usba_platform_data __initdata ek_usba_udc_data = {
-+	.vbus_pin	= AT91_PIN_PB19,
-+};
-+
-+/*
-+ * MACB Ethernet device
-+ */
-+static struct macb_platform_data __initdata ek_macb_data = {
-+	.phy_irq_pin	= 0,
-+	.is_rmii	= 0,
-+};
-+
-+/*
-+ * NAND flash
-+ */
-+static struct mtd_partition __initdata ek_nand_partition[] = {
-+	{
-+		.name	= "boot",
-+		.offset	= 0,
-+		.size	= 0x100000,
-+	},
-+	{
-+		.name	= "linux",
-+		.offset	= MTDPART_OFS_NXTBLK,
-+		.size	= 0x1f00000,
-+	},
-+	{
-+		.name	= "ubi",
-+		.offset	= MTDPART_OFS_NXTBLK,
-+		.size	= MTDPART_SIZ_FULL,
-+	},
-+};
-+
-+static struct atmel_nand_data __initdata ek_nand_data = {
-+	.ale		= 21,
-+	.cle		= 22,
-+	.rdy_pin	= AT91_PIN_PC8,
-+	.enable_pin	= AT91_PIN_PC14,
-+	.det_pin	= -EINVAL,
-+	.ecc_mode	= NAND_ECC_SOFT_BCH,
-+	.ecc_size	= 512,
-+	.ecc_bytes	= 13,
-+	.on_flash_bbt	= 1,
-+	.parts		= ek_nand_partition,
-+	.num_parts	= ARRAY_SIZE(ek_nand_partition),
-+	.bus_width_16	= 0,
-+};
-+
-+static struct sam9_smc_config __initdata ek_nand_smc_config = {
-+	.ncs_read_setup		= 0,
-+	.nrd_setup		= 2,
-+	.ncs_write_setup	= 0,
-+	.nwe_setup		= 2,
-+
-+	.ncs_read_pulse		= 4,
-+	.nrd_pulse		= 4,
-+	.ncs_write_pulse	= 4,
-+	.nwe_pulse		= 4,
-+
-+	.read_cycle		= 7,
-+	.write_cycle		= 7,
-+
-+	.mode			= AT91_SMC_READMODE | AT91_SMC_WRITEMODE | AT91_SMC_EXNWMODE_DISABLE,
-+	.tdf_cycles		= 3,
-+};
-+
-+static void __init ek_add_device_nand(void)
-+{
-+	/* setup bus-width (8 or 16) */
-+	if (ek_nand_data.bus_width_16)
-+		ek_nand_smc_config.mode |= AT91_SMC_DBW_16;
-+	else
-+		ek_nand_smc_config.mode |= AT91_SMC_DBW_8;
-+
-+	/* configure chip-select 3 (NAND) */
-+	sam9_smc_configure(0, 3, &ek_nand_smc_config);
-+
-+	at91_add_device_nand(&ek_nand_data);
-+}
-+
-+static struct resource octonet_dvb_resources[2] = { 
-+        [0] = { 
-+                .start  = 0x30000000, 
-+                .end    = 0x30000000 + SZ_64K - 1, 
-+                .flags  = IORESOURCE_MEM, 
-+        }, 
-+        [1] = { 
-+                .start  = 0,
-+                .end    = 0,
-+                .flags  = IORESOURCE_IRQ, 
-+        }, 
-+}; 
-+
-+static void octonet_dvb_release(struct device *dev)
-+{
-+
-+}
-+
-+static struct platform_device octonet_dvb_device = { 
-+        .name           = "octonet-dvb", 
-+        .id             = 0, 
-+        .dev            = { 
-+		.release           = octonet_dvb_release,
-+        }, 
-+        .resource       = octonet_dvb_resources, 
-+        .num_resources  = ARRAY_SIZE(octonet_dvb_resources), 
-+}; 
-+
-+static void __init add_octonet_dvb(void)
-+{
-+	u32 gpio = AT91_PIN_PC15;
-+
-+	at91_set_GPIO_periph(gpio, 0);
-+	at91_set_gpio_input(gpio, 0);
-+	at91_set_deglitch(gpio, 0);
-+	octonet_dvb_device.resource[1].start = gpio_to_irq(gpio);
-+	octonet_dvb_device.resource[1].end = gpio_to_irq(gpio);
-+	platform_device_register(&octonet_dvb_device);
-+}
-+
-+
-+static struct gpio_keys_button octonet_buttons[] = {
-+	{
-+		.code		= KEY_POWER,
-+		.gpio		= AT91_PIN_PC12,
-+		.active_low	= 1,
-+		.desc		= "power",
-+		.wakeup		= 1,
-+		.type           = EV_KEY,
-+	},
-+};
-+
-+static struct gpio_keys_platform_data octonet_button_data = {
-+	.buttons	= octonet_buttons,
-+	.nbuttons	= ARRAY_SIZE(octonet_buttons),
-+};
-+
-+static struct platform_device octonet_button_device = {
-+	.name		= "gpio-keys",
-+	.id		= -1,
-+	.num_resources	= 0,
-+	.dev		= {
-+		.platform_data	= &octonet_button_data,
-+	}
-+};
-+
-+static void __init octonet_add_buttons(void)
-+{
-+	int i;
-+	
-+	for (i = 0; i < ARRAY_SIZE(octonet_buttons); i++) {
-+		at91_set_GPIO_periph(octonet_buttons[i].gpio, 1);
-+		at91_set_deglitch(octonet_buttons[i].gpio, 1);
-+	}
-+	platform_device_register(&octonet_button_device);
-+}
-+
-+
-+static struct input_dev *pwr;
-+static struct timer_list pwr_timer;
-+
-+static void pwr_timer_func(unsigned long ptr)
-+{
-+	input_event(pwr, EV_KEY, KEY_POWER, 1);
-+	input_event(pwr, EV_KEY, KEY_POWER, 0);
-+	input_sync(pwr);
-+}
-+
-+
-+#if 0
-+static irqreturn_t pwr_irq(int irq, void *dev_id) 
-+{
-+	u32 val = gpio_get_value(AT91_PIN_PC12);
-+	static int sw = 0;
-+
-+	if (val & 1) {
-+		if (del_timer(&pwr_timer)) {
-+			sw ^= 1;
-+			input_event(pwr, EV_KEY, KEY_PAUSE, sw);
-+			input_sync(pwr);
-+		}
-+	} else {
-+		mod_timer(&pwr_timer, jiffies + 3 * HZ);
-+	}
-+	//input_event(pwr, EV_KEY, KEY_POWER, val ^ 1);
-+	//input_sync(pwr);
-+	return IRQ_HANDLED;
-+}
-+#else
-+static irqreturn_t pwr_irq(int irq, void *dev_id) 
-+{
-+	u32 val = gpio_get_value(AT91_PIN_PC12);
-+	static int sw = 0;
-+
-+	input_event(pwr, EV_KEY, KEY_POWER, val ^ 1);
-+	input_sync(pwr);
-+	return IRQ_HANDLED;
-+}
-+#endif
-+
-+static void __init add_octonet_button(void)
-+{
-+	u32 gpio = AT91_PIN_PC12;
-+	u32 irq;
-+
-+	at91_set_GPIO_periph(gpio, 0);
-+	at91_set_gpio_input(gpio, 0);
-+	at91_set_deglitch(gpio, 0);
-+
-+	init_timer(&pwr_timer);
-+	pwr_timer.function = pwr_timer_func;
-+	pwr_timer.data = 0;
-+	pwr = input_allocate_device();
-+	if (!pwr) {
-+		printk("could not allocate input device\n");
-+		return;
-+	}
-+
-+	set_bit(EV_KEY, pwr->evbit);
-+	set_bit(KEY_POWER, pwr->keybit);
-+	set_bit(KEY_PAUSE, pwr->keybit);
-+	pwr->name = "octonet_pwr";
-+	pwr->phys = "octonet_pwr/input0";
-+
-+	irq = gpio_to_irq(gpio);
-+	request_irq(irq, pwr_irq, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "pwr", NULL);
-+
-+	input_register_device(pwr);
-+}
-+
-+static struct dsa_chip_data switch_chip_data = {
-+	.port_names[0]	= "lan1",
-+	.port_names[1]	= "lan2",
-+	.port_names[2]	= "lan3",
-+	.port_names[3]	= "lan4",
-+	.port_names[4]	= "lan5",
-+	.port_names[5]	= "cpu",
-+	.port_names[6]	= "fpga",
-+};
-+
-+static struct dsa_platform_data switch_data = {
-+	.nr_chips	= 1,
-+	.chip		= &switch_chip_data,
-+};
-+
-+static struct resource switch_resources[] = {
-+	{
-+		.start	= 0,
-+		.end	= 0,
-+		.flags	= IORESOURCE_IRQ,
-+	},
-+};
-+
-+static struct platform_device switch_device = {
-+	.name		= "dsa",
-+	.id		= 0,
-+	.num_resources	= 0,
-+	.resource	= switch_resources,
-+	.dev.platform_data  = &switch_data,
-+};
-+
-+extern struct platform_device at91sam9g45_eth_device;
-+
-+static void __init add_switch(void)
-+{
-+	int i;
-+	struct platform_device *pdev = &at91sam9g45_eth_device;
-+	struct net_device *netdev = platform_get_drvdata(pdev);
-+	struct mii_bus *mii = (struct mii_bus *) dev_get_drvdata(&netdev->dev);
-+
-+//	printk("%08x %08x %08x\n", (u32) pdev, (u32) netdev, (u32) &netdev->dev);
-+	switch_data.netdev = &netdev->dev;
-+	for (i=0; i<5; i++)
-+		switch_data.chip[i].mii_bus = &mii->dev;
-+	platform_device_register(&switch_device);
-+}
-+
-+
-+
-+static void set_pck(void)
-+{
-+	struct clk *pck0, *mck;
-+	int res;
-+
-+	pck0 = clk_get(NULL, "pck0");
-+
-+	clk_enable(pck0);
-+	return;
-+
-+
-+	mck = clk_get(NULL, "mck");
-+	at91_set_A_periph(AT91_PIN_PD26, 0);
-+
-+	printk("pck=%08x %d,  mck=%08x %d\n", 
-+	       (u32) pck0, pck0->type, (u32) mck, mck->type);
-+
-+	res = clk_set_parent(pck0, mck);
-+	printk("set_parent = %d\n", res);
-+	//clk_put(mck);
-+
-+}
-+
-+#include <mach/at91sam9g45_matrix.h>
-+#include <mach/at91_matrix.h>
-+
-+#undef AT91_SCKCR 
-+#define AT91_SCKCR (void __iomem *)(0xfffffd50)
-+
-+static void octonet_init(void)
-+{
-+  //at91_matrix_write(AT91_MATRIX_EBICSA, 0x0001000a);
-+
-+	/* DGBU on ttyS0. (Rx & Tx only) */
-+	at91_register_uart(0, 0, 0);
-+	at91_add_device_serial();
-+
-+	/* USB HS Host */
-+	at91_add_device_usbh_ohci(&ek_usbh_hs_data);
-+	at91_add_device_usbh_ehci(&ek_usbh_hs_data);
-+	/* USB HS Device */
-+	//at91_add_device_usba(&ek_usba_udc_data);
-+	/* Ethernet */
-+	at91_add_device_eth(&ek_macb_data);
-+
-+	at91_set_gpio_input(AT91_PIN_PA19, 0);	
-+	at91_set_gpio_input(AT91_PIN_PA18, 0);
-+
-+	at91_matrix_write(AT91_MATRIX_SCFG4, (8<<18)|(2<<16));
-+	at91_matrix_write(AT91_MATRIX_PRBS4, 0x00000003);
-+	//at91_matrix_write(AT91_MATRIX_SCFG5, (8<<18)|(2<<16));
-+	//at91_matrix_write(AT91_MATRIX_PRBS5, 0x00000003);
-+	//at91_matrix_write(AT91_MATRIX_VIDEO, AT91C_VDEC_SEL_OFF);
-+	ek_add_device_nand();
-+	//at91_add_device_i2c(0, NULL, 0);
-+	add_octonet_dvb();
-+
-+	set_pck();
-+
-+	at91_shdwc_write(AT91_SHDW_MR, 0x30003);
-+	//octonet_add_buttons();
-+	set_slowclock();
-+}
-+
-+static void octonet_init_late(void)
-+{
-+	add_switch();
-+	add_octonet_button();
-+}
-+
-+MACHINE_START(NAXY400, "DigitalDevices OctopusNet")
-+	.init_time	= at91sam926x_pit_init,
-+	.map_io		= at91_map_io,
-+	.handle_irq	= at91_aic_handle_irq,
-+	.init_early	= octonet_init_early,
-+	.init_irq	= at91_init_irq_default,
-+	.init_machine	= octonet_init,
-+	.init_late	= octonet_init_late,
-+MACHINE_END
-diff -Naur linux-3.17.8/arch/arm/mach-at91/Kconfig.non_dt linux.octonet/arch/arm/mach-at91/Kconfig.non_dt
---- linux-3.17.8/arch/arm/mach-at91/Kconfig.non_dt	2015-01-08 19:28:01.000000000 +0100
-+++ linux.octonet/arch/arm/mach-at91/Kconfig.non_dt	2026-04-29 12:16:32.257921703 +0200
-@@ -319,6 +319,11 @@
- 	  families: AT91SAM9G45, AT91SAM9G46, AT91SAM9M10 and AT91SAM9M11.
- 	  <http://www.atmel.com/tools/SAM9M10-G45-EK.aspx>
- 
-+config MACH_OCTONET
-+	bool "OctoNet"
-+	help
-+	  OctoNet
-+
- endif
- 
- # ----------------------------------------------------------
-diff -Naur linux-3.17.8/arch/arm/mach-at91/Makefile linux.octonet/arch/arm/mach-at91/Makefile
++&pioA { status = "okay"; };
++&pioB { status = "okay"; };
++&pioC { status = "okay"; };
++&pioD { status = "okay"; };
++&pioE { status = "okay"; };
++
+diff -Naur linux-3.17.8/arch/arm/boot/dts/Makefile linux.octonet.ok/arch/arm/boot/dts/Makefile
+--- linux-3.17.8/arch/arm/boot/dts/Makefile	2015-01-08 19:28:01.000000000 +0100
++++ linux.octonet.ok/arch/arm/boot/dts/Makefile	2026-04-29 21:20:49.754867704 +0200
+@@ -16,6 +16,8 @@
+ dtb-$(CONFIG_ARCH_AT91) += at91sam9261ek.dtb
+ # sam9263
+ dtb-$(CONFIG_ARCH_AT91) += at91sam9263ek.dtb
++dtb-$(CONFIG_ARCH_AT91) += at91-octonet.dtb
++
+ dtb-$(CONFIG_ARCH_AT91) += tny_a9263.dtb
+ dtb-$(CONFIG_ARCH_AT91) += usb_a9263.dtb
+ # sam9g20
+diff -Naur linux-3.17.8/arch/arm/mach-at91/Makefile linux.octonet.ok/arch/arm/mach-at91/Makefile
 --- linux-3.17.8/arch/arm/mach-at91/Makefile	2015-01-08 19:28:01.000000000 +0100
-+++ linux.octonet/arch/arm/mach-at91/Makefile	2026-04-29 12:16:32.257921703 +0200
-@@ -80,6 +80,7 @@
++++ linux.octonet.ok/arch/arm/mach-at91/Makefile	2026-04-29 21:20:49.946867704 +0200
+@@ -2,7 +2,7 @@
+ # Makefile for the linux kernel.
+ #
  
- # AT91SAM9G45 board-specific support
- obj-$(CONFIG_MACH_AT91SAM9M10G45EK) += board-sam9m10g45ek.o
-+obj-$(CONFIG_MACH_OCTONET) += board-octonet.o
+-obj-y		:= irq.o gpio.o setup.o sysirq_mask.o
++obj-y		:= irq.o gpio.o setup.o sysirq_mask.o octonet_hw_init.o
+ obj-m		:=
+ obj-n		:=
+ obj-		:=
+diff -Naur linux-3.17.8/arch/arm/mach-at91/octonet_hw_init.c linux.octonet.ok/arch/arm/mach-at91/octonet_hw_init.c
+--- linux-3.17.8/arch/arm/mach-at91/octonet_hw_init.c	1970-01-01 01:00:00.000000000 +0100
++++ linux.octonet.ok/arch/arm/mach-at91/octonet_hw_init.c	2026-04-29 21:20:49.942867704 +0200
+@@ -0,0 +1,87 @@
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/delay.h>
++
++/* Physikalische Basisadresse der Matrix beim AT91SAM9G45 */
++#define AT91_MATRIX_PHYS_BASE 0xffffea00
++#define AT91_MATRIX_SCFG4     0x40
++#define AT91_MATRIX_PRBS4     0x84
++
++/* Shutdown Controller */
++#define AT91_SHDW_PHYS_BASE   0xfffffd10
++#define AT91_SHDW_MR          0x04
++
++static int __init octonet_hw_init_safe(void)
++{
++    void __iomem *matrix;
++    void __iomem *shdw;
++
++    pr_info("Octonet: Late Hardware Fixup...\n");
++
++    /* Matrix-Mapping */
++    matrix = ioremap(AT91_MATRIX_PHYS_BASE, 0x200);
++    if (matrix) {
++        writel((8 << 18) | (2 << 16), matrix + AT91_MATRIX_SCFG4);
++        writel(0x00000003, matrix + AT91_MATRIX_PRBS4);
++        iounmap(matrix);
++        pr_info("Octonet: Matrix registers set.\n");
++    }
++
++    /* Shutdown-Mapping */
++    shdw = ioremap(AT91_SHDW_PHYS_BASE, 0x10);
++    if (shdw) {
++        writel(0x30003, shdw + AT91_SHDW_MR);
++        iounmap(shdw);
++        pr_info("Octonet: Shutdown controller set.\n");
++    }
++
++    return 0;
++}
++
++static int __init octonet_final_fixup(void)
++{
++    void __iomem *r;
++
++    pr_info("Octonet: Starting Combined Hardware Fixup\n");
++
++    /* 1. Matrix Fixup: CPU Priority on System Bus */
++    r = ioremap(0xffffea00, 0x200);
++    if (r) {
++        writel((8 << 18) | (2 << 16), r + 0x50); // SCFG4
++        writel(0x00000003, r + 0xa0);           // PRBS4
++        iounmap(r);
++        pr_info("Octonet: Bus Matrix priority set\n");
++    }
++
++    /* 2. Shutdown & Alarm Fixup */
++    r = ioremap(0xfffffd10, 0x100);
++    if (r) {
++        writel(0x30003, r + 0x04); // SHDW_MR
++        writel(0x02, r + 0xbc);    // Alarm Reset (Offset von fffffd10 aus gesehen)
++        iounmap(r);
++        pr_info("Octonet: Shutdown & Alarm fixed\n");
++    }
++
++    /* 3. Slow Clock Fixup (Die 1.4s Sequenz) */
++    r = ioremap(0xfffffd50, 0x4);
++    if (r) {
++        if (readl(r) == 1) {
++            pr_info("Octonet: Starting Slow Clock XTAL sync (1.4s)...\n");
++            writel(0x03, r); mdelay(1400);
++            writel(0x0b, r); mdelay(1);
++            writel(0x0a, r);
++            pr_info("Octonet: Slow Clock XTAL stable\n");
++        }
++        iounmap(r);
++    }
++
++    return 0;
++}
++arch_initcall(octonet_final_fixup);
++
++/* subsys_initcall läuft spät genug für ioremap, aber vor den Treibern */
++//subsys_initcall(octonet_hw_init_safe);
++
++MODULE_LICENSE("GPL");
++
+diff -Naur linux-3.17.8/drivers/mtd/nand/atmel_nand.c linux.octonet.ok/drivers/mtd/nand/atmel_nand.c
+--- linux-3.17.8/drivers/mtd/nand/atmel_nand.c	2015-01-08 19:28:01.000000000 +0100
++++ linux.octonet.ok/drivers/mtd/nand/atmel_nand.c	2026-04-29 21:20:45.566867704 +0200
+@@ -2184,6 +2184,21 @@
+ 			dev_err(host->dev, "Disable use nfc sram for data transfer.\n");
+ 		}
+ 	}
++        /* Octonet Fix: Force large OOB support for Micron chips */
++        if (mtd->oobsize > 64) {
++            dev_info(&pdev->dev, "\nOctonet: Applying 224-byte OOB layout fix\n");
++            
++            /* Wir nutzen ein vordefiniertes großes Layout des Kernels */
++            /* Falls 'nand_oob_large' nicht existiert, nutzen wir 'nand_oob_64' 
++               und biegen die Größe manuell um */
++            host->nand_chip.ecc.mode = NAND_ECC_SOFT_BCH;
++    
++            /* Dieser Schritt verhindert den BUG() in nand_base.c */
++            host->nand_chip.ecc.layout = NULL; 
++            host->nand_chip.ecc.steps = mtd->writesize / 512;
++            host->nand_chip.ecc.size = 512;
++            host->nand_chip.ecc.bytes = 13; // Deine alten C-Code Werte
++        }
  
- # AT91SAM board with device-tree
- obj-$(CONFIG_MACH_AT91RM9200_DT) += board-dt-rm9200.o
-diff -Naur linux-3.17.8/arch/arm/tools/mach-types linux.octonet/arch/arm/tools/mach-types
---- linux-3.17.8/arch/arm/tools/mach-types	2015-01-08 19:28:01.000000000 +0100
-+++ linux.octonet/arch/arm/tools/mach-types	2026-04-29 12:16:32.257921703 +0200
-@@ -517,6 +517,7 @@
- cm_a510			MACH_CM_A510		CM_A510			3020
- tx28			MACH_TX28		TX28			3043
- pcontrol_g20		MACH_PCONTROL_G20	PCONTROL_G20		3062
-+naxy400			MACH_NAXY400		NAXY400			3085
- vpr200			MACH_VPR200		VPR200			3087
- torbreck		MACH_TORBRECK		TORBRECK		3090
- prima2_evb		MACH_PRIMA2_EVB		PRIMA2_EVB		3103
-diff -Naur linux-3.17.8/include/linux/platform_data/atmel.h linux.octonet/include/linux/platform_data/atmel.h
---- linux-3.17.8/include/linux/platform_data/atmel.h	2015-01-08 19:28:01.000000000 +0100
-+++ linux.octonet/include/linux/platform_data/atmel.h	2026-04-29 13:38:30.561921703 +0200
-@@ -75,6 +75,8 @@
+ 	/* second phase scan */
+ 	if (nand_scan_tail(mtd)) {
+diff -Naur linux-3.17.8/drivers/net/ethernet/cadence/macb.c linux.octonet.ok/drivers/net/ethernet/cadence/macb.c
+--- linux-3.17.8/drivers/net/ethernet/cadence/macb.c	2015-01-08 19:28:01.000000000 +0100
++++ linux.octonet.ok/drivers/net/ethernet/cadence/macb.c	2026-04-29 21:20:45.666867704 +0200
+@@ -316,6 +316,7 @@
+ 	int phy_irq;
+ 	int ret;
  
- 	/* default is false, only for at32ap7000 chip is true */
- 	bool		need_reset_workaround;
-+ 	int             ecc_size;
-+ 	int             ecc_bytes;
- };
++#ifndef CONFIG_OCTONET_DT
+ 	phydev = phy_find_first(bp->mii_bus);
+ 	if (!phydev) {
+ 		netdev_err(dev, "no PHY found\n");
+@@ -351,7 +352,7 @@
+ 	bp->speed = 0;
+ 	bp->duplex = -1;
+ 	bp->phy_dev = phydev;
+-
++#endif
+ 	return 0;
+ }
  
-  /* Serial */
+@@ -1714,9 +1715,11 @@
+ 	/* carrier starts down */
+ 	netif_carrier_off(dev);
+ 
++#ifndef CONFIG_OCTONET_DT
+ 	/* if the phy is not yet register, retry later*/
+ 	if (!bp->phy_dev)
+ 		return -EAGAIN;
++#endif
+ 
+ 	/* RX buffers initialization */
+ 	macb_init_rx_buffer_size(bp, bufsz);
+@@ -1733,8 +1736,20 @@
+ 	bp->macbgem_ops.mog_init_rings(bp);
+ 	macb_init_hw(bp);
+ 
++#ifdef CONFIG_OCTONET_DT
++	{
++		u32 reg;
++		
++		reg = macb_readl(bp, NCFGR);
++		reg |= MACB_BIT(FD);
++		reg |= MACB_BIT(SPD);
++		macb_writel(bp, NCFGR, reg);
++	}
++	netif_carrier_on(dev);
++#else
+ 	/* schedule a link state check */
+ 	phy_start(bp->phy_dev);
++#endif
+ 
+ 	netif_start_queue(dev);
+ 
+@@ -1936,10 +1951,14 @@
+ 	if (!netif_running(dev))
+ 		return -EINVAL;
+ 
++#ifdef CONFIG_OCTONET_DT
++	return 0;
++#else
+ 	if (!phydev)
+ 		return -ENODEV;
+ 
+ 	return phy_mii_ioctl(phydev, rq, cmd);
++#endif
+ }
+ EXPORT_SYMBOL_GPL(macb_ioctl);
+ 
+@@ -2234,10 +2253,28 @@
+ 		    macb_is_gem(bp) ? "GEM" : "MACB", dev->base_addr,
+ 		    dev->irq, dev->dev_addr);
+ 
++#ifndef CONFIG_OCTONET_DT
+ 	phydev = bp->phy_dev;
+ 	netdev_info(dev, "attached PHY driver [%s] (mii_bus:phy_addr=%s, irq=%d)\n",
+ 		    phydev->drv->name, dev_name(&phydev->dev), phydev->irq);
++#endif
++#ifdef CONFIG_OCTONET_DT
++	printk("OctoNet fixed to 100Mbit duplex\n");
++	bp->link = 1;
++	bp->speed = SPEED_100;
++	bp->duplex = DUPLEX_FULL;
++	{
++		u32 reg;
++		
++		reg = macb_readl(bp, NCFGR);
++		reg |= MACB_BIT(FD);
++		reg |= MACB_BIT(SPD);
++		macb_writel(bp, NCFGR, reg);
+ 
++	}
++	macb_writel(bp, USRIO, MACB_BIT(CLKEN));
++	netif_carrier_on(dev);
++#endif
+ 	return 0;
+ 
+ err_out_unregister_netdev:
