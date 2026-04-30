@@ -1,0 +1,181 @@
+From da7a18a5e52705925d6f81a56fac65132486771d Mon Sep 17 00:00:00 2001
+From: Alexander Streit <streitalex@proton.me>
+Date: Wed, 29 Apr 2026 08:37:33 +0200
+Subject: [PATCH 1/2] needed for Octonet build based on 0.9.38 to resolve
+ module dependencies and fix demodulator issues
+
+---
+ Makefile                  |  4 ++--
+ ddbridge/Kbuild           |  4 ++--
+ ddbridge/Makefile         |  2 +-
+ ddbridge/octonet-main.c   | 24 ++++++++----------------
+ ddbridge/octonet_compat.h | 30 ++++++++++++++++++++++++++++++
+ 5 files changed, 43 insertions(+), 21 deletions(-)
+ create mode 100644 ddbridge/octonet_compat.h
+
+diff --git a/Makefile b/Makefile
+index 3040e6c..c48720d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -3,7 +3,7 @@ MDIR	?=
+ KDIR	?= /lib/modules/$(kernelver)/build
+ PWD	:= $(shell pwd)
+ 
+-MODDEFS := CONFIG_DVB_CORE=m CONFIG_DVB_DDBRIDGE=m CONFIG_DVB_DRXK=m CONFIG_DVB_TDA18271C2DD=m CONFIG_DVB_CXD2099=m CONFIG_DVB_LNBP21=m  CONFIG_DVB_STV090x=m CONFIG_DVB_STV6110x=m CONFIG_DVB_STV0367=m CONFIG_DVB_TDA18212=m CONFIG_DVB_STV0367DD=m CONFIG_DVB_TDA18212DD=m CONFIG_DVB_OCTONET=m CONFIG_DVB_CXD2843=m CONFIG_DVB_STV0910=m CONFIG_DVB_STV6111=m CONFIG_DVB_LNBH25=m CONFIG_DVB_MXL5XX=m CONFIG_DVB_NET=y DDDVB=y
++MODDEFS := CONFIG_DVB_CORE=m CONFIG_DVB_DRXK=m CONFIG_DVB_TDA18271C2DD=m CONFIG_DVB_CXD2099=m CONFIG_DVB_LNBP21=m  CONFIG_DVB_STV090x=m CONFIG_DVB_STV6110x=m CONFIG_DVB_STV0367=m CONFIG_DVB_TDA18212=m CONFIG_DVB_STV0367DD=m CONFIG_DVB_TDA18212DD=m CONFIG_DVB_OCTONET=m CONFIG_DVB_CXD2843=m CONFIG_DVB_STV0910=m CONFIG_DVB_STV6111=m CONFIG_DVB_LNBH25=m CONFIG_DVB_MXL5XX=m CONFIG_DVB_NET=y DDDVB=y
+ 
+ KBUILD_EXTMOD = $(PWD)
+ 
+@@ -34,7 +34,7 @@ install: all
+ 	depmod $(kernelver)
+ 
+ clean:
+-	rm -rf */.*.o.d */*.o */*.ko */*.mod.c */.*.cmd .tmp_versions Module* modules*
++	rm -rf */.*.o.d */*.o */*.ko */*.mod.c */.*.cmd .tmp_versions Module* modules* *.order */*.order
+ 	$(MAKE) -C apps clean
+ 
+ 
+diff --git a/ddbridge/Kbuild b/ddbridge/Kbuild
+index cec6ff1..4e82c76 100644
+--- a/ddbridge/Kbuild
++++ b/ddbridge/Kbuild
+@@ -2,7 +2,7 @@ EXTRA_CFLAGS += -DCONFIG_DVB_CXD2843 -DCONFIG_DVB_LNBP21 -DCONFIG_DVB_STV090x -D
+ 
+ ddbridge-objs = ddbridge-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o ddbridge-io.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
+ 
+-octonet-objs = octonet-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o ddbridge-io.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
++octonet-objs = octonet-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-core.o ddbridge-io.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
+ 
+ #mci-objs = ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o ddbridge-io.o
+ 
+@@ -14,4 +14,4 @@ endif
+ 
+ #EXTRA_CFLAGS += -Idrivers/media/dvb/frontends -Idrivers/media/dvb-frontends
+ #EXTRA_CFLAGS += -Idrivers/media/common/tuners
+-#NOSTDINC_FLAGS += -I$(KBUILD_EXTMOD)/frontends -I$(KBUILD_EXTMOD)/include -I$(KBUILD_EXTMOD)/dvb-core
+\ No newline at end of file
++#NOSTDINC_FLAGS += -I$(KBUILD_EXTMOD)/frontends -I$(KBUILD_EXTMOD)/include -I$(KBUILD_EXTMOD)/dvb-core
+diff --git a/ddbridge/Makefile b/ddbridge/Makefile
+index f67e85b..5b77c3b 100644
+--- a/ddbridge/Makefile
++++ b/ddbridge/Makefile
+@@ -4,7 +4,7 @@
+ #NOSTDINC_FLAGS += -I$(KBUILD_EXTMOD)/include -I$(KBUILD_EXTMOD)/include/linux -I$(KBUILD_EXTMOD)/dvb-frontends -I$(KBUILD_EXTMOD)/tuners
+ 
+ ddbridge-objs = ddbridge-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
+-octonet-objs = octonet-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
++octonet-objs = octonet-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-core.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
+ 
+ obj-$(CONFIG_DVB_DDBRIDGE) += ddbridge.o
+ 
+diff --git a/ddbridge/octonet-main.c b/ddbridge/octonet-main.c
+index 98efd72..d31face 100644
+--- a/ddbridge/octonet-main.c
++++ b/ddbridge/octonet-main.c
+@@ -23,6 +23,10 @@
+ 
+ #include "ddbridge.h"
+ #include "ddbridge-io.h"
++#include <linux/mfd/syscon.h>
++#include <linux/regmap.h>
++#include <linux/err.h>        /* Für IS_ERR() */
++#include "octonet_compat.h"
+ 
+ static int __exit octonet_remove(struct platform_device *pdev)
+ {
+@@ -38,9 +42,8 @@ static int __exit octonet_remove(struct platform_device *pdev)
+ 	if (dev->link[0].info->ns_num)
+ 		ddbwritel(dev, 0, ETHER_CONTROL);
+ 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
+-
+-	free_irq(platform_get_irq(dev->pfdev, 0), dev);
+ 	ddb_ports_release(dev);
++	free_irq(platform_get_irq(dev->pfdev, 0), dev);
+ 	ddb_unmap(dev);
+ 	platform_set_drvdata(pdev, 0);
+ 	return 0;
+@@ -50,7 +53,7 @@ static int __init octonet_probe(struct platform_device *pdev)
+ {
+ 	struct ddb *dev;
+ 	struct resource *regs;
+-	int irq;
++        int irq;
+ 
+ 	dev = vzalloc(sizeof(*dev));
+ 	if (!dev)
+@@ -104,6 +107,7 @@ static int __init octonet_probe(struct platform_device *pdev)
+ 			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+ 			"octonet-dvb", (void *)dev) < 0)
+ 		goto fail;
++
+ 	ddbwritel(dev, 0x0fffff0f, INTERRUPT_ENABLE);
+ 
+ 	if (ddb_init(dev) == 0)
+@@ -115,27 +119,15 @@ fail:
+ 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
+ 	ddb_unmap(dev);
+ 	platform_set_drvdata(pdev, 0);
+-	return -1;
++        return -1;
+ }
+ 
+-#ifdef CONFIG_OF
+-static const struct of_device_id octonet_dt_ids[] = {
+-	{ .compatible = "digitaldevices,octonet-dvb" },
+-	{ /* sentinel */ }
+-};
+-
+-MODULE_DEVICE_TABLE(of, octonet_dt_ids);
+-#endif
+-
+ static struct platform_driver octonet_driver __refdata = {
+ 	.remove	= __exit_p(octonet_remove),
+ 	.probe	= octonet_probe,
+ 	.driver		= {
+ 		.name	= "octonet-dvb",
+ 		.owner	= THIS_MODULE,
+-#ifdef CONFIG_OF
+-		.of_match_table = of_match_ptr(octonet_dt_ids),
+-#endif
+ 	},
+ };
+ 
+diff --git a/ddbridge/octonet_compat.h b/ddbridge/octonet_compat.h
+new file mode 100644
+index 0000000..9b81455
+--- /dev/null
++++ b/ddbridge/octonet_compat.h
+@@ -0,0 +1,30 @@
++#include "drxk.h"
++#include "cxd2843.h"
++#include "stv0367.h"
++#include "tda18271c2dd.h"
++#include "tda18212dd.h"
++#include "tda18212.h"
++#include "stv090x.h"
++#include "lnbp21.h"   /* lnbh24_attach liegt oft hier */
++#include "stv6110x.h"
++#include "stv0910.h"
++#include "lnbh25.h"
++#include "stv6111.h"
++#include "mxl5xx.h"
++
++static void *__dummy_references[] __used = {
++    drxk_attach,
++    cxd2843_attach,
++    stv0367_attach,
++    tda18271c2dd_attach,
++    tda18212dd_attach,
++    tda18212_attach,
++    stv090x_attach,
++    lnbh24_attach,
++    stv6110x_attach,
++    stv0910_attach,
++    lnbh25_attach,
++    stv6111_attach,
++    mxl5xx_attach,
++};
++
+-- 
+2.7.4
+

@@ -1,0 +1,129 @@
+From dc85f46d3755f975ac291d70cc56ca4e690b4ba2 Mon Sep 17 00:00:00 2001
+From: Alexander Streit <streitalex@proton.me>
+Date: Wed, 29 Apr 2026 09:00:50 +0200
+Subject: [PATCH 2/2] Add DT support for octonet driver
+
+---
+ ddbridge/octonet-main.c | 58 ++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 57 insertions(+), 1 deletion(-)
+
+diff --git a/ddbridge/octonet-main.c b/ddbridge/octonet-main.c
+index d31face..23900dc 100644
+--- a/ddbridge/octonet-main.c
++++ b/ddbridge/octonet-main.c
+@@ -43,9 +43,11 @@ static int __exit octonet_remove(struct platform_device *pdev)
+ 		ddbwritel(dev, 0, ETHER_CONTROL);
+ 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
+ 	ddb_ports_release(dev);
++#ifndef CONFIG_OF
+ 	free_irq(platform_get_irq(dev->pfdev, 0), dev);
+ 	ddb_unmap(dev);
+ 	platform_set_drvdata(pdev, 0);
++#endif
+ 	return 0;
+ }
+ 
+@@ -55,6 +57,30 @@ static int __init octonet_probe(struct platform_device *pdev)
+ 	struct resource *regs;
+         int irq;
+ 
++#ifdef CONFIG_OF
++    dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
++
++    if (!dev)
++        return -ENOMEM;
++
++    platform_set_drvdata(pdev, dev);
++    dev->dev = &pdev->dev;
++    dev->pfdev = pdev;
++    mutex_init(&dev->mutex);
++
++    regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++    dev->regs = devm_ioremap_resource(&pdev->dev, regs);
++    if (IS_ERR(dev->regs)) {
++        /* devm_ioremap_resource gibt bei Fehlern einen Error-Pointer zurück */
++        return PTR_ERR(dev->regs);
++    }
++
++    dev->regs_len = resource_size(regs);
++
++    dev_info(&pdev->dev, "OctoNet DVB mmapped at %08x (len: %08x)\n",
++             (u32)regs->start, (u32)dev->regs_len);
++
++#else
+ 	dev = vzalloc(sizeof(*dev));
+ 	if (!dev)
+ 		return -ENOMEM;
+@@ -75,7 +101,7 @@ static int __init octonet_probe(struct platform_device *pdev)
+ 		dev_err(dev->dev, "ioremap failed\n");
+ 		return -ENOMEM;
+ 	}
+-
++#endif
+ 	dev->link[0].ids.hwid = ddbreadl(dev, 0);
+ 	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
+ 	dev->link[0].ids.devid = ddbreadl(dev, 8);
+@@ -103,10 +129,18 @@ static int __init octonet_probe(struct platform_device *pdev)
+ 	irq = platform_get_irq(dev->pfdev, 0);
+ 	if (irq < 0)
+ 		goto fail;
++#ifdef CONFIG_OF
++        if (devm_request_irq(&pdev->dev, irq, ddb_irq_handler,
++                             0, "octonet-dvb", dev) < 0) {
++                dev_err(&pdev->dev, "Failed to request IRQ %d\n", irq);
++                goto fail;
++        }
++#else
+ 	if (request_irq(irq, ddb_irq_handler,
+ 			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+ 			"octonet-dvb", (void *)dev) < 0)
+ 		goto fail;
++#endif
+ 
+ 	ddbwritel(dev, 0x0fffff0f, INTERRUPT_ENABLE);
+ 
+@@ -115,19 +149,41 @@ static int __init octonet_probe(struct platform_device *pdev)
+ 
+ fail:
+ 	dev_err(dev->dev, "fail\n");
++#ifdef CONFIG_OF
++        dev_err(&pdev->dev, "probe failed\n");
++        /* Nur Hardware-spezifische Abschaltungen */
++        if (dev->regs) {
++                ddbwritel(dev, 0, ETHER_CONTROL);
++                ddbwritel(dev, 0, INTERRUPT_ENABLE);
++        }
++        /* devm_ erledigt den Rest (free_irq, iounmap, kfree(dev)) automatisch! */
++#else
+ 	ddbwritel(dev, 0, ETHER_CONTROL);
+ 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
+ 	ddb_unmap(dev);
+ 	platform_set_drvdata(pdev, 0);
++#endif
+         return -1;
+ }
+ 
++#ifdef CONFIG_OF
++static const struct of_device_id octonet_dt_ids[] = {
++	{ .compatible = "digitaldevices,octonet-dvb" },
++	{ /* sentinel */ }
++};
++
++MODULE_DEVICE_TABLE(of, octonet_dt_ids);
++#endif
++
+ static struct platform_driver octonet_driver __refdata = {
+ 	.remove	= __exit_p(octonet_remove),
+ 	.probe	= octonet_probe,
+ 	.driver		= {
+ 		.name	= "octonet-dvb",
+ 		.owner	= THIS_MODULE,
++#ifdef CONFIG_OF
++		.of_match_table = of_match_ptr(octonet_dt_ids),
++#endif
+ 	},
+ };
+ 
+-- 
+2.7.4
+

@@ -1,50 +1,24 @@
 if [ ! -e linux.octonet ]; then
-  if [ ! -e linux-3.17.7.tar.xz ]; then
-     wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.7.tar.xz
+  if [ ! -e linux-3.17.8.tar.xz ]; then
+     wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.8.tar.xz
   fi
-  tar xf linux-3.17.7.tar.xz
-  mv linux-3.17.7 linux.octonet
+  tar xf linux-3.17.8.tar.xz
+  mv linux-3.17.8 linux.octonet
   patch -d linux.octonet -p1 < linux.patch
 fi
 
 if [ ! -e buildroot ]; then
-  if [ ! -e buildroot-2015.02-rc2.tar.bz2 ]; then
-     wget http://buildroot.uclibc.org/downloads/buildroot-2015.02-rc2.tar.bz2
+  if [ ! -e buildroot-2015.02.tar.bz2 ]; then
+     wget --no-check-certificate http://buildroot.org/downloads/buildroot-2015.02.tar.bz2
   fi
-  tar xf buildroot-2015.02-rc2.tar.bz2
-  mv buildroot-2015.02-rc2 buildroot
-#  cp dvb-apps-0002-Fix-broken-bitops-on-arm.patch buildroot/package/dvb-apps/
-#  cp busybox-0001-Fix-zcip-arp-compare.patch buildroot/package/busybox/
-#  cp lzop-0001-ACC.patch buildroot/package/lzop/
+  tar xf buildroot-2015.02.tar.bz2
+  mv buildroot-2015.02 buildroot
+  patch -d buildroot -p1 < buildroot.patch
   if [ -e dl ]; then
      ln -sf ../dl buildroot
   fi
 fi
-
-if [ ! -e ../dddvb ]; then
-   git clone -b "0.9.20" "https://github.com/DigitalDevices/dddvb.git" ../dddvb
-fi
-
-DDDVB=../dddvb
-LINUX=linux.octonet
-
-cp $DDDVB/ddbridge/*.[ch] $LINUX/drivers/media/pci/ddbridge/
-cp $DDDVB/dvb-core/*.[ch] $LINUX/drivers/media/dvb-core/
-cp $DDDVB/include/linux/dvb/*.h $LINUX/include/uapi/linux/dvb/
-
-cp $DDDVB/frontends/drxk*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/lnb*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv0367dd*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv090x*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv6110*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/tda18*dd*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/cxd2099.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/cxd2843.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv6111.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/stv0910*.[ch] $LINUX/drivers/media/dvb-frontends/
-cp $DDDVB/frontends/mxl5xx*.[ch] $LINUX/drivers/media/dvb-frontends/
-
-
+# dddvb will be built and installed as internal package, no copy-orgy anymore!
 if [ ! -e u-boot ]; then
   if [ ! -e u-boot-2014.07.tar.bz2 ]; then
      wget ftp://ftp.denx.de/pub/u-boot/u-boot-2014.07.tar.bz2
